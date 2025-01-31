@@ -21,13 +21,13 @@ if(WITH_XC_BROWSER)
             BrowserAction.cpp
             BrowserEntryConfig.cpp
             BrowserEntrySaveDialog.cpp
-            BrowserHost.cpp
+            BrowserHost.mm
             BrowserMessageBuilder.cpp
             BrowserSettingsPage.cpp
             BrowserSettingsWidget.cpp
             BrowserService.cpp
             BrowserSettings.cpp
-            BrowserShared.cpp
+            BrowserShared.mm
             CustomTableWidget.cpp
             NativeMessageInstaller.cpp)
 
