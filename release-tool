@@ -1211,6 +1211,14 @@ appsign() {
                 cd "${orig_dir}"
                 exitError "Signing failed!"
             fi
+
+            # Sign autofill extension
+            if ! xcrun codesign --sign "${key}" --verbose --force --options runtime --entitlements \
+                "${real_src_dir}/src/autofill/autofill.entitlements" "${app_dir_tmp}/Contents/PlugIns/autofill.appex/Contents/MacOS/autofill"; then
+                cd "${orig_dir}"
+                exitError "Signing failed!"
+            fi
+
             # Sign main executable with additional entitlements
             if ! xcrun codesign --sign "${key}" --verbose --force --options runtime --entitlements \
                 "${real_src_dir}/share/macosx/keepassxc.entitlements" "${app_dir_tmp}/Contents/MacOS/KeePassXC"; then

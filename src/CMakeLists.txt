@@ -136,7 +136,7 @@ set(gui_SOURCES
         gui/MessageWidget.cpp
         gui/PasswordWidget.cpp
         gui/PasswordGeneratorWidget.cpp
-        gui/ApplicationSettingsWidget.cpp
+        gui/ApplicationSettingsWidget.mm
         gui/Icons.cpp
         gui/SearchWidget.cpp
         gui/SettingsWidget.cpp
@@ -289,6 +289,8 @@ if(WITH_XC_BROWSER)
             gui/reports/ReportsPageBrowserStatistics.cpp)
 endif()
 
+add_subdirectory(autofill)
+
 if(WITH_XC_BROWSER_PASSKEYS)
     list(APPEND gui_SOURCES
             gui/reports/ReportsWidgetPasskeys.cpp
@@ -389,7 +391,7 @@ target_link_libraries(keepassxc_gui
         ${sshagent_LIB})
 
 if(APPLE)
-    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit")
+    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework AuthenticationServices")
     if(Qt5MacExtras_FOUND)
         target_link_libraries(keepassxc_gui Qt5::MacExtras)
     endif()
