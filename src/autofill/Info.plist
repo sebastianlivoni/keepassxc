@@ -20,6 +20,15 @@
 	<dict>
 		<key>NSExtensionAttributes</key>
 		<dict>
+			<key>ASCredentialProviderExtensionCapabilities</key>
+			<dict>
+				<key>ProvidesOneTimeCodes</key>
+				<true/>
+				<key>ProvidesPasswords</key>
+				<true/>
+				<key>ProvidesPasskeys</key>
+				<true/>
+			</dict>
 			<key>ASCredentialProviderExtensionShowsConfigurationUI</key>
 			<false/>
 		</dict>

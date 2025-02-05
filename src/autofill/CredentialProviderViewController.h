@@ -5,7 +5,7 @@
 //  Created by Sebastian Livoni on 31/01/2025.
 //
 
-#import <AuthenticationServices/AuthenticationServices.h>
+#include <AuthenticationServices/AuthenticationServices.h>
 
 @interface CredentialProviderViewController : ASCredentialProviderViewController
 

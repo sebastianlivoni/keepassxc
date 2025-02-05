@@ -118,7 +118,7 @@ set(gui_SOURCES
         gui/DatabaseIcons.cpp
         gui/DatabaseOpenWidget.cpp
         gui/DatabaseTabWidget.cpp
-        gui/DatabaseWidget.cpp
+        gui/DatabaseWidget.mm
         gui/DatabaseWidgetStateSync.cpp
         gui/EntryPreviewWidget.cpp
         gui/DialogyWidget.cpp
@@ -218,6 +218,8 @@ if(APPLE)
             gui/osutils/macutils/ScreenLockListenerMac.cpp
             gui/osutils/macutils/AppKitImpl.mm
             gui/osutils/macutils/AppKit.h
+            autofill/AutoFillAction.cpp
+            autofill/AutoFillService.mm
             quickunlock/TouchID.mm)
 
     # TODO: Remove -Wno-error once deprecation warnings have been resolved.

@@ -50,8 +50,6 @@ void BrowserHost::start()
 {
     if (!m_localServer->isListening()) {
         m_localServer->listen(BrowserShared::localServerPath());
-
-        [[NSDistributedNotificationCenter defaultCenter] postNotificationName:@"org.keepassxc.KeePassXC.LocalServerStarted" object:nil];
     }
 }
 

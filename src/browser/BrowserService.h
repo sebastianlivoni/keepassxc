@@ -117,6 +117,7 @@ public:
                   const QString& groupUuid,
                   const bool downloadFavicon,
                   const QSharedPointer<Database>& selectedDb = {});
+    Entry* getEntryByUuid(const QString& uuid);
     bool updateEntry(const EntryParameters& entryParameters, const QString& uuid);
     bool deleteEntry(const QString& uuid);
     void removePluginData(Entry* entry) const;

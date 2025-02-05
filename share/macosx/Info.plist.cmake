@@ -31,25 +31,36 @@
   <key>CFBundleVersion</key>
   <string>${KEEPASSXC_VERSION_NUM}</string>
   <key>NSHumanReadableCopyright</key>
-    <string>Copyright 2016-2020 KeePassXC Development Team</string>
-    <key>CFBundleDocumentTypes</key>
-    <array>
-      <dict>
-        <key>CFBundleTypeExtensions</key>
-        <array>
-          <string>kdbx</string>
-        </array>
-        <key>CFBundleTypeIconFile</key>
-        <string>keepassxc.icns</string>
-        <key>CFBundleTypeName</key>
-        <string>KeePassXC Password Database</string>
-        <key>CFBundleTypeOSTypes</key>
-        <array>
-          <string>kdbx</string>
-        </array>
-        <key>CFBundleTypeRole</key>
-        <string>Editor</string>
-      </dict>
-    </array>
-  </dict>
+  <string>Copyright 2016-2020 KeePassXC Development Team</string>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeExtensions</key>
+      <array>
+        <string>kdbx</string>
+      </array>
+      <key>CFBundleTypeIconFile</key>
+      <string>keepassxc.icns</string>
+      <key>CFBundleTypeName</key>
+      <string>KeePassXC Password Database</string>
+      <key>CFBundleTypeOSTypes</key>
+      <array>
+        <string>kdbx</string>
+      </array>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+    </dict>
+  </array>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>otpauth</string>
+      </array>
+    </dict>
+  </array>
+</dict>
 </plist>

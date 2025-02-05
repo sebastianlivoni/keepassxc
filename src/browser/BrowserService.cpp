@@ -39,6 +39,7 @@
 #endif
 #ifdef Q_OS_MACOS
 #include "gui/osutils/macutils/MacUtils.h"
+#include "autofill/AutoFillAction.h"
 #endif
 
 #include <QCheckBox>
@@ -912,6 +913,15 @@ void BrowserService::addEntry(const EntryParameters& entryParameters,
     }
 }
 
+Entry* BrowserService::getEntryByUuid(const QString& uuid) {
+    auto db = getDatabase();
+    if (!db) {
+        return nullptr;
+    }
+
+    return db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuid));
+}
+
 bool BrowserService::updateEntry(const EntryParameters& entryParameters, const QString& uuid)
 {
     // TODO: select database based on this key id
@@ -1695,6 +1705,17 @@ void BrowserService::handleDatabaseUnlockDialogFinished(bool accepted, DatabaseW
 
 void BrowserService::processClientMessage(QLocalSocket* socket, const QJsonObject& message)
 {
+    auto action_ = message["action"].toString();
+    if (!action_.isEmpty()) {
+        if (action_ == "get-login" || action_ == "get-totp" || action_ == "passkeys-register" || action_ == "passkeys-get") {
+            AutoFillAction autofillAction;
+            auto response = autofillAction.processMessage(socket, message);
+            m_browserHost->sendClientMessage(socket, response);
+
+            return;
+        }
+    }
+
     auto clientID = message["clientID"].toString();
     if (clientID.isEmpty()) {
         return;
