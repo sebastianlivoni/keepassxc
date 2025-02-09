@@ -1,11 +1,17 @@
 set(SOURCES
     CredentialProviderViewController.mm
     AutoFillService.mm
+    ../browser/BrowserMessageBuilder.cpp
+    ../browser/BrowserPasskeysClient.cpp
+    ../browser/BrowserPasskeys.cpp
+    ../browser/BrowserCbor.cpp
+    ../browser/PasskeyUtils.cpp
+    ../gui/UrlTools.cpp
 )
 
 add_executable(autofill ${SOURCES})
 
-target_link_libraries(autofill Qt5::Core keepassxc_core)
+target_link_libraries(autofill Qt5::Core Qt5::Network keepassxc_core)
 target_link_libraries(autofill "-framework Foundation -framework SwiftUI -framework AuthenticationServices")
 
 # Add the linker flag for _NSExtensionMain

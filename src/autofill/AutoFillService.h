@@ -19,19 +19,14 @@ public:
       const ASPasswordCredentialIdentity *identity);
   ASOneTimeCodeCredential *getOneTimeCodeCredentialFromIdentity(
       const ASOneTimeCodeCredentialIdentity *identity);
-
-  void savePasswordKey(const QUuid &dbUuid, const QByteArray &passwordKey);
+  ASPasskeyAssertionCredential* getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest *request);
 
 private:
-  void getPasswordKey(const QUuid &dbUuid, QByteArray &passwordKey);
+  ASPasswordCredentialIdentity* getPasswordCredentialIdentityFromEntry(const Entry *entry);
+  ASOneTimeCodeCredentialIdentity* getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry);
+  ASPasskeyCredentialIdentity* getPasskeyCredentialIdentityFromEntry(const Entry *entry);
 
-  ASPasswordCredentialIdentity *
-  getPasswordCredentialIdentityFromEntry(const Entry *entry);
-  ASOneTimeCodeCredentialIdentity *
-  getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry);
-
-  ASCredentialServiceIdentifier *
-  getCredentialServiceIdentifierFromEntry(const Entry *entry);
+  ASCredentialServiceIdentifier* getCredentialServiceIdentifierFromEntry(const Entry *entry);
 
   NSString *uuidStringFromEntry(const Entry *entry);
 };
