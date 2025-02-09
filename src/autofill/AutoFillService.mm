@@ -193,7 +193,9 @@ ASPasskeyAssertionCredential* AutoFillService::getPasskeyCredentialFromPasskeyRe
   ASPasskeyCredentialIdentity *identity = (ASPasskeyCredentialIdentity *)request.credentialIdentity;
 
   NSData *challenge = request.clientDataHash;
-  NSString *challengeString = [challenge base64EncodedStringWithOptions:0];
+  QByteArray challengeQ = QByteArray::fromNSData(challenge);
+  QString challengeString = browserMessageBuilder()->getBase64FromArray(challengeQ);
+  //NSString *challengeString = [challenge base64EncodedStringWithOptions:0];
 
   int argc = 0;
   char *argv[] = {};
@@ -234,7 +236,7 @@ ASPasskeyAssertionCredential* AutoFillService::getPasskeyCredentialFromPasskeyRe
         }
     )")
     .arg(credentialId)
-    .arg(QString::fromNSString(challengeString))
+    .arg(challengeString)
     .arg(origin); // todo user verification mapping
 
     /*const auto privateKeyPem = QString("-----BEGIN PRIVATE KEY-----"
