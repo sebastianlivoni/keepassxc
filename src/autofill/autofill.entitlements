@@ -6,10 +6,14 @@
     <true/>
     <key>com.apple.security.app-sandbox</key>
     <true/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+ 	<true/>
     <key>com.apple.security.temporary-exception.sbpl</key>
 	<array>
 		<string>(allow file-read* (regex #"\.kdbx"))</string>
 		<string>(allow file-write* (regex #"\.kdbx"))</string>
 	</array>
+    <key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
 </dict>
 </plist>

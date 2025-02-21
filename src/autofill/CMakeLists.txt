@@ -11,14 +11,14 @@ set(SOURCES
 
 add_executable(autofill ${SOURCES})
 
-target_link_libraries(autofill Qt5::Core Qt5::Network keepassxc_core)
+target_link_libraries(autofill Qt5::Core Qt5::Network Qt5::Widgets keepassxc_core)
 target_link_libraries(autofill "-framework Foundation -framework SwiftUI -framework AuthenticationServices")
 
 # Add the linker flag for _NSExtensionMain
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -e _NSExtensionMain")
 
 set_target_properties(autofill PROPERTIES
-    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE ON
     MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/src/autofill/Info.plist
     BUNDLE_EXTENSION appex
     CPACK_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/src/autofill/autofill.entitlements"
@@ -36,6 +36,5 @@ if(WITH_APP_BUNDLE)
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/src
             COMMENT "Copying autofill into plugins")
 
-    set_property(GLOBAL APPEND PROPERTY
-        _MACDEPLOYQT_EXTRA_BINARIES "${PLUGIN_INSTALL_DIR}/autofill.appex/Contents/MacOS/autofill")
+    #set_property(GLOBAL APPEND PROPERTY _MACDEPLOYQT_EXTRA_BINARIES "${PLUGIN_INSTALL_DIR}/autofill.appex/Contents/MacOS/autofill")
 endif()

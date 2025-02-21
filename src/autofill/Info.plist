@@ -30,7 +30,7 @@
 				<true/>
 			</dict>
 			<key>ASCredentialProviderExtensionShowsConfigurationUI</key>
-			<false/>
+			<true/>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.authentication-services-credential-provider-ui</string>
