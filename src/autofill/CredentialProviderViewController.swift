@@ -2,6 +2,7 @@ import AuthenticationServices
 import SwiftUI
 import os
 
+@objc(CredentialProviderViewController)
 class CredentialProviderViewController: ASCredentialProviderViewController {
     private var logger = Logger(
         subsystem: Bundle.main.bundleIdentifier!,
@@ -70,6 +71,7 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
 struct ConfigurationView: View {
     var body: some View {
         Button("Setup", action: setup)
+        .frame(width: 300, height: 300)
     }
 
     func setup() {

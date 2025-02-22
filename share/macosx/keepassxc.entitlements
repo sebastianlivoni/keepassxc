@@ -37,5 +37,7 @@
 	<true/>
 	<key>com.apple.security.cs.disable-library-validation</key>
 	<true/>
+	<!--<key>com.apple.security.device.accessibility</key>
+	<true/>-->
 </dict>
 </plist>
