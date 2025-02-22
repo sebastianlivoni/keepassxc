@@ -5,13 +5,13 @@
 	<key>CFBundleDisplayName</key>
 	<string>KeePassXC Autofill</string>
 	<key>CFBundleExecutable</key>
-	<string>autofill</string>
+	<string>KeePassXCAutofillExtension</string>
 	<key>CFBundleIdentifier</key>
 	<string>me.livoni.KeePassXC.autofill</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>KeePassXC Autofill</string>
+	<string>KeePassXCAutofillExtension</string>
 	<key>CFBundleVersion</key>
 	<string>1.0</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,9 +28,11 @@
 				<true/>
 				<key>ProvidesPasskeys</key>
 				<true/>
+				<key>ShowsConfigurationUI</key>
+				<true/>
+				<key>SupportsConditionalPasskeyRegistration</key>
+				<true/>
 			</dict>
-			<key>ASCredentialProviderExtensionShowsConfigurationUI</key>
-			<true/>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.authentication-services-credential-provider-ui</string>
