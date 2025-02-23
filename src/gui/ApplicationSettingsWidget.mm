@@ -117,7 +117,8 @@ ApplicationSettingsWidget::ApplicationSettingsWidget(QWidget *parent)
     connect(m_generalUi->showExpiredEntriesOnDatabaseUnlockCheckBox, SIGNAL(toggled(bool)),
             SLOT(showExpiredEntriesOnDatabaseUnlockToggled(bool)));
 
-    connect(m_generalUi->enableAutofillButton, SIGNAL(clicked()), SLOT(enableAutofill()));
+    connect(m_generalUi->enableAutofillCheckBox, &QCheckBox::toggled, this, &ApplicationSettingsWidget::enableAutofill);
+    connect(m_generalUi->setupVerificationCodeCheckBox, &QCheckBox::toggled, this, &ApplicationSettingsWidget::openVerificationCodeAppSettings);
 
     connect(m_secUi->clearClipboardCheckBox, SIGNAL(toggled(bool)),
             m_secUi->clearClipboardSpinBox, SLOT(setEnabled(bool)));
@@ -783,4 +784,8 @@ void ApplicationSettingsWidget::enableAutofill() {
           NSLog(@"Successfully opened Credential Provider settings.");
         }
       }];
+}
+
+void ApplicationSettingsWidget::openVerificationCodeAppSettings() {
+  [ASSettingsHelper openVerificationCodeAppSettingsWithCompletionHandler:nil];
 }
