@@ -59,14 +59,12 @@
                           userInfo:nil]];
 }
 
-- (void) prepareInterfaceForExtensionConfiguration {
+- (void)prepareInterfaceForExtensionConfiguration {
   NSLog(@"Hello from prepare interface 1");
-
-  setenv("QT_DEBUG_PLUGINS", "1", 1);
 
   int argc = 0;
   char *argv[] = { nullptr };
-  QApplication *qtApp = new QApplication(argc, argv); // Måske QGuiApplication?
+  QApplication *qtApp = new QApplication(argc, argv); 
 
   NSLog(@"Hello from prepare interface 2");
 
@@ -83,10 +81,20 @@
 
   NSView* newView = (__bridge NSView*)reinterpret_cast<void*>(window->winId());
 
+  // Disable autoresizing mask to use constraints
   newView.translatesAutoresizingMaskIntoConstraints = NO;
+  
+  // Set frame size
   [newView setFrameSize:NSMakeSize(490, 200)];
   
+  // Add the new view as a subview
   [self.view addSubview:newView];
+  
+  // Set the constraints for the new view
+  [newView.topAnchor constraintEqualToAnchor:self.view.topAnchor].active = YES;
+  [newView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor].active = YES;
+  [newView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor].active = YES;
+  [newView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor].active = YES;
 }
 
 @end
