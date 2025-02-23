@@ -22,6 +22,9 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 
+#import <Foundation/Foundation.h>
+#import <SafariServices/SafariServices.h>
+
 #ifdef Q_OS_WIN
 #include <fcntl.h>
 #undef NOMINMAX
@@ -94,9 +97,85 @@ void BrowserHost::readProxyMessage()
 void BrowserHost::broadcastClientMessage(const QJsonObject& json)
 {
     QString reply(QJsonDocument(json).toJson(QJsonDocument::Compact));
+    bool containsSafariWebExtensionSocket = false;
+
+    // Send message to all non-Safari sockets
     for (const auto socket : m_socketList) {
+        if (isSafariWebExtension(socket)) {
+            containsSafariWebExtensionSocket = true;
+            continue; // Skip Safari web extension sockets because we are using SFSafariApplication instead
+        }
+
         sendClientData(socket, reply);
     }
+
+    if (containsSafariWebExtensionSocket) {
+        NSString* jsonString = reply.toNSString();
+        NSData *data = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+
+        NSError *error = nil;
+        NSDictionary *message = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+
+        if (error) {
+            NSLog(@"Error converting NSString to NSDictionary: %@", error.localizedDescription);
+            return;
+        }
+
+        [SFSafariApplication dispatchMessageWithName:@"proxy_message"
+                        toExtensionWithIdentifier:@"me.livoni.KeePassXC.SafariWebExtension"
+                                            userInfo:message
+                                            completionHandler:nil];
+    }
+}
+
+bool BrowserHost::isSafariWebExtension(QLocalSocket* socket)
+{
+    int sockfd = socket->socketDescriptor();
+    pid_t pid = -1;
+    socklen_t len = sizeof(pid);
+    if (getsockopt(sockfd, SOL_LOCAL, LOCAL_PEERPID, &pid, &len) == -1) {
+        NSLog(@"Failed to get peer PID, error: %s", strerror(errno));
+        return false;
+    }
+
+    SecCodeRef parentCode = NULL;
+    CFDictionaryRef attributes = (__bridge CFDictionaryRef)@{(NSString *)kSecGuestAttributePid: @(pid)};
+    OSStatus status = SecCodeCopyGuestWithAttributes(NULL, attributes, 0, &parentCode);
+
+    if (status != errSecSuccess || parentCode == NULL) {
+        NSLog(@"Failed to get SecCode for parent process (PID %d): %d", pid, static_cast<int>(status));
+        return false;
+    }
+
+    NSString *requirementString = @"anchor apple generic and identifier \"me.livoni.KeePassXC.SafariWebExtension\"";
+
+    SecRequirementRef requirement = NULL;
+    status = SecRequirementCreateWithString((__bridge CFStringRef)requirementString, SecCSFlags(), &requirement);
+
+    if (status != errSecSuccess || requirement == NULL) {
+        NSLog(@"Failed to create requirement: %d", static_cast<int>(status));
+        if (parentCode != NULL) {
+            CFRelease(parentCode);
+        }
+        return false;
+    }
+
+    status = SecCodeCheckValidity(parentCode, SecCSFlags(), requirement);
+
+    if (status == errSecSuccess) {
+        NSLog(@"Caller is verified successfully.");
+    } else {
+        NSLog(@"Caller verification failed: %d", static_cast<int>(status));
+    }
+
+    if (parentCode != NULL) {
+        CFRelease(parentCode);
+    }
+    if (requirement != NULL) {
+        CFRelease(requirement);
+    }
+
+    return (status == errSecSuccess);
 }
 
 void BrowserHost::sendClientMessage(QLocalSocket* socket, const QJsonObject& json)

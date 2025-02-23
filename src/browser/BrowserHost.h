@@ -50,6 +50,7 @@ private slots:
 
 private:
     void sendClientData(QLocalSocket* socket, const QString& data);
+    bool isSafariWebExtension(QLocalSocket* socket);
 
 private:
     QPointer<QLocalServer> m_localServer;

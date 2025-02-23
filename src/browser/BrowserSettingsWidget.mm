@@ -22,6 +22,8 @@
 #include "config-keepassx.h"
 #include "gui/styles/StateColorPalette.h"
 
+#import <SafariServices/SafariServices.h>
+
 #include <QFileDialog>
 
 BrowserSettingsWidget::BrowserSettingsWidget(QWidget* parent)
@@ -38,7 +40,6 @@ BrowserSettingsWidget::BrowserSettingsWidget(QWidget* parent)
                  "<a href=\"https://chromewebstore.google.com/detail/keepassxc-browser/oboonakemofpalcgghocfoadofidjkkk\">"
                  "Google Chrome / Chromium / Vivaldi / Brave</a>",
                  "<a href=\"https://microsoftedge.microsoft.com/addons/detail/pdffhmdngciaglkoonimfcmckehcpafo\">Microsoft Edge</a>"));
-    // clang-format on
 
     m_ui->tabWidget->setEnabled(m_ui->enableBrowserSupport->isChecked());
     connect(m_ui->enableBrowserSupport, SIGNAL(toggled(bool)), m_ui->tabWidget, SLOT(setEnabled(bool)));

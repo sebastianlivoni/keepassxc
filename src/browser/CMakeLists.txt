@@ -14,20 +14,21 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 if(WITH_XC_BROWSER)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src/safariwebextension)
 
     set(browser_SOURCES
             BrowserAccessControlDialog.cpp
             BrowserAction.cpp
             BrowserEntryConfig.cpp
             BrowserEntrySaveDialog.cpp
-            BrowserHost.cpp
+            BrowserHost.mm
             BrowserMessageBuilder.cpp
             BrowserSettingsPage.cpp
-            BrowserSettingsWidget.cpp
+            BrowserSettingsWidget.mm
             BrowserService.cpp
             BrowserSettings.cpp
-            BrowserShared.cpp
+            BrowserShared.mm
+            ../safariwebextension/SafariWebExtensionCheckbox.mm
             CustomTableWidget.cpp
             NativeMessageInstaller.cpp)
 

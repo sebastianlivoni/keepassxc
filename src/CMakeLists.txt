@@ -289,6 +289,8 @@ if(WITH_XC_BROWSER)
             gui/reports/ReportsPageBrowserStatistics.cpp)
 endif()
 
+add_subdirectory(safariwebextension)
+
 if(WITH_XC_BROWSER_PASSKEYS)
     list(APPEND gui_SOURCES
             gui/reports/ReportsWidgetPasskeys.cpp
@@ -389,7 +391,7 @@ target_link_libraries(keepassxc_gui
         ${sshagent_LIB})
 
 if(APPLE)
-    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit")
+    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework SafariServices")
     if(Qt5MacExtras_FOUND)
         target_link_libraries(keepassxc_gui Qt5::MacExtras)
     endif()
