@@ -1065,10 +1065,6 @@ Do you want to overwrite the passkey in %1 - %2?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Browsers installed as snaps are currently not supported.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Enable integration for these browsers:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1291,6 +1287,10 @@ Do you want to overwrite the passkey in %1 - %2?</source>
         <source>KeePassXC-Browser is needed for the browser integration to work. &lt;br /&gt;Download it for %1 and %2 and %3.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Browsers installed using Snap or Flatpak are not supported with exception to Firefox installed using Snap.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>CloneDialog</name>
@@ -1511,6 +1511,14 @@ Backup database located at %2</source>
     </message>
     <message>
         <source>Recycle Bin</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Database file read error.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No file path was provided.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2684,24 +2692,6 @@ Save changes?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The database file has changed. Do you want to load the changes?</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Merge Request</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The database file has changed and you have unsaved changes.
-Do you want to merge your changes?</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Could not open the new database file while attempting to autoreload.
-Error: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Disable safe saves?</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2785,6 +2775,50 @@ Disable safe saves and try again?</source>
     </message>
     <message>
         <source>Do you want to remove the passkey from this entry?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The database file &quot;%1&quot; was modified externally</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Do you want to load the changes?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reload database</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reloading database…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reload canceled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reload successful</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reload pending user action…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The database file &quot;%1&quot; was modified externally.&lt;br&gt;How would you like to proceed?&lt;br&gt;&lt;br&gt;Merge all changes&lt;br&gt;Ignore the changes on disk until save&lt;br&gt;Discard unsaved changes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The database file &quot;%1&quot; was modified externally.&lt;br&gt;How would you like to proceed?&lt;br&gt;&lt;br&gt;Merge all changes then save&lt;br&gt;Overwrite the changes on disk&lt;br&gt;Discard unsaved changes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Database file overwritten.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Database file on disk cannot be unlocked with current credentials.&lt;br&gt;Enter new credentials and/or present hardware key to continue.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3378,6 +3412,10 @@ Would you like to correct it?</source>
     </message>
     <message>
         <source> seconds</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clear agent</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6256,6 +6294,14 @@ Expect some bugs and minor issues, this version is meant for testing purposes.</
     </message>
     <message>
         <source>E&amp;xpire Entry…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clear SSH Agent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clear all identities in ssh-agent</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -9182,6 +9228,10 @@ This option is deprecated, use --set-key-file instead.</source>
         <source>Passkey</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>start minimized to the system tray</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>QtIOCompressor</name>
@@ -9779,6 +9829,14 @@ This option is deprecated, use --set-key-file instead.</source>
     </message>
     <message>
         <source>No agent running, cannot list identities.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to remove all SSH identities from agent.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All SSH identities removed from agent.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
