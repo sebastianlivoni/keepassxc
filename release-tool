@@ -1207,7 +1207,8 @@ appsign() {
             fi
             logInfo "Signing executables..."
             if ! find "${app_dir_tmp}/Contents/MacOS" \( -type f -not -name KeePassXC \) -print0  | xargs -0 \
-                xcrun codesign --sign "${key}" --verbose --force --options runtime; then
+                xcrun codesign --sign "${key}" --verbose --force --options runtime --entitlements \
+                "${real_src_dir}/share/macosx/disable-library-validation.entitlements"; then # TODO: This entitlements should be removed when I know why it does not link sqlite as static instead of dynamic
                 cd "${orig_dir}"
                 exitError "Signing failed!"
             fi
