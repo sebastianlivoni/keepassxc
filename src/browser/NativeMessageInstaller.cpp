@@ -33,6 +33,11 @@
 #include <QSettings>
 #include <QStandardPaths>
 
+#if defined(Q_OS_MACOS)
+#include <unistd.h>
+#include <pwd.h>
+#endif
+
 using namespace BrowserShared;
 
 namespace
@@ -244,6 +249,10 @@ QString NativeMessageInstaller::getNativeMessagePath(SupportedBrowsers browser) 
     } else {
         basePath = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation);
     }
+#elif defined(Q_OS_MACOS)
+    // QDir::homePath() is incorrect in sandboxed environments, so we fallback to getpwuid().
+    const char* rawHome = getpwuid(getuid())->pw_dir;
+    basePath = rawHome ? QString::fromUtf8(rawHome) : QDir::homePath();
 #else
     basePath = QDir::homePath();
 #endif
