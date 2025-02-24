@@ -117,9 +117,6 @@ ApplicationSettingsWidget::ApplicationSettingsWidget(QWidget *parent)
     connect(m_generalUi->showExpiredEntriesOnDatabaseUnlockCheckBox, SIGNAL(toggled(bool)),
             SLOT(showExpiredEntriesOnDatabaseUnlockToggled(bool)));
 
-    connect(m_generalUi->enableAutofillCheckBox, &QCheckBox::toggled, this, &ApplicationSettingsWidget::enableAutofill);
-    connect(m_generalUi->setupVerificationCodeCheckBox, &QCheckBox::toggled, this, &ApplicationSettingsWidget::openVerificationCodeAppSettings);
-
     connect(m_secUi->clearClipboardCheckBox, SIGNAL(toggled(bool)),
             m_secUi->clearClipboardSpinBox, SLOT(setEnabled(bool)));
     connect(m_secUi->clearSearchCheckBox, SIGNAL(toggled(bool)),
@@ -761,31 +758,4 @@ void ApplicationSettingsWidget::selectBackupDirectory() {
                           ->getDefault(Config::BackupFilePathPattern)
                           .toString()));
   }
-}
-
-void ApplicationSettingsWidget::enableAutofill() {
-  /*[ASSettingsHelper
-      requestToTurnOnCredentialProviderExtensionWithCompletionHandler:^(
-          BOOL appWasEnabledForAutoFill) {
-        if (appWasEnabledForAutoFill) {
-          NSLog(@"Credential Provider Extension was successfully enabled.");
-        } else {
-          NSLog(@"Failed to enable Credential Provider Extension or user "
-                @"canceled.");
-        }
-      }];*/
-
-  [ASSettingsHelper
-      openCredentialProviderAppSettingsWithCompletionHandler:^(NSError *error) {
-        if (error) {
-          NSLog(@"Failed to open Credential Provider settings: %@",
-                error.localizedDescription);
-        } else {
-          NSLog(@"Successfully opened Credential Provider settings.");
-        }
-      }];
-}
-
-void ApplicationSettingsWidget::openVerificationCodeAppSettings() {
-  [ASSettingsHelper openVerificationCodeAppSettingsWithCompletionHandler:nil];
 }

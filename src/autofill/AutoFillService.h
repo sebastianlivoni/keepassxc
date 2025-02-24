@@ -14,12 +14,15 @@ public:
   void saveCredentialStore(const QSharedPointer<Database> &db);
   void replaceCredentialStore(const QSharedPointer<Database> &db);
   void resetCredentialStore();
+  void updateEntry();
 
   ASPasswordCredential *getPasswordCredentialFromIdentity(
       const ASPasswordCredentialIdentity *identity);
   ASOneTimeCodeCredential *getOneTimeCodeCredentialFromIdentity(
       const ASOneTimeCodeCredentialIdentity *identity);
   ASPasskeyAssertionCredential* getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest *request);
+
+  ASPasskeyRegistrationCredential* createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request);
 
 private:
   ASPasswordCredentialIdentity* getPasswordCredentialIdentityFromEntry(const Entry *entry);

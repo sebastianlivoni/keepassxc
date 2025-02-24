@@ -1360,7 +1360,7 @@
       <attribute name="title">
        <string>AutoFill</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_3">
+      <layout class="QVBoxLayout" name="verticalLayout_9">
        <property name="leftMargin">
         <number>10</number>
        </property>
@@ -1374,21 +1374,17 @@
         <number>10</number>
        </property>
        <item>
-        <widget class="QCheckBox" name="enableAutofillCheckBox">
+        <widget class="AutoFillCredentialProviderCheckbox">
          <property name="text">
           <string>Use KeePassXC for native AutoFill</string>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="setupVerificationCodeCheckBox">
-         <property name="text">
-          <string>Use KeePassXC for verification codes</string>
+         <property name="checked">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
        <item>
-        <spacer name="verticalSpacer_5">
+        <spacer name="verticalSpacer_7">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>

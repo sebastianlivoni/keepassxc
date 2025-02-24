@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src/autofill)
 
 add_feature_info(Auto-Type WITH_XC_AUTOTYPE "Automatic password typing")
 add_feature_info(Networking WITH_XC_NETWORKING "Compile KeePassXC with network access code (e.g. for downloading website icons)")
@@ -137,6 +137,7 @@ set(gui_SOURCES
         gui/PasswordWidget.cpp
         gui/PasswordGeneratorWidget.cpp
         gui/ApplicationSettingsWidget.mm
+        autofill/AutoFillCredentialProviderCheckbox.mm
         gui/Icons.cpp
         gui/SearchWidget.cpp
         gui/SettingsWidget.cpp
@@ -218,7 +219,6 @@ if(APPLE)
             gui/osutils/macutils/ScreenLockListenerMac.cpp
             gui/osutils/macutils/AppKitImpl.mm
             gui/osutils/macutils/AppKit.h
-            autofill/AutoFillAction.cpp
             autofill/AutoFillService.mm
             quickunlock/TouchID.mm)
 

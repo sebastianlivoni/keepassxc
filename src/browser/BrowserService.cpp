@@ -39,7 +39,6 @@
 #endif
 #ifdef Q_OS_MACOS
 #include "gui/osutils/macutils/MacUtils.h"
-#include "autofill/AutoFillAction.h"
 #endif
 
 #include <QCheckBox>
@@ -1705,17 +1704,6 @@ void BrowserService::handleDatabaseUnlockDialogFinished(bool accepted, DatabaseW
 
 void BrowserService::processClientMessage(QLocalSocket* socket, const QJsonObject& message)
 {
-    auto action_ = message["action"].toString();
-    if (!action_.isEmpty()) {
-        if (action_ == "get-login" || action_ == "get-totp" || action_ == "passkeys-register" || action_ == "passkeys-get") {
-            AutoFillAction autofillAction;
-            auto response = autofillAction.processMessage(socket, message);
-            m_browserHost->sendClientMessage(socket, response);
-
-            return;
-        }
-    }
-
     auto clientID = message["clientID"].toString();
     if (clientID.isEmpty()) {
         return;

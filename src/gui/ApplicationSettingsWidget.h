@@ -64,8 +64,6 @@ private slots:
     void checkUpdatesToggled(bool checked);
     void showExpiredEntriesOnDatabaseUnlockToggled(bool checked);
     void selectBackupDirectory();
-    void enableAutofill();
-    void openVerificationCodeAppSettings();
 
 private:
     QWidget* const m_secWidget;

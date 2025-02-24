@@ -1,6 +1,7 @@
 set(SOURCES
     CredentialProviderViewController.mm
     ExtensionConfigurationWidget.mm
+    PasskeyRegistrationWidget.mm
     CredentialListWidget.mm
     AutoFillService.mm
     AutoFillViewController.mm

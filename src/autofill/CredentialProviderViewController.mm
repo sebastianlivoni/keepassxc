@@ -6,6 +6,7 @@
 #include "AutoFillViewController.h"
 #include "ExtensionConfigurationWidget.h"
 #include "CredentialListWidget.h"
+#include "PasskeyRegistrationWidget.h"
 
 @implementation CredentialProviderViewController
 
@@ -27,7 +28,14 @@
 
 - (void)prepareOneTimeCodeCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {}
 
-- (void)prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {}
+- (void)prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {
+  ASPasskeyCredentialRequest *passkeyRegistrationRequest = (ASPasskeyCredentialRequest *)registrationRequest;
+  ASPasskeyCredentialIdentity *credentialIdentity = (ASPasskeyCredentialIdentity *)passkeyRegistrationRequest.credentialIdentity;
+
+  QWidget* widget = new PasskeyRegistrationWidget(self.extensionContext);
+
+  [self embedQWidget:widget];
+}
 
 - (void)prepareInterfaceToProvideCredentialForRequest:(id<ASCredentialRequest>) credentialRequest {}
 

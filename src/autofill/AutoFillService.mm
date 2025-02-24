@@ -153,9 +153,9 @@ ASPasswordCredentialIdentity* AutoFillService::getPasswordCredentialIdentityFrom
 }
 
 ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
-    const ASOneTimeCodeCredentialIdentity *identity) {
+  const ASOneTimeCodeCredentialIdentity *identity) {
 
-      int argc = 0;
+  int argc = 0;
   char *argv[] = {};
   new QCoreApplication(argc, argv);
 
@@ -187,6 +187,22 @@ ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
   } else {
     return nullptr;
   }
+}
+
+ASPasskeyRegistrationCredential* AutoFillService::createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request) {
+  ASPasskeyCredentialIdentity *identity = (ASPasskeyCredentialIdentity *)request.credentialIdentity;
+
+  NSData *clientDataHash = request.clientDataHash;
+  NSString *userVerificationPreference = request.userVerificationPreference;
+  NSArray<NSNumber *> *supportedAlgorithms = request.supportedAlgorithms;
+
+  NSString *userName = identity.userName;
+  NSData *userHandle = identity.userHandle;
+  NSString *relyingPartyIdentifier = identity.relyingPartyIdentifier;
+  NSData *credentialID = identity.credentialID;
+  NSString *recordIdentifier = identity.recordIdentifier;
+
+  //const auto publicKeyCredentials = browserPasskeys()->buildRegisterPublicKeyCredential(credentialCreationOptions);
 }
 
 ASPasskeyAssertionCredential* AutoFillService::getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest *request) {
