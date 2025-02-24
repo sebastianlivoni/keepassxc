@@ -1,22 +1,44 @@
 #include "CredentialProviderViewController.h"
 #include "AutoFillService.h"
 #include <AuthenticationServices/AuthenticationServices.h>
-#include <QtWidgets/QWidget>
 #include <QApplication>
-#include <QtWidgets/QPushButton>
-#include <QtWidgets/QLabel>
-#include <QtWidgets/QVBoxLayout>
-#include <QtPlugin>
-#include <QDebug>
+#include "AutoFillViewController.h"
 
 @implementation CredentialProviderViewController
 
-- (void) prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {
+- (void) viewDidLoad {
+  [super viewDidLoad];
 
+  int argc = 0;
+  char *argv[] = { nullptr };
+  QApplication *qtApp = new QApplication(argc, argv);
+
+  AutoFillViewController *autoFillViewController = [[AutoFillViewController alloc] init];
+  [self addChildViewController:autoFillViewController];
+  [self.view addSubview:autoFillViewController.view];
+
+  autoFillViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+  [NSLayoutConstraint activateConstraints:@[
+    [autoFillViewController.view.topAnchor constraintEqualToAnchor:self.view.topAnchor constant:0],
+    [autoFillViewController.view.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:0],
+    [autoFillViewController.view.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:0],
+    [autoFillViewController.view.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:0],
+    [autoFillViewController.view.widthAnchor constraintEqualToConstant:500],
+    [autoFillViewController.view.heightAnchor constraintEqualToConstant:300]
+  ]];
 }
 
-- (void)provideCredentialWithoutUserInteractionForRequest:
-    (id<ASCredentialRequest>)credentialRequest {
+- (void) prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers { }
+
+- (void) prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers requestParameters:(ASPasskeyCredentialRequestParameters *) requestParameters { }
+
+- (void) prepareOneTimeCodeCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {}
+
+- (void) prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {}
+
+- (void) prepareInterfaceToProvideCredentialForRequest:(id<ASCredentialRequest>) credentialRequest {}
+
+- (void) provideCredentialWithoutUserInteractionForRequest:(id<ASCredentialRequest>)credentialRequest {
   switch (credentialRequest.type) {
   case ASCredentialRequestTypePassword: {
     ASPasswordCredentialIdentity *credentialIdentity = (ASPasswordCredentialIdentity *)credentialRequest.credentialIdentity;
@@ -51,50 +73,17 @@
   }
 }
 
+- (void)performPasskeyRegistrationWithoutUserInteractionIfPossible:(ASPasskeyCredentialRequest *) registrationRequest {}
+
+
+- (void)prepareInterfaceForExtensionConfiguration {}
+
 - (void)exitWithUserInteractionRequired {
   [self.extensionContext
       cancelRequestWithError:
           [NSError errorWithDomain:ASExtensionErrorDomain
                               code:ASExtensionErrorCodeUserInteractionRequired
                           userInfo:nil]];
-}
-
-- (void)prepareInterfaceForExtensionConfiguration {
-  NSLog(@"Hello from prepare interface 1");
-
-  int argc = 0;
-  char *argv[] = { nullptr };
-  QApplication *qtApp = new QApplication(argc, argv); 
-
-  NSLog(@"Hello from prepare interface 2");
-
-  QPushButton* btn = new QPushButton("Some Button");
-  QLabel* lbl = new QLabel("QTGui");
-  QVBoxLayout* layout = new QVBoxLayout();
-  layout->addWidget(lbl);
-  layout->addWidget(btn);
-
-  QWidget* window = new QWidget();
-  window->setLayout(layout);
-  window->show();
-  window->resize(490, 200);
-
-  NSView* newView = (__bridge NSView*)reinterpret_cast<void*>(window->winId());
-
-  // Disable autoresizing mask to use constraints
-  newView.translatesAutoresizingMaskIntoConstraints = NO;
-  
-  // Set frame size
-  [newView setFrameSize:NSMakeSize(490, 200)];
-  
-  // Add the new view as a subview
-  [self.view addSubview:newView];
-  
-  // Set the constraints for the new view
-  [newView.topAnchor constraintEqualToAnchor:self.view.topAnchor].active = YES;
-  [newView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor].active = YES;
-  [newView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor].active = YES;
-  [newView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor].active = YES;
 }
 
 @end

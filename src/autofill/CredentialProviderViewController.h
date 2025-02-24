@@ -9,6 +9,4 @@
 
 @interface CredentialProviderViewController : ASCredentialProviderViewController
 
-- (void)onButtonClick; 
-
 @end
