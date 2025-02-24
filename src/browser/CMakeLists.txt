@@ -32,6 +32,11 @@ if(WITH_XC_BROWSER)
             CustomTableWidget.cpp
             NativeMessageInstaller.cpp)
 
+    if(APPLE)
+        list(APPEND browser_SOURCES
+            BrowserSharedMac.mm)
+    endif()
+
     if(WITH_XC_BROWSER_PASSKEYS)
         list(APPEND browser_SOURCES
                 BrowserCbor.cpp

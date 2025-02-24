@@ -19,6 +19,11 @@ if(WITH_XC_BROWSER)
         keepassxc-proxy.cpp
         NativeMessagingProxy.cpp)
 
+    if(APPLE)
+        list(APPEND proxy_SOURCES
+            ../browser/BrowserSharedMac.mm)
+    endif()
+
     # Alloc must be defined in a static library to prevent clashing with clang ASAN definitions
     add_library(proxy_alloc STATIC ../core/Alloc.cpp)
     target_link_libraries(proxy_alloc PRIVATE Qt5::Core ${BOTAN_LIBRARIES})
