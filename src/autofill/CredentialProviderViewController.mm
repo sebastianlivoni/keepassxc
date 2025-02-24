@@ -1,44 +1,37 @@
 #include "CredentialProviderViewController.h"
-#include "AutoFillService.h"
-#include <AuthenticationServices/AuthenticationServices.h>
+
 #include <QApplication>
+
+#include "AutoFillService.h"
 #include "AutoFillViewController.h"
+#include "ExtensionConfigurationWidget.h"
+#include "CredentialListWidget.h"
 
 @implementation CredentialProviderViewController
 
-- (void) viewDidLoad {
+- (void)viewDidLoad {
   [super viewDidLoad];
 
   int argc = 0;
   char *argv[] = { nullptr };
   QApplication *qtApp = new QApplication(argc, argv);
-
-  AutoFillViewController *autoFillViewController = [[AutoFillViewController alloc] init];
-  [self addChildViewController:autoFillViewController];
-  [self.view addSubview:autoFillViewController.view];
-
-  autoFillViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
-  [NSLayoutConstraint activateConstraints:@[
-    [autoFillViewController.view.topAnchor constraintEqualToAnchor:self.view.topAnchor constant:0],
-    [autoFillViewController.view.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:0],
-    [autoFillViewController.view.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:0],
-    [autoFillViewController.view.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:0],
-    [autoFillViewController.view.widthAnchor constraintEqualToConstant:500],
-    [autoFillViewController.view.heightAnchor constraintEqualToConstant:300]
-  ]];
 }
 
-- (void) prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers { }
+- (void)prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {
+  QWidget* widget = new CredentialListWidget(self.extensionContext);
 
-- (void) prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers requestParameters:(ASPasskeyCredentialRequestParameters *) requestParameters { }
+  [self embedQWidget:widget];
+}
 
-- (void) prepareOneTimeCodeCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {}
+- (void)prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers requestParameters:(ASPasskeyCredentialRequestParameters *) requestParameters { }
 
-- (void) prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {}
+- (void)prepareOneTimeCodeCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {}
 
-- (void) prepareInterfaceToProvideCredentialForRequest:(id<ASCredentialRequest>) credentialRequest {}
+- (void)prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {}
 
-- (void) provideCredentialWithoutUserInteractionForRequest:(id<ASCredentialRequest>)credentialRequest {
+- (void)prepareInterfaceToProvideCredentialForRequest:(id<ASCredentialRequest>) credentialRequest {}
+
+- (void)provideCredentialWithoutUserInteractionForRequest:(id<ASCredentialRequest>)credentialRequest {
   switch (credentialRequest.type) {
   case ASCredentialRequestTypePassword: {
     ASPasswordCredentialIdentity *credentialIdentity = (ASPasswordCredentialIdentity *)credentialRequest.credentialIdentity;
@@ -75,8 +68,29 @@
 
 - (void)performPasskeyRegistrationWithoutUserInteractionIfPossible:(ASPasskeyCredentialRequest *) registrationRequest {}
 
+- (void)embedQWidget:(QWidget *)widget {
+  NSView* rootView = (__bridge NSView*)reinterpret_cast<void*>(widget->winId());
 
-- (void)prepareInterfaceForExtensionConfiguration {}
+  [self.view addSubview:rootView];
+
+  self.view.translatesAutoresizingMaskIntoConstraints = NO;
+
+  [NSLayoutConstraint activateConstraints:@[
+    [self.view.topAnchor constraintEqualToAnchor:rootView.topAnchor constant:0],
+    [self.view.leadingAnchor constraintEqualToAnchor:rootView.leadingAnchor constant:0],
+    [self.view.trailingAnchor constraintEqualToAnchor:rootView.trailingAnchor constant:0],
+    [self.view.bottomAnchor constraintEqualToAnchor:rootView.bottomAnchor constant:0]
+  ]];
+
+  [self.view.widthAnchor constraintEqualToConstant:rootView.frame.size.width].active = YES;
+  [self.view.heightAnchor constraintEqualToConstant:rootView.frame.size.height].active = YES;
+}
+
+- (void)prepareInterfaceForExtensionConfiguration {
+  QWidget* widget = new ExtensionConfigurationWidget(self.extensionContext);
+
+  [self embedQWidget:widget];
+}
 
 - (void)exitWithUserInteractionRequired {
   [self.extensionContext

@@ -9,4 +9,6 @@
 
 @interface CredentialProviderViewController : ASCredentialProviderViewController
 
+@property NSViewController *viewController;
+
 @end

@@ -5,27 +5,47 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QVBoxLayout>
 
+#include "ExtensionConfigurationWidget.h"
+
 @implementation AutoFillViewController
+
+- (instancetype)initWithExtensionContext:(ASCredentialProviderExtensionContext *)extensionContext {
+    self = [super init];
+    if (self) {
+        _extensionContext = extensionContext;
+    }
+    return self;
+}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    QPushButton* btn = new QPushButton("Some Button");
-    QLabel* lbl = new QLabel("QTGui");
-    QVBoxLayout* layout = new QVBoxLayout();
-    layout->addWidget(lbl);
-    layout->addWidget(btn);
+    QWidget* widget = new ExtensionConfigurationWidget(self.extensionContext);
 
-    QWidget* window = new QWidget();
-    window->setLayout(layout);
-    window->show();
-    window->resize(500, 300);
+    [self embedQWidget:widget];
+}
 
-    NSView* rootView = (__bridge NSView*)reinterpret_cast<void*>(window->winId());
+- (void) embedQWidget:(QWidget *)widget {
+    NSView* rootView = (__bridge NSView*)reinterpret_cast<void*>(widget->winId());
 
-    //NSView *rootView = [[NSView alloc] init];
-    
+    /*[NSLayoutConstraint activateConstraints:@[
+        [self.view.widthAnchor constraintEqualToConstant:500],
+        [self.view.heightAnchor constraintEqualToConstant:300]
+    ]];*/
+
+    /*[NSLayoutConstraint activateConstraints:@[
+        [self.view.widthAnchor constraintEqualToAnchor:rootView.widthAnchor],
+        [self.view.heightAnchor constraintEqualToAnchor:rootView.heightAnchor]
+    ]];*/
+
+    [self.view.widthAnchor constraintEqualToConstant:rootView.frame.size.width].active = YES;
+    [self.view.heightAnchor constraintEqualToConstant:rootView.frame.size.height].active = YES;
+
     [self.view addSubview:rootView];
+}
+
+- (void)onButtonClicked {
+    [self.extensionContext completeExtensionConfigurationRequest];
 }
 
 @end
