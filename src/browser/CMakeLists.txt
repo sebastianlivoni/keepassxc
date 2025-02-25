@@ -21,7 +21,7 @@ if(WITH_XC_BROWSER)
             BrowserAction.cpp
             BrowserEntryConfig.cpp
             BrowserEntrySaveDialog.cpp
-            BrowserHost.mm
+            BrowserHost.cpp
             BrowserMessageBuilder.cpp
             BrowserSettingsPage.cpp
             BrowserSettingsWidget.cpp

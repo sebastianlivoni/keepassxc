@@ -22,8 +22,6 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 
-#include <Foundation/Foundation.h>
-
 #ifdef Q_OS_WIN
 #include <fcntl.h>
 #undef NOMINMAX
