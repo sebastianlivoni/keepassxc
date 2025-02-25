@@ -38,6 +38,10 @@
 #include <Windows.h>
 #endif
 
+#ifdef Q_OS_MACOS
+#include "format/BookmarkFile.h"
+#endif
+
 QHash<QUuid, QPointer<Database>> Database::s_uuidMap;
 
 Database::Database()
@@ -131,7 +135,11 @@ bool Database::open(const QString& filePath, QSharedPointer<const CompositeKey> 
         return false;
     }
 
+    #ifdef Q_OS_MACOS
+    BookmarkFile dbFile(filePath);
+    #else
     QFile dbFile(filePath);
+    #endif
     if (!dbFile.exists()) {
         if (error) {
             *error = tr("File %1 does not exist.").arg(filePath);

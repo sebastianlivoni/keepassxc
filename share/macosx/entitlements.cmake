@@ -26,11 +26,6 @@
 	<true/>
 	<key>com.apple.security.files.bookmarks.document-scope</key>
 	<true/>
-	<key>com.apple.security.temporary-exception.sbpl</key> <!-- This must be replaced by bookmarks -->
-	<array>
-		<string>(allow file-read* (regex #"\.kdbx"))</string>
-		<string>(allow file-write* (regex #"\.kdbx"))</string>
-	</array>
 	<key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key>
 	<array>
 		<string>/Library/Application Support/Google/Chrome/NativeMessagingHosts/</string>

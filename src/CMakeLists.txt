@@ -213,6 +213,9 @@ set(gui_SOURCES
         ../share/wizard/wizard.qrc)
 
 if(APPLE)
+    list (APPEND core_SOURCES
+            format/BookmarkFile.mm)
+
     list(APPEND gui_SOURCES
             gui/osutils/macutils/MacPasteboard.cpp
             gui/osutils/macutils/MacUtils.cpp
@@ -390,6 +393,9 @@ target_link_libraries(keepassxc_gui
         ${sshagent_LIB})
 
 if(APPLE)
+    target_compile_definitions(keepassxc_core PRIVATE
+        APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
+
     target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit")
     if(Qt5MacExtras_FOUND)
         target_link_libraries(keepassxc_gui Qt5::MacExtras)
