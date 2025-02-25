@@ -31,3 +31,4 @@ out/
 # vcpkg
 vcpkg_installed*/
 
+keepassxc.entitlements

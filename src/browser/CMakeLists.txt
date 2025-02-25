@@ -46,5 +46,11 @@ if(WITH_XC_BROWSER)
     endif()
 
     add_library(browser STATIC ${browser_SOURCES})
+
+    if(APPLE)
+        target_compile_definitions(browser PRIVATE
+            APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
+    endif()
+
     target_link_libraries(browser Qt5::Core Qt5::Concurrent Qt5::Widgets Qt5::Network ${BOTAN_LIBRARIES})
 endif()

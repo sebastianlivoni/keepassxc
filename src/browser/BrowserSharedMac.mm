@@ -6,7 +6,7 @@ namespace BrowserShared
 {
     QString macOSLocalServerPath()
     {
-        NSString *appGroupIdentifier = @"G2S7P7J672.org.keepassxc.KeePassXC";
+        NSString *appGroupIdentifier = QString::fromUtf8(APP_GROUP_IDENTIFIER).toNSString();
 
         // Get the container URL for the app group identifier
         NSURL *containerURL = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:appGroupIdentifier];

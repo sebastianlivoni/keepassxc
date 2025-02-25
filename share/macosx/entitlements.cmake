@@ -3,14 +3,14 @@
 <plist version="1.0">
 <dict>
 	<key>com.apple.application-identifier</key>
-	<string>6HH7K3R53J.me.livoni.KeePassXC</string>
+	<string>${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}</string>
 	<key>com.apple.security.application-groups</key>
  	<array>
- 		<string>6HH7K3R53J.me.livoni.KeePassXC</string>
+ 		<string>${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}</string>
  	</array>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>6HH7K3R53J.me.livoni.KeePassXC</string>
+		<string>${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}</string>
 	</array>
 	<key>com.apple.security.app-sandbox</key>
  	<true/>
