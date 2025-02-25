@@ -25,6 +25,7 @@
 #include "format/KdbxXmlReader.h"
 #include "format/KeePass2Reader.h"
 #include "format/KeePass2Writer.h"
+#include "streams/HashingStream.h"
 
 #include <QFileInfo>
 #include <QJsonObject>
@@ -35,6 +36,10 @@
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
+#endif
+
+#ifdef Q_OS_MACOS
+#include "format/BookmarkFile.h"
 #endif
 
 QHash<QUuid, QPointer<Database>> Database::s_uuidMap;
@@ -62,8 +67,8 @@ Database::Database()
         updateTagList();
     });
     connect(this, &Database::modified, this, [this] { updateTagList(); });
-    connect(this, &Database::databaseSaved, this, [this]() { updateCommonUsernames(); });
-    connect(m_fileWatcher, &FileWatcher::fileChanged, this, &Database::databaseFileChanged);
+    connect(this, &Database::databaseSaved, this, [this] { updateCommonUsernames(); });
+    connect(m_fileWatcher, &FileWatcher::fileChanged, this, [this] { emit databaseFileChanged(false); });
 
     // static uuid map
     s_uuidMap.insert(m_uuid, this);
@@ -106,10 +111,6 @@ QUuid Database::uuid() const
  */
 bool Database::open(QSharedPointer<const CompositeKey> key, QString* error)
 {
-    Q_ASSERT(!m_data.filePath.isEmpty());
-    if (m_data.filePath.isEmpty()) {
-        return false;
-    }
     return open(m_data.filePath, std::move(key), error);
 }
 
@@ -127,7 +128,18 @@ bool Database::open(QSharedPointer<const CompositeKey> key, QString* error)
  */
 bool Database::open(const QString& filePath, QSharedPointer<const CompositeKey> key, QString* error)
 {
+    if (filePath.isEmpty()) {
+        if (error) {
+            *error = tr("No file path was provided.");
+        }
+        return false;
+    }
+
+    #ifdef Q_OS_MACOS
+    BookmarkFile dbFile(filePath);
+    #else
     QFile dbFile(filePath);
+    #endif
     if (!dbFile.exists()) {
         if (error) {
             *error = tr("File %1 does not exist.").arg(filePath);
@@ -150,6 +162,20 @@ bool Database::open(const QString& filePath, QSharedPointer<const CompositeKey> 
     }
 
     setEmitModified(false);
+
+    // update the hash of the first block
+    m_fileBlockHash.clear();
+    auto fileBlockData = dbFile.peek(kFileBlockToHashSizeBytes);
+    if (fileBlockData.size() != kFileBlockToHashSizeBytes) {
+        if (dbFile.size() >= kFileBlockToHashSizeBytes) {
+            if (error) {
+                *error = tr("Database file read error.");
+            }
+            return false;
+        }
+    } else {
+        m_fileBlockHash = QCryptographicHash::hash(fileBlockData, QCryptographicHash::Md5);
+    }
 
     KeePass2Reader reader;
     if (!reader.readDatabase(&dbFile, std::move(key), this)) {
@@ -260,14 +286,33 @@ bool Database::saveAs(const QString& filePath, SaveAction action, const QString&
         return false;
     }
 
-    if (filePath == m_data.filePath) {
-        // Fail-safe check to make sure we don't overwrite underlying file changes
-        // that have not yet triggered a file reload/merge operation.
-        if (!m_fileWatcher->hasSameFileChecksum()) {
-            if (error) {
-                *error = tr("Database file has unmerged changes.");
+    // Make sure we don't overwrite external modifications unless explicitly allowed
+    if (!m_ignoreFileChangesUntilSaved && !m_fileBlockHash.isEmpty() && filePath == m_data.filePath) {
+        QFile dbFile(filePath);
+        if (dbFile.exists()) {
+            if (!dbFile.open(QIODevice::ReadOnly)) {
+                if (error) {
+                    *error = tr("Unable to open file %1.").arg(filePath);
+                }
+                return false;
             }
-            return false;
+            auto fileBlockData = dbFile.read(kFileBlockToHashSizeBytes);
+            if (fileBlockData.size() == kFileBlockToHashSizeBytes) {
+                auto hash = QCryptographicHash::hash(fileBlockData, QCryptographicHash::Md5);
+                if (m_fileBlockHash != hash) {
+                    if (error) {
+                        *error = tr("Database file has unmerged changes.");
+                    }
+                    // emit the databaseFileChanged(true) signal async
+                    QMetaObject::invokeMethod(this, "databaseFileChanged", Qt::QueuedConnection, Q_ARG(bool, true));
+                    return false;
+                }
+            } else if (dbFile.size() >= kFileBlockToHashSizeBytes) {
+                if (error) {
+                    *error = tr("Database file read error.");
+                }
+                return false;
+            }
         }
     }
 
@@ -302,7 +347,7 @@ bool Database::saveAs(const QString& filePath, SaveAction action, const QString&
             SetFileAttributes(realFilePath.toStdString().c_str(), FILE_ATTRIBUTE_HIDDEN);
         }
 #endif
-
+        m_ignoreFileChangesUntilSaved = false;
         m_fileWatcher->start(realFilePath, 30, 1);
     } else {
         // Saving failed, don't rewatch file since it does not represent our database
@@ -325,8 +370,12 @@ bool Database::performSave(const QString& filePath, SaveAction action, const QSt
     case Atomic: {
         QSaveFile saveFile(filePath);
         if (saveFile.open(QIODevice::WriteOnly)) {
+            HashingStream hashingStream(&saveFile, QCryptographicHash::Md5, kFileBlockToHashSizeBytes);
+            if (!hashingStream.open(QIODevice::WriteOnly)) {
+                return false;
+            }
             // write the database to the file
-            if (!writeDatabase(&saveFile, error)) {
+            if (!writeDatabase(&hashingStream, error)) {
                 return false;
             }
 
@@ -334,6 +383,9 @@ bool Database::performSave(const QString& filePath, SaveAction action, const QSt
             saveFile.setFileTime(createTime, QFile::FileBirthTime);
 
             if (saveFile.commit()) {
+                // store the new hash
+                m_fileBlockHash = hashingStream.hashingResult();
+
                 // successfully saved database file
                 return true;
             }
@@ -347,8 +399,12 @@ bool Database::performSave(const QString& filePath, SaveAction action, const QSt
     case TempFile: {
         QTemporaryFile tempFile;
         if (tempFile.open()) {
+            HashingStream hashingStream(&tempFile, QCryptographicHash::Md5, kFileBlockToHashSizeBytes);
+            if (!hashingStream.open(QIODevice::WriteOnly)) {
+                return false;
+            }
             // write the database to the file
-            if (!writeDatabase(&tempFile, error)) {
+            if (!writeDatabase(&hashingStream, error)) {
                 return false;
             }
             tempFile.close(); // flush to disk
@@ -366,6 +422,8 @@ bool Database::performSave(const QString& filePath, SaveAction action, const QSt
                 QFile::setPermissions(filePath, perms);
                 // Retain original creation time
                 tempFile.setFileTime(createTime, QFile::FileBirthTime);
+                // store the new hash
+                m_fileBlockHash = hashingStream.hashingResult();
                 return true;
             } else if (backupFilePath.isEmpty() || !restoreDatabase(filePath, backupFilePath)) {
                 // Failed to copy new database in place, and
@@ -387,10 +445,16 @@ bool Database::performSave(const QString& filePath, SaveAction action, const QSt
         // Open the original database file for direct-write
         QFile dbFile(filePath);
         if (dbFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            if (!writeDatabase(&dbFile, error)) {
+            HashingStream hashingStream(&dbFile, QCryptographicHash::Md5, kFileBlockToHashSizeBytes);
+            if (!hashingStream.open(QIODevice::WriteOnly)) {
+                return false;
+            }
+            if (!writeDatabase(&hashingStream, error)) {
                 return false;
             }
             dbFile.close();
+            // store the new hash
+            m_fileBlockHash = hashingStream.hashingResult();
             return true;
         }
         if (error) {
@@ -508,6 +572,9 @@ void Database::releaseData()
     m_deletedObjects.clear();
     m_commonUsernames.clear();
     m_tagList.clear();
+
+    m_fileBlockHash.clear();
+    m_ignoreFileChangesUntilSaved = false;
 }
 
 /**
@@ -644,8 +711,31 @@ void Database::setFilePath(const QString& filePath)
         m_data.filePath = filePath;
         // Don't watch for changes until the next open or save operation
         m_fileWatcher->stop();
+        m_ignoreFileChangesUntilSaved = false;
         emit filePathChanged(oldPath, filePath);
     }
+}
+
+const QByteArray& Database::fileBlockHash() const
+{
+    return m_fileBlockHash;
+}
+
+void Database::setIgnoreFileChangesUntilSaved(bool ignore)
+{
+    if (m_ignoreFileChangesUntilSaved != ignore) {
+        m_ignoreFileChangesUntilSaved = ignore;
+        if (ignore) {
+            m_fileWatcher->pause();
+        } else {
+            m_fileWatcher->resume();
+        }
+    }
+}
+
+bool Database::ignoreFileChangesUntilSaved() const
+{
+    return m_ignoreFileChangesUntilSaved;
 }
 
 QList<DeletedObject> Database::deletedObjects()

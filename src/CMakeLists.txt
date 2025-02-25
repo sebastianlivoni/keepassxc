@@ -96,6 +96,7 @@ set(core_SOURCES
         keys/PasswordKey.cpp
         keys/ChallengeResponseKey.cpp
         streams/HashedBlockStream.cpp
+        streams/HashingStream.cpp
         streams/HmacBlockStream.cpp
         streams/LayeredStream.cpp
         streams/qtiocompressor.cpp
@@ -213,6 +214,9 @@ set(gui_SOURCES
         ../share/wizard/wizard.qrc)
 
 if(APPLE)
+    list (APPEND core_SOURCES
+            format/BookmarkFile.mm)
+
     list(APPEND gui_SOURCES
             gui/osutils/macutils/MacPasteboard.cpp
             gui/osutils/macutils/MacUtils.cpp
@@ -393,7 +397,10 @@ target_link_libraries(keepassxc_gui
         ${sshagent_LIB})
 
 if(APPLE)
-    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework AuthenticationServices")
+    target_compile_definitions(keepassxc_core PRIVATE
+        APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
+
+    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit")
     if(Qt5MacExtras_FOUND)
         target_link_libraries(keepassxc_gui Qt5::MacExtras)
     endif()
@@ -435,8 +442,12 @@ set_target_properties(${PROGNAME} PROPERTIES ENABLE_EXPORTS ON)
 
 # macOS App Bundle
 if(APPLE AND WITH_APP_BUNDLE)
+    set(APPLE_TEAM_ID "G2S7P7J672" CACHE STRING "Apple Developer Team ID")
+    set(APPLE_APP_IDENTIFIER "org.keepassxc.keepassxc" CACHE STRING "App bundle identifier")
+
     install(FILES ${CMAKE_SOURCE_DIR}/share/macosx/embedded.provisionprofile DESTINATION ${BUNDLE_INSTALL_DIR})
     configure_file(${CMAKE_SOURCE_DIR}/share/macosx/Info.plist.cmake ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
+    configure_file(${CMAKE_SOURCE_DIR}/share/macosx/entitlements.cmake ${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements)
     set_target_properties(${PROGNAME} PROPERTIES
             MACOSX_BUNDLE ON
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info.plist

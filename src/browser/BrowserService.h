@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2024 KeePassXC Team <team@keepassxc.org>
+ *  Copyright (C) 2025 KeePassXC Team <team@keepassxc.org>
  *  Copyright (C) 2017 Sami Vänttinen <sami.vanttinen@protonmail.com>
  *  Copyright (C) 2013 Francois Ferrand
  *
@@ -133,6 +133,7 @@ public:
     static const QString OPTION_ONLY_HTTP_AUTH;
     static const QString OPTION_NOT_HTTP_AUTH;
     static const QString OPTION_OMIT_WWW;
+    static const QString ADDITIONAL_URL;
     static const QString OPTION_RESTRICT_KEY;
 
 signals:
@@ -200,7 +201,9 @@ private:
     bool handleURL(const QString& entryUrl,
                    const QString& siteUrl,
                    const QString& formUrl,
-                   const bool omitWwwSubdomain = false);
+                   const bool omitWwwSubdomain = false,
+                   const bool allowWildcards = false);
+    bool handleURLWithWildcards(const QUrl& entryQUrl, const QString& siteUrl);
     QString getDatabaseRootUuid();
     QString getDatabaseRecycleBinUuid();
     void hideWindow() const;

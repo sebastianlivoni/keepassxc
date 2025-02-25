@@ -15,7 +15,7 @@
   <key>CFBundleIconFile</key>
   <string>keepassxc.icns</string>
   <key>CFBundleIdentifier</key>
-  <string>me.livoni.KeePassXC</string>
+  <string>${APPLE_APP_IDENTIFIER}</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
