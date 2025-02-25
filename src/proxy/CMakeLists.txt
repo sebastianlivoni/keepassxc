@@ -34,6 +34,11 @@ if(WITH_XC_BROWSER)
             BUNDLE DESTINATION . COMPONENT Runtime
             RUNTIME DESTINATION ${PROXY_INSTALL_DIR} COMPONENT Runtime)
 
+    if(APPLE)
+        target_compile_definitions(keepassxc-proxy PRIVATE
+            APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
+    endif()
+
     if(APPLE AND WITH_APP_BUNDLE)
         set(PROXY_APP_DIR "${CMAKE_BINARY_DIR}/src/${PROXY_INSTALL_DIR}")
         add_custom_command(TARGET keepassxc-proxy

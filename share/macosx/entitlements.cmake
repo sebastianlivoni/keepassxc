@@ -3,7 +3,15 @@
 <plist version="1.0">
 <dict>
 	<key>com.apple.application-identifier</key>
-	<string>G2S7P7J672.org.keepassxc.keepassxc</string>
+	<string>${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}</string>
+	<key>com.apple.security.application-groups</key>
+ 	<array>
+ 		<string>${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}</string>
+ 	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}</string>
+	</array>
 	<key>com.apple.security.app-sandbox</key>
  	<true/>
  	<key>com.apple.security.device.usb</key>
@@ -14,15 +22,10 @@
  	<true/>
 	<key>com.apple.security.network.server</key>
 	<true/>
- 	<key>com.apple.security.application-groups</key>
- 	<array>
- 		<string>G2S7P7J672.org.keepassxc.KeePassXC</string>
- 	</array>
-	<key>com.apple.security.temporary-exception.sbpl</key>
-	<array>
-		<string>(allow file-read* (regex #"\.kdbx"))</string>
-		<string>(allow file-write* (regex #"\.kdbx"))</string>
-	</array>
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
+	<key>com.apple.security.files.bookmarks.document-scope</key>
+	<true/>
 	<key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key>
 	<array>
 		<string>/Library/Application Support/Google/Chrome/NativeMessagingHosts/</string>
@@ -33,9 +36,5 @@
 		<string>/Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts/</string>
 		<string>/Library/Application Support/Microsoft Edge/NativeMessagingHosts/</string>
 	</array>
-	<key>com.apple.security.cs.disable-library-validation</key>
-	<true/>
-	<!--<key>com.apple.security.device.accessibility</key>
-	<true/>-->
 </dict>
 </plist>
