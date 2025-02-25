@@ -31,8 +31,6 @@ set_target_properties(KeePassXCSafariWebExtension PROPERTIES
 install(TARGETS KeePassXCSafariWebExtension
         BUNDLE DESTINATION ${PLUGIN_INSTALL_DIR} COMPONENT Runtime)
 
-install(FILES ${CMAKE_SOURCE_DIR}/src/safariwebextension/embedded.provisionprofile DESTINATION ${PLUGIN_INSTALL_DIR}/KeePassXCSafariWebExtension.appex/Contents/)
-
 # Compile browser extension and copy into Resources
 set(WEB_EXTENSION_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/safariwebextension/keepassxc-browser")
 set(BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/KeePassXCSafariWebExtension.appex/Contents/Resources")
