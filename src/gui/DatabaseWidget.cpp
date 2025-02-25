@@ -59,6 +59,8 @@
 #include "remote/RemoteHandler.h"
 #include "remote/RemoteSettings.h"
 
+#include "autofill/AutoFillService.h"
+
 #ifdef WITH_XC_NETWORKING
 #include "gui/IconDownloaderDialog.h"
 #endif
@@ -1336,6 +1338,9 @@ void DatabaseWidget::loadDatabase(bool accepted)
         m_entryBeforeLock = QUuid();
         m_saveAttempts = 0;
         emit databaseUnlocked();
+
+        autoFillService()->replaceCredentialStore(m_db);
+
 #ifdef WITH_XC_SSHAGENT
         sshAgent()->databaseUnlocked(m_db);
 #endif
@@ -1486,6 +1491,8 @@ void DatabaseWidget::unlockDatabase(bool accepted)
     switchToMainView();
     processAutoOpen();
     emit databaseUnlocked();
+
+    autoFillService()->replaceCredentialStore(m_db);
 
 #ifdef WITH_XC_SSHAGENT
     sshAgent()->databaseUnlocked(m_db);
