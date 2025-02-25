@@ -27,7 +27,7 @@ if(WITH_XC_BROWSER)
             BrowserSettingsWidget.mm
             BrowserService.cpp
             BrowserSettings.cpp
-            BrowserShared.mm
+            BrowserShared.cpp
             ../safariwebextension/SafariWebExtensionCheckbox.mm
             CustomTableWidget.cpp
             NativeMessageInstaller.cpp)

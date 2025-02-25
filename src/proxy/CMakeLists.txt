@@ -15,7 +15,7 @@
 
 if(WITH_XC_BROWSER)
     set(proxy_SOURCES
-        ../browser/BrowserShared.mm
+        ../browser/BrowserShared.cpp
         keepassxc-proxy.cpp
         NativeMessagingProxy.cpp)
 
