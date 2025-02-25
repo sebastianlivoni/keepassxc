@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>KeePassXCAutofillExtension</string>
 	<key>CFBundleIdentifier</key>
-	<string>me.livoni.KeePassXC.autofill</string>
+	<string>${APPLE_APP_IDENTIFIER}.AutofillExtension</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

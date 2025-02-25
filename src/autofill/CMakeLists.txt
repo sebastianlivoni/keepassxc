@@ -30,7 +30,7 @@ set_target_properties(KeePassXCAutofillExtension PROPERTIES
 install(TARGETS KeePassXCAutofillExtension
         BUNDLE DESTINATION ${PLUGIN_INSTALL_DIR} COMPONENT Runtime)
 
-install(FILES ${CMAKE_SOURCE_DIR}/src/autofill/embedded.provisionprofile DESTINATION ${PLUGIN_INSTALL_DIR}/KeePassXCAutofillExtension.appex/Contents/)
+#install(FILES ${CMAKE_SOURCE_DIR}/src/autofill/embedded.provisionprofile DESTINATION ${PLUGIN_INSTALL_DIR}/KeePassXCAutofillExtension.appex/Contents/)
 
 if(WITH_APP_BUNDLE)
     add_custom_command(TARGET KeePassXCAutofillExtension
