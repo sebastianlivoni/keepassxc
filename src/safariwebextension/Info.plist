@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>KeePassXCSafariWebExtension</string>
 	<key>CFBundleIdentifier</key>
-	<string>me.livoni.KeePassXC.SafariWebExtension</string>
+	<string>${APPLE_APP_IDENTIFIER}.SafariWebExtension</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -16,6 +16,8 @@
 	<string>1.0</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
+	<key>APP_GROUP_IDENTIFIER</key>
+	<string>${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

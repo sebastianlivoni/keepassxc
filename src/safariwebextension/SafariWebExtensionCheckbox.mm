@@ -11,8 +11,11 @@ SafariWebExtensionCheckbox::SafariWebExtensionCheckbox(QWidget *parent)
 }
 
 void SafariWebExtensionCheckbox::mousePressEvent(QMouseEvent *e) {
+    NSString *appIdentifier = QString::fromUtf8(APPLE_APP_IDENTIFIER).toNSString();
+    NSString *extensionIdentifier = [appIdentifier stringByAppendingString:@".SafariWebExtension"];
+    
     if (e->button() == Qt::LeftButton) {
-        [SFSafariApplication showPreferencesForExtensionWithIdentifier:@"me.livoni.KeePassXC.SafariWebExtension" completionHandler:nil];
+        [SFSafariApplication showPreferencesForExtensionWithIdentifier:extensionIdentifier completionHandler:nil];
     }
 }
 
@@ -24,7 +27,10 @@ void SafariWebExtensionCheckbox::onApplicationStateChanged(Qt::ApplicationState 
         return;
     }
 
-    [SFSafariExtensionManager getStateOfSafariExtensionWithIdentifier:@"me.livoni.KeePassXC.SafariWebExtension" completionHandler:^(SFSafariExtensionState *state, NSError *error) {
+    NSString *appIdentifier = QString::fromUtf8(APPLE_APP_IDENTIFIER).toNSString();
+    NSString *extensionIdentifier = [appIdentifier stringByAppendingString:@".SafariWebExtension"];
+
+    [SFSafariExtensionManager getStateOfSafariExtensionWithIdentifier:extensionIdentifier completionHandler:^(SFSafariExtensionState *state, NSError *error) {
         if (error) {
             NSLog(@"Error fetching extension state: %@", error.localizedDescription);
             return;

@@ -19,6 +19,8 @@ add_executable(KeePassXCSafariWebExtension
 # Add the linker flag for _NSExtensionMain
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -e _NSExtensionMain")
 
+configure_file(${CMAKE_SOURCE_DIR}/src/safariwebextension/entitlements.cmake ${CMAKE_SOURCE_DIR}/src/safariwebextension/safariwebextension.entitlements)
+
 # Set properties for KeePassXCSafariWebExtension
 set_target_properties(KeePassXCSafariWebExtension PROPERTIES
     MACOSX_BUNDLE ON

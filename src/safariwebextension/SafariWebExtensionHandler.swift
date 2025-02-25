@@ -4,7 +4,7 @@ import os.log
 @objc(SafariWebExtensionHandler)
 class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     let SocketFileName = "KeePassXC.BrowserServer"
-    let applicationGroupIdentifier = "6HH7K3R53J.me.livoni.KeePassXC"
+    let applicationGroupIdentifier = Bundle.main.object(forInfoDictionaryKey: "APP_GROUP_IDENTIFIER") as! String
     static var socketFD: Int32 = -1
     static var socketConnected = false
     var maxMessageLength: Int32 = 1024 * 1024;

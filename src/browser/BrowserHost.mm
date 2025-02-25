@@ -121,8 +121,11 @@ void BrowserHost::broadcastClientMessage(const QJsonObject& json)
             return;
         }
 
+        NSString *appIdentifier = QString::fromUtf8(APPLE_APP_IDENTIFIER).toNSString();
+        NSString *extensionIdentifier = [appIdentifier stringByAppendingString:@".SafariWebExtension"];
+
         [SFSafariApplication dispatchMessageWithName:@"proxy_message"
-                        toExtensionWithIdentifier:@"me.livoni.KeePassXC.SafariWebExtension"
+                        toExtensionWithIdentifier:extensionIdentifier
                                             userInfo:message
                                             completionHandler:nil];
     }
@@ -147,7 +150,8 @@ bool BrowserHost::isSafariWebExtension(QLocalSocket* socket)
         return false;
     }
 
-    NSString *requirementString = @"anchor apple generic and identifier \"me.livoni.KeePassXC.SafariWebExtension\"";
+    NSString *appIdentifier = QString::fromUtf8(APPLE_APP_IDENTIFIER).toNSString();
+    NSString *requirementString = [NSString stringWithFormat:@"anchor apple generic and identifier \"%@.SafariWebExtension\"", appIdentifier];
 
     SecRequirementRef requirement = NULL;
     status = SecRequirementCreateWithString((__bridge CFStringRef)requirementString, SecCSFlags(), &requirement);

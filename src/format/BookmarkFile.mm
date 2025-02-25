@@ -34,7 +34,7 @@ bool BookmarkFile::open(QIODevice::OpenMode mode)
                                                   error:&error];
 
     if (isStale) {
-        [userDefaults setObject:nil forKey:@"bookmark"];
+        [userDefaults setObject:nil forKey:fileNameKey];
         [userDefaults synchronize];
         return false;
     }
