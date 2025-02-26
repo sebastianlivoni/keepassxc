@@ -11,11 +11,12 @@ set(SOURCES
     ../browser/BrowserCbor.cpp
     ../browser/PasskeyUtils.cpp
     ../gui/UrlTools.cpp
+    ../quickunlock/TouchID.mm
 )
 
 add_executable(KeePassXCAutoFillExtension ${SOURCES})
 
-target_link_libraries(KeePassXCAutoFillExtension Qt5::Core Qt5::Network Qt5::Widgets keepassxc_core "-framework Foundation -framework AppKit -framework AuthenticationServices")
+target_link_libraries(KeePassXCAutoFillExtension Qt5::Core Qt5::Network Qt5::Widgets keepassxc_core "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security")
 
 # Add the linker flag for _NSExtensionMain
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -e _NSExtensionMain")

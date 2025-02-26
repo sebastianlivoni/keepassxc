@@ -135,11 +135,11 @@ bool Database::open(const QString& filePath, QSharedPointer<const CompositeKey> 
         return false;
     }
 
-    #ifdef Q_OS_MACOS
-    BookmarkFile dbFile(filePath);
-    #else
+    //#ifdef Q_OS_MACOS
+    //BookmarkFile dbFile(filePath);
+    //#else
     QFile dbFile(filePath);
-    #endif
+    //#endif
     if (!dbFile.exists()) {
         if (error) {
             *error = tr("File %1 does not exist.").arg(filePath);
