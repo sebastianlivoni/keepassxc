@@ -1213,7 +1213,7 @@ appsign() {
             fi
             # Sign main executable with additional entitlements
             if ! xcrun codesign --sign "${key}" --verbose --force --options runtime --entitlements \
-                "${real_src_dir}/share/macosx/keepassxc.entitlements" "${app_dir_tmp}/Contents/MacOS/KeePassXC"; then
+                "${real_src_dir}/build/src/keepassxc.entitlements" "${app_dir_tmp}/Contents/MacOS/KeePassXC"; then
                 cd "${orig_dir}"
                 exitError "Signing failed!"
             fi
