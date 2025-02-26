@@ -443,11 +443,11 @@ if(APPLE AND WITH_APP_BUNDLE)
 
     install(FILES ${CMAKE_SOURCE_DIR}/share/macosx/embedded.provisionprofile DESTINATION ${BUNDLE_INSTALL_DIR})
     configure_file(${CMAKE_SOURCE_DIR}/share/macosx/Info.plist.cmake ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
-    configure_file(${CMAKE_SOURCE_DIR}/share/macosx/entitlements.cmake ${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements)
+    configure_file(${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements.cmake ${CMAKE_CURRENT_BINARY_DIR}/keepassxc.entitlements)
     set_target_properties(${PROGNAME} PROPERTIES
             MACOSX_BUNDLE ON
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info.plist
-            CPACK_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements")
+            CPACK_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_CURRENT_BINARY_DIR}/keepassxc.entitlements")
 
     if(QT_MAC_USE_COCOA AND EXISTS "${QT_LIBRARY_DIR}/Resources/qt_menu.nib")
         install(DIRECTORY "${QT_LIBRARY_DIR}/Resources/qt_menu.nib"
