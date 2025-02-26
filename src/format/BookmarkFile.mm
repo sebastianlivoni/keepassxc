@@ -18,13 +18,22 @@ bool BookmarkFile::open(QIODevice::OpenMode mode)
 
     NSData *bookmark = [userDefaults objectForKey:fileNameKey];
 
+    NSLog(@"Bookmark %@!", bookmark);
+    NSLog(@"Filename %@!", fileNameKey);
+
     if (bookmark == nil) {
         NSURL *fileURL = [NSURL fileURLWithPath:fileName().toNSString()];
 
         bookmark = [fileURL bookmarkDataWithOptions:NSURLBookmarkCreationWithSecurityScope includingResourceValuesForKeys:0 relativeToURL:0 error:&error];
 
+        if (bookmark == nil) {
+            return false;
+        }
+
         [userDefaults setObject:bookmark forKey:fileNameKey];
         [userDefaults synchronize];
+
+        return false;
     }
 
     NSURL *location = [NSURL URLByResolvingBookmarkData:bookmark
@@ -34,12 +43,14 @@ bool BookmarkFile::open(QIODevice::OpenMode mode)
                                                   error:&error];
 
     if (isStale) {
-        [userDefaults setObject:nil forKey:@"bookmark"];
+        [userDefaults setObject:nil forKey:fileNameKey];
         [userDefaults synchronize];
+        NSLog(@"IS stale");
         return false;
     }
 
     if (location == nil) {
+        NSLog(@"No location: error %@", error);
         // If resolving bookmark fails, return failure.
         return false;
     }
@@ -58,8 +69,10 @@ bool BookmarkFile::open(QIODevice::OpenMode mode)
 NSString* BookmarkFile::bookmarkKey()
 {
     QByteArray hash = QCryptographicHash::hash(fileName().toUtf8(), QCryptographicHash::Sha256);
+    NSLog(@"File name: %@", fileName().toNSString());
 
-    QString hashString = "bookmark_" + hash.toHex();
+    //QString hashString = "bookmark_" + hash.toHex();
+    QString hashString = "bookmark";
     
     return hashString.toNSString();
 }

@@ -5,13 +5,13 @@
 	<key>CFBundleDisplayName</key>
 	<string>KeePassXC Autofill</string>
 	<key>CFBundleExecutable</key>
-	<string>KeePassXCAutofillExtension</string>
+	<string>KeePassXCAutoFillExtension</string>
 	<key>CFBundleIdentifier</key>
-	<string>${APPLE_APP_IDENTIFIER}.AutofillExtension</string>
+	<string>${APPLE_APP_IDENTIFIER}.AutoFillExtension</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>KeePassXCAutofillExtension</string>
+	<string>KeePassXCAutoFillExtension</string>
 	<key>CFBundleVersion</key>
 	<string>1.0</string>
 	<key>CFBundleShortVersionString</key>

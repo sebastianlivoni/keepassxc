@@ -28,16 +28,6 @@
 - (void) embedQWidget:(QWidget *)widget {
     NSView* rootView = (__bridge NSView*)reinterpret_cast<void*>(widget->winId());
 
-    /*[NSLayoutConstraint activateConstraints:@[
-        [self.view.widthAnchor constraintEqualToConstant:500],
-        [self.view.heightAnchor constraintEqualToConstant:300]
-    ]];*/
-
-    /*[NSLayoutConstraint activateConstraints:@[
-        [self.view.widthAnchor constraintEqualToAnchor:rootView.widthAnchor],
-        [self.view.heightAnchor constraintEqualToAnchor:rootView.heightAnchor]
-    ]];*/
-
     [self.view.widthAnchor constraintEqualToConstant:rootView.frame.size.width].active = YES;
     [self.view.heightAnchor constraintEqualToConstant:rootView.frame.size.height].active = YES;
 

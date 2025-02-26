@@ -14,6 +14,8 @@
 	</array>
 	<key>com.apple.security.app-sandbox</key>
  	<true/>
+	<key>com.apple.developer.authentication-services.autofill-credential-provider</key>
+	<true/>
  	<key>com.apple.security.device.usb</key>
  	<true/>
  	<key>com.apple.security.files.user-selected.read-write</key>
