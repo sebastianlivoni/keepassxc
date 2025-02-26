@@ -57,9 +57,10 @@ bool BookmarkFile::open(QIODevice::OpenMode mode)
 
 NSString* BookmarkFile::bookmarkKey()
 {
-    QByteArray hash = QCryptographicHash::hash(fileName().toUtf8(), QCryptographicHash::Sha256);
+    //QByteArray hash = QCryptographicHash::hash(fileName().toUtf8(), QCryptographicHash::Sha256);
 
-    QString hashString = "bookmark_" + hash.toHex();
+    //QString hashString = "bookmark_" + hash.toHex();
+    QString hashString = "bookmark_" + fileName().toUtf8();
     
     return hashString.toNSString();
 }
