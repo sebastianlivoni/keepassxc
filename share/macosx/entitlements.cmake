@@ -37,6 +37,7 @@
 		<string>/Library/Application Support/TorBrowser-Data/Browser/Mozilla/NativeMessagingHosts/</string>
 		<string>/Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts/</string>
 		<string>/Library/Application Support/Microsoft Edge/NativeMessagingHosts/</string>
+		<string>/Users/seb/Downloads/Adgangskoder.kdbx</string>
 	</array>
 </dict>
 </plist>

@@ -85,10 +85,6 @@ void AutoFillService::resetCredentialStore() {
 ASPasswordCredential *AutoFillService::getPasswordCredentialFromIdentity(
     const ASPasswordCredentialIdentity *identity) {
 
-  int argc = 0;
-  char *argv[] = {};
-  new QCoreApplication(argc, argv);
-
   auto db = QSharedPointer<Database>::create();
   auto key = QSharedPointer<CompositeKey>::create();
   auto passwordKey = QSharedPointer<PasswordKey>::create("a");
@@ -155,10 +151,6 @@ ASPasswordCredentialIdentity* AutoFillService::getPasswordCredentialIdentityFrom
 ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
   const ASOneTimeCodeCredentialIdentity *identity) {
 
-  int argc = 0;
-  char *argv[] = {};
-  new QCoreApplication(argc, argv);
-
   auto db = QSharedPointer<Database>::create();
   auto key = QSharedPointer<CompositeKey>::create();
   auto passwordKey = QSharedPointer<PasswordKey>::create("a");
@@ -201,21 +193,10 @@ ASPasskeyRegistrationCredential* AutoFillService::createPasskeyRegistrationCrede
   NSString *relyingPartyIdentifier = identity.relyingPartyIdentifier;
   NSData *credentialID = identity.credentialID;
   NSString *recordIdentifier = identity.recordIdentifier;
-
-  //const auto publicKeyCredentials = browserPasskeys()->buildRegisterPublicKeyCredential(credentialCreationOptions);
 }
 
 ASPasskeyAssertionCredential* AutoFillService::getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest *request) {
   ASPasskeyCredentialIdentity *identity = (ASPasskeyCredentialIdentity *)request.credentialIdentity;
-
-  NSData *challenge = request.clientDataHash;
-  QByteArray challengeQ = QByteArray::fromNSData(challenge);
-  QString challengeString = browserMessageBuilder()->getBase64FromArray(challengeQ);
-  //NSString *challengeString = [challenge base64EncodedStringWithOptions:0];
-
-  int argc = 0;
-  char *argv[] = {};
-  new QCoreApplication(argc, argv);
 
   auto db = QSharedPointer<Database>::create();
   auto key = QSharedPointer<CompositeKey>::create();
@@ -233,89 +214,21 @@ ASPasskeyAssertionCredential* AutoFillService::getPasskeyCredentialFromPasskeyRe
     }
 
     const QString privateKeyPem = entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_PRIVATE_KEY_PEM);
-    const QString origin = QString::fromNSString(identity.relyingPartyIdentifier); 
-    const QString credentialId = passkeyUtils()->getCredentialIdFromEntry(entry);
 
-    const QString PublicKeyCredentialRequestOptions = QString(R"(
-        {
-            "allowCredentials": [
-                {
-                    "id": "%1",
-                    "transports": ["internal"],
-                    "type": "public-key"
-                }
-            ],
-            "challenge": "%2",
-            "rpId": "%3",
-            "timeout": 60000,
-            "userVerification": "required"
-        }
-    )")
-    .arg(credentialId)
-    .arg(challengeString)
-    .arg(origin); // todo user verification mapping
+    QByteArray clientDataHash = QByteArray::fromNSData(request.clientDataHash);
 
-    /*const auto privateKeyPem = QString("-----BEGIN PRIVATE KEY-----"
-                                       "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg5DX2R6I37nMSZqCp"
-                                       "XfHlE3UeitkGGE03FqGsdfxIBoOhRANCAAQG7K80W2KRYW0ZWQOmUCrKMcSVqGnl"
-                                       "8Ifl1LgyzQiF3eLuf+kPDukdB4NKAwnbQiSxC9Ml/xgy4VOZtx1CBOeD"
-                                       "-----END PRIVATE KEY-----");
-    const auto origin = QString("https://webauthn.io");
-    const auto credentialId = QString("yrzFJ5lwcpTwYMOdXSmxF5b5cYQlqBMzbbU_d-oFLO8");
+    QString rpId = QString::fromNSString(identity.relyingPartyIdentifier);
+    QString extensions = QString("");
 
-    const QString PublicKeyCredentialRequestOptions = R"(
-        {
-            "allowCredentials": [
-                {
-                    "id": "yrzFJ5lwcpTwYMOdXSmxF5b5cYQlqBMzbbU_d-oFLO8",
-                    "transports": ["internal"],
-                    "type": "public-key"
-                }
-            ],
-            "challenge": "9z36vTfQTL95Lf7WnZgyte7ohGeF-XRiLxkL-LuGU1zopRmMIUA1LVwzGpyIm1fOBn1QnRa0QH27ADAaJGHysQ",
-            "rpId": "webauthn.io",
-            "timeout": 60000,
-            "userVerification": "required"
-        }
-    )";*/
+    const auto authenticatorData = browserPasskeys()->buildAuthenticatorData(rpId, extensions);
+    const auto signature = browserPasskeys()->buildSignature(authenticatorData, clientDataHash, privateKeyPem);
 
-    const auto publicKeyCredentialRequestOptions = browserMessageBuilder()->getJsonObject(PublicKeyCredentialRequestOptions.toUtf8());
-
-    QJsonObject assertionOptions;
-    const auto assertionResult = browserPasskeysClient()->getAssertionOptions(publicKeyCredentialRequestOptions, origin, &assertionOptions);
-
-    QJsonDocument doc = QJsonDocument(assertionOptions);
-    QString strJson1 = doc.toJson(QJsonDocument::Compact);
-    NSLog(@"Request: %@", strJson1.toNSString());
-
-    if (assertionResult != 0) {
-      return nullptr;
-    }
-
-    const auto userHandle = entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_USER_HANDLE);
-
-    auto publicKeyCredential = browserPasskeys()->buildGetPublicKeyCredential(assertionOptions, credentialId, userHandle, privateKeyPem);
-    auto response = publicKeyCredential["response"].toObject();
-
-    QJsonDocument doc2 = QJsonDocument(response);
-    QString strJson2 = doc2.toJson(QJsonDocument::Compact);
-    NSLog(@"Response: %@", strJson2.toNSString());
-
-    NSData *authenticatorData = browserMessageBuilder()->base64Decode(response["authenticatorData"].toString()).toNSData();
-    NSData *clientDataJSON = browserMessageBuilder()->base64Decode(response["clientDataJSON"].toString()).toNSData();
-    NSData *signature = browserMessageBuilder()->base64Decode(response["signature"].toString()).toNSData();
-
-    NSString *relyingPartyIdentifier = entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_RELYING_PARTY).toNSString();
-
-    NSData *userHandleData = browserMessageBuilder()->base64Decode(userHandle).toNSData();
-    NSData *credentialID = browserMessageBuilder()->base64Decode(credentialId).toNSData();
-
-    ASPasskeyAssertionCredential *credential = [ASPasskeyAssertionCredential credentialWithUserHandle:userHandleData
-                                                                                       relyingParty:relyingPartyIdentifier
-                                                                                          signature:signature
-                                                                                     clientDataHash:clientDataJSON
-                                                                                  authenticatorData:authenticatorData
-                                                                                       credentialID:credentialID];
+    ASPasskeyAssertionCredential *credential = [ASPasskeyAssertionCredential credentialWithUserHandle:identity.userHandle
+                                                                                       relyingParty:identity.relyingPartyIdentifier
+                                                                                          signature:signature.toNSData()
+                                                                                     clientDataHash:request.clientDataHash
+                                                                                  authenticatorData:authenticatorData.toNSData()
+                                                                                       credentialID:identity.credentialID];
 
     return credential;
   }
@@ -364,10 +277,10 @@ ASPasskeyCredentialIdentity* AutoFillService::getPasskeyCredentialIdentityFromEn
                ? entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_GENERATED_USER_ID)
                : entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_CREDENTIAL_ID);
 
-  NSData *credentialID = browserMessageBuilder()->base64Decode(credentialId).toNSData();
+  NSData *credentialID = browserMessageBuilder()->getArrayFromBase64(credentialId).toNSData();
 
   const QString userHandle = entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_USER_HANDLE);
-  NSData *userHandleData = browserMessageBuilder()->base64Decode(userHandle).toNSData();
+  NSData *userHandleData = browserMessageBuilder()->getArrayFromBase64(userHandle).toNSData();
 
   NSString *uuidString = uuidStringFromEntry(entry);
 

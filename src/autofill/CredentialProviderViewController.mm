@@ -7,6 +7,7 @@
 #include "ExtensionConfigurationWidget.h"
 #include "CredentialListWidget.h"
 #include "PasskeyRegistrationWidget.h"
+#include "ProvidePasskeyWidget.h"
 
 @implementation CredentialProviderViewController
 
@@ -37,14 +38,18 @@
   [self embedQWidget:widget];
 }
 
-- (void)prepareInterfaceToProvideCredentialForRequest:(id<ASCredentialRequest>) credentialRequest {}
+- (void)prepareInterfaceToProvideCredentialForRequest:(id<ASCredentialRequest>) credentialRequest {
+  QWidget* widget = new ProvidePasskeyWidget(self.extensionContext, credentialRequest);
+
+  [self embedQWidget:widget];
+}
 
 - (void)provideCredentialWithoutUserInteractionForRequest:(id<ASCredentialRequest>)credentialRequest {
   switch (credentialRequest.type) {
   case ASCredentialRequestTypePassword: {
     ASPasswordCredentialIdentity *credentialIdentity = (ASPasswordCredentialIdentity *)credentialRequest.credentialIdentity;
     ASPasswordCredential *passwordCredential = autoFillService()->getPasswordCredentialFromIdentity(credentialIdentity);
-        
+
     [self.extensionContext completeRequestWithSelectedCredential:passwordCredential completionHandler:nil];
     break;
   }
@@ -55,17 +60,43 @@
     break;
   }
   case ASCredentialRequestTypePasskeyAssertion: {
-    ASPasskeyCredentialRequest* request = (ASPasskeyCredentialRequest*)credentialRequest;
-    ASPasskeyAssertionCredential *passkeyCredential = autoFillService()->getPasskeyCredentialFromPasskeyRequest(request);
+    //LAContext *context = [[LAContext alloc] init];
+    //NSError *error = nil;
 
-    NSLog(@"User Handle (base64): %@", [passkeyCredential.userHandle base64EncodedStringWithOptions:0]);
-    NSLog(@"Relying Party: %@", passkeyCredential.relyingParty);
-    NSLog(@"Signature (base64): %@", [passkeyCredential.signature base64EncodedStringWithOptions:0]);
-    NSLog(@"Client Data Hash (base64): %@", [passkeyCredential.clientDataHash base64EncodedStringWithOptions:0]);
-    NSLog(@"Authenticator Data (base64): %@", [passkeyCredential.authenticatorData base64EncodedStringWithOptions:0]);
-    NSLog(@"Credential ID (base64): %@", [passkeyCredential.credentialID base64EncodedStringWithOptions:0]);
+    // Check if Touch ID or Face ID is available and can be evaluated
+    /*if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
+        NSString *reason = @"bruge din adgangsnøgle";
+        
+        [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
+                localizedReason:reason
+                          reply:^(BOOL success, NSError * _Nullable error) {
+              if (success) {
+                  NSLog(@"Authentication successful!");
+                  ASPasskeyCredentialRequest* request = (ASPasskeyCredentialRequest*)credentialRequest;
+                  ASPasskeyAssertionCredential *passkeyCredential = autoFillService()->getPasskeyCredentialFromPasskeyRequest(request);
 
-    [self.extensionContext completeAssertionRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:nil];
+                  if (passkeyCredential == nil) {
+                      NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain
+                                                          code:ASExtensionErrorCodeFailed
+                                                      userInfo:@{NSLocalizedDescriptionKey : @"Failed to retrieve passkey credential."}];
+                      [self.extensionContext cancelRequestWithError:error];
+                      return;
+                  }
+
+                  [self.extensionContext completeAssertionRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:^(BOOL expired) {
+                      NSLog(@"Assertion completed, expired = %@", expired ? @"YES" : @"NO");
+                  }];
+                
+              } else {
+                  NSLog(@"Authentication failed: %@", error.localizedDescription);
+              }
+        }];
+    } else {
+        NSLog(@"Biometric authentication not available: %@", error.localizedDescription);
+    }*/
+
+    NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain code:ASExtensionErrorCodeUserInteractionRequired userInfo:nil];
+    [self.extensionContext cancelRequestWithError:error];
     break;
   }
   default:

@@ -133,7 +133,9 @@ QJsonObject BrowserPasskeys::buildGetPublicKeyCredential(const QJsonObject& asse
     const auto clientDataJson = assertionOptions["clientDataJson"].toObject();
     const auto clientDataArray = QJsonDocument(clientDataJson).toJson(QJsonDocument::Compact);
 
-    const auto signature = buildSignature(authenticatorData, clientDataArray, privateKeyPem);
+    const auto clientDataHash = browserMessageBuilder()->getSha256Hash(clientDataArray);
+
+    const auto signature = buildSignature(authenticatorData, clientDataHash, privateKeyPem);
     if (signature.isEmpty()) {
         return {};
     }
@@ -209,7 +211,7 @@ QByteArray BrowserPasskeys::buildAuthenticatorData(const QString& rpId, const QS
     result.append(rpIdHash);
 
     const auto flags = setFlagsFromJson(QJsonObject(
-        {{"ED", !extensions.isEmpty()}, {"AT", false}, {"BS", false}, {"BE", false}, {"UV", true}, {"UP", true}}));
+        {{"ED", !extensions.isEmpty()}, {"AT", false}, {"BS", true}, {"BE", true}, {"UV", true}, {"UP", true}}));
     result.append(flags);
 
     // Signature counter (not supported, always 0
@@ -303,10 +305,9 @@ BrowserPasskeys::buildCredentialPrivateKey(int alg, const QString& predefinedFir
 }
 
 QByteArray BrowserPasskeys::buildSignature(const QByteArray& authenticatorData,
-                                           const QByteArray& clientData,
+                                           const QByteArray& clientDataHash,
                                            const QString& privateKeyPem)
 {
-    const auto clientDataHash = browserMessageBuilder()->getSha256Hash(clientData);
     const auto attToBeSigned = authenticatorData + clientDataHash;
 
     try {
