@@ -39,5 +39,10 @@
 		<string>/Library/Application Support/Microsoft Edge/NativeMessagingHosts/</string>
 		<string>/Users/seb/Downloads/Adgangskoder.kdbx</string>
 	</array>
+	<key>com.apple.security.temporary-exception.sbpl</key>
+	<array>
+		<string>(allow file-read* (regex #"\.kdbx"))</string>
+		<string>(allow file-write* (regex #"\.kdbx"))</string>
+	</array>
 </dict>
 </plist>

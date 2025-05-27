@@ -60,41 +60,6 @@
     break;
   }
   case ASCredentialRequestTypePasskeyAssertion: {
-    //LAContext *context = [[LAContext alloc] init];
-    //NSError *error = nil;
-
-    // Check if Touch ID or Face ID is available and can be evaluated
-    /*if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
-        NSString *reason = @"bruge din adgangsnøgle";
-        
-        [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
-                localizedReason:reason
-                          reply:^(BOOL success, NSError * _Nullable error) {
-              if (success) {
-                  NSLog(@"Authentication successful!");
-                  ASPasskeyCredentialRequest* request = (ASPasskeyCredentialRequest*)credentialRequest;
-                  ASPasskeyAssertionCredential *passkeyCredential = autoFillService()->getPasskeyCredentialFromPasskeyRequest(request);
-
-                  if (passkeyCredential == nil) {
-                      NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain
-                                                          code:ASExtensionErrorCodeFailed
-                                                      userInfo:@{NSLocalizedDescriptionKey : @"Failed to retrieve passkey credential."}];
-                      [self.extensionContext cancelRequestWithError:error];
-                      return;
-                  }
-
-                  [self.extensionContext completeAssertionRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:^(BOOL expired) {
-                      NSLog(@"Assertion completed, expired = %@", expired ? @"YES" : @"NO");
-                  }];
-                
-              } else {
-                  NSLog(@"Authentication failed: %@", error.localizedDescription);
-              }
-        }];
-    } else {
-        NSLog(@"Biometric authentication not available: %@", error.localizedDescription);
-    }*/
-
     NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain code:ASExtensionErrorCodeUserInteractionRequired userInfo:nil];
     [self.extensionContext cancelRequestWithError:error];
     break;
