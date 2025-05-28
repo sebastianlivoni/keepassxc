@@ -10,68 +10,58 @@
 
 ProvidePasskeyWidget::ProvidePasskeyWidget(
     ASCredentialProviderExtensionContext *extensionContext,
-    CredentialRequestPtr credentialRequest,
+    ASPasskeyCredentialRequest *credentialRequest,
     QWidget *parent)
     : QWidget(parent),
-      extensionContext(extensionContext),
-      credentialRequest(credentialRequest) {
+      m_extensionContext(extensionContext),
+      m_credentialRequest((ASPasskeyCredentialRequest *)CFBridgingRetain(credentialRequest)) {
 
   // UI setup
   auto *label = new QLabel("Providing Credential", this);
+  /*auto *completeButton = new QPushButton("Complete", this);
+  connect(completeButton, &QPushButton::clicked, this, &ProvidePasskeyWidget::complete);*/
+
   auto *closeButton = new QPushButton("Close", this);
   connect(closeButton, &QPushButton::clicked, this, &ProvidePasskeyWidget::close);
 
   auto *layout = new QVBoxLayout(this);
   layout->addWidget(label);
+  //layout->addWidget(completeButton);
   layout->addWidget(closeButton);
   setLayout(layout);
 
   resize(500, 300);
   show();
 
-  // Biometrics authentication
-  LAContext *context = [[LAContext alloc] init];
-  NSError *error = nil;
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    complete();
+  });
+}
 
-  if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
-    NSString *reason = @"bruge din adgangsnøgle";
+void ProvidePasskeyWidget::complete() {
+  auto *passkeyCredential = autoFillService()->getPasskeyCredentialFromPasskeyRequest(m_credentialRequest);
 
-    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
-            localizedReason:reason
-                      reply:^(BOOL success, NSError *_Nullable error) {
-
-      if (success) {
-        NSLog(@"Authentication successful!");
-
-        auto *request = (ASPasskeyCredentialRequest *)credentialRequest;
-        auto *passkeyCredential = autoFillService()->getPasskeyCredentialFromPasskeyRequest(request);
-
-        if (!passkeyCredential) {
-          NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain
-                                               code:ASExtensionErrorCodeFailed
-                                           userInfo:nil];
-          [extensionContext cancelRequestWithError:error];
-          return;
-        }
-
-        [extensionContext completeAssertionRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:nil];
-      } else {
-        NSLog(@"Authentication failed: %@", error.localizedDescription);
-        NSError *failError = [NSError errorWithDomain:ASExtensionErrorDomain
-                                                 code:ASExtensionErrorCodeFailed
-                                             userInfo:nil];
-        [extensionContext cancelRequestWithError:failError];
-      }
-    }];
-
-  } else {
-    NSLog(@"Biometric authentication not available: %@", error.localizedDescription);
+  if (!passkeyCredential) {
+    NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain
+                                          code:ASExtensionErrorCodeFailed
+                                      userInfo:nil];
+    [m_extensionContext cancelRequestWithError:error];
+    return;
   }
+
+  [m_extensionContext completeAssertionRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:nil];
 }
 
 void ProvidePasskeyWidget::close() {
-  [extensionContext cancelRequestWithError:
+  [m_extensionContext cancelRequestWithError:
       [NSError errorWithDomain:ASExtensionErrorDomain
                           code:ASExtensionErrorCodeUserCanceled
                       userInfo:nil]];
+}
+
+ProvidePasskeyWidget::~ProvidePasskeyWidget() {
+    if (m_credentialRequest) {
+        CFRelease(m_credentialRequest);
+        m_credentialRequest = nullptr;
+    }
 }

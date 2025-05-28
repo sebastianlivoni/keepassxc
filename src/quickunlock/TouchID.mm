@@ -74,8 +74,9 @@ void TouchID::deleteKeyEntry(const QString& accountName)
 
 QString TouchID::databaseKeyName(const QUuid& dbUuid)
 {
-   static const QString keyPrefix = "KeepassXC_TouchID_Keys_";
-   return keyPrefix + dbUuid.toString();
+   /*static const QString keyPrefix = "KeepassXC_TouchID_Keys_";
+   return keyPrefix + dbUuid.toString();*/
+   return QString("KeepassXC_TouchID_Keys_{0f3752fc-9459-40ad-b2e3-73c9a1182319}"); // TODO: Undo this and fix
 }
 
 QString TouchID::errorString() const
@@ -158,8 +159,6 @@ bool TouchID::setKey(const QUuid& dbUuid, const QByteArray& key, const bool igno
     auto accountName = keyName.toNSString();
     auto keyBase64 = key.toBase64();
 
-    //NSLog(@"SEB: (Set) Account name: %@", accountName);
-
     // prepare data (key) to be stored
     auto keyValueData = CFDataCreateWithBytesNoCopy(
         kCFAllocatorDefault, reinterpret_cast<const UInt8 *>(keyBase64.data()),
@@ -171,7 +170,6 @@ bool TouchID::setKey(const QUuid& dbUuid, const QByteArray& key, const bool igno
     CFDictionarySetValue(attributes, kSecValueData, (__bridge CFDataRef) keyValueData);
     CFDictionarySetValue(attributes, kSecAttrSynchronizable, kCFBooleanFalse);
     CFDictionarySetValue(attributes, kSecUseDataProtectionKeychain, kCFBooleanTrue);
-    CFDictionarySetValue(attributes, kSecAttrService, @"me.livoni.keepass");
     
 #ifndef QT_DEBUG
     // Only use TouchID when in release build, also requires application entitlements and signing
@@ -189,8 +187,6 @@ bool TouchID::setKey(const QUuid& dbUuid, const QByteArray& key, const bool igno
     if (status != errSecSuccess) {
         return false;
     }
-
-    //NSLog(@"SEB: Success set key %@", accountName);
 
     // memorize which database the stored key is for
     // TODO: Do we need to store the db uuid's to do a full reset later?
@@ -234,7 +230,10 @@ bool TouchID::getKey(const QUuid& dbUuid, QByteArray& key)
     NSString* accountName = keyName.toNSString(); // The NSString is released by Qt
 
     LAContext *context = [[LAContext alloc] init];
-    context.localizedReason = QCoreApplication::translate("DatabaseOpenWidget", "authenticate to access the database")
+    /*context.localizedReason = QCoreApplication::translate("DatabaseOpenWidget", "authenticate to access the database")
+            .toNSString();*/
+
+    context.localizedReason = QCoreApplication::translate("DatabaseOpenWidget", "låse din database op")
             .toNSString();
 
     CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
@@ -288,7 +287,7 @@ bool TouchID::hasKey(const QUuid& dbUuid) const
     }
     CFRelease(query);
 
-    return status == errSecSuccess || status == errSecInteractionNotAllowed;
+    return status == errSecInteractionNotAllowed;
 }
 
 // TODO: Both functions below should probably handle the returned errors to

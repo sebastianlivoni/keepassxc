@@ -1,6 +1,9 @@
 #include "CredentialProviderViewController.h"
 
 #include <QApplication>
+#include <QMacNativeWidget>
+#include <QVBoxLayout>
+#include <QPushButton>
 
 #include "AutoFillService.h"
 #include "AutoFillViewController.h"
@@ -22,35 +25,99 @@
 - (void)prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {
   QWidget* widget = new CredentialListWidget(self.extensionContext);
 
-  [self embedQWidget:widget];
+  [self embedQWidget:widget hideRootView:NO];
 }
 
-- (void)prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers requestParameters:(ASPasskeyCredentialRequestParameters *) requestParameters { }
+- (void)prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers requestParameters:(ASPasskeyCredentialRequestParameters *) requestParameters {
+  // TODO: This will be called for passkeys
+  QWidget* widget = new CredentialListWidget(self.extensionContext);
+
+  [self embedQWidget:widget hideRootView:NO];
+}
 
 - (void)prepareOneTimeCodeCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {}
 
 - (void)prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {
-  ASPasskeyCredentialRequest *passkeyRegistrationRequest = (ASPasskeyCredentialRequest *)registrationRequest;
+  /*ASPasskeyCredentialRequest *passkeyRegistrationRequest = (ASPasskeyCredentialRequest *)registrationRequest;
   ASPasskeyCredentialIdentity *credentialIdentity = (ASPasskeyCredentialIdentity *)passkeyRegistrationRequest.credentialIdentity;
 
   QWidget* widget = new PasskeyRegistrationWidget(self.extensionContext);
 
-  [self embedQWidget:widget];
+  [self embedQWidget:widget hideRootView:NO];*/
+  QWidget* widget = new QWidget(); // TODO: Why does the prompt refresh?
+  [self embedQWidget:widget hideRootView:YES];
+
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    auto *passkeyCredential = autoFillService()->createPasskeyRegistrationCredential(registrationRequest);
+
+    if (!passkeyCredential) {
+      NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain
+                                            code:ASExtensionErrorCodeFailed
+                                        userInfo:nil];
+      [self.extensionContext cancelRequestWithError:error];
+      return;
+    }
+
+    [self.extensionContext completeRegistrationRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:nil];
+  });
 }
 
 - (void)prepareInterfaceToProvideCredentialForRequest:(id<ASCredentialRequest>) credentialRequest {
-  QWidget* widget = new ProvidePasskeyWidget(self.extensionContext, credentialRequest);
+  /*ASPasskeyCredentialRequest *passkeyCredentialRequest = (ASPasskeyCredentialRequest *)credentialRequest;
+  QWidget* widget = new ProvidePasskeyWidget(self.extensionContext, passkeyCredentialRequest);
+  [self embedQWidget:widget];*/
 
-  [self embedQWidget:widget];
+  switch (credentialRequest.type) {
+    case ASCredentialRequestTypePassword: {
+      QWidget* widget = new QWidget(); // TODO: Why does the prompt refresh?
+      [self embedQWidget:widget hideRootView:YES];
+
+      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        ASPasswordCredentialIdentity *credentialIdentity = (ASPasswordCredentialIdentity *)credentialRequest.credentialIdentity;
+        ASPasswordCredential *passwordCredential = autoFillService()->getPasswordCredentialFromIdentity(credentialIdentity);
+
+        if (!passwordCredential) {
+          NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain
+                                                code:ASExtensionErrorCodeFailed
+                                            userInfo:nil];
+          [self.extensionContext cancelRequestWithError:error];
+          return;
+        }
+
+        [self.extensionContext completeRequestWithSelectedCredential:passwordCredential completionHandler:nil];
+      });
+      break;
+    }
+    case ASCredentialRequestTypePasskeyAssertion: {
+      QWidget* widget = new QWidget(); // TODO: Why does the prompt refresh?
+      [self embedQWidget:widget hideRootView:YES];
+
+      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        auto *passkeyCredential = autoFillService()->getPasskeyCredentialFromPasskeyRequest(credentialRequest);
+
+        if (!passkeyCredential) {
+          NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain
+                                                code:ASExtensionErrorCodeFailed
+                                            userInfo:nil];
+          [self.extensionContext cancelRequestWithError:error];
+          return;
+        }
+
+        [self.extensionContext completeAssertionRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:nil];
+      });
+      break;
+    }
+  }
 }
 
-- (void)provideCredentialWithoutUserInteractionForRequest:(id<ASCredentialRequest>)credentialRequest {
+- (void)provideCredentialWithoutUserInteractionForRequest:(id<ASCredentialRequest>) credentialRequest {
   switch (credentialRequest.type) {
   case ASCredentialRequestTypePassword: {
-    ASPasswordCredentialIdentity *credentialIdentity = (ASPasswordCredentialIdentity *)credentialRequest.credentialIdentity;
+    [self exitWithUserInteractionRequired];
+    /*ASPasswordCredentialIdentity *credentialIdentity = (ASPasswordCredentialIdentity *)credentialRequest.credentialIdentity;
     ASPasswordCredential *passwordCredential = autoFillService()->getPasswordCredentialFromIdentity(credentialIdentity);
 
-    [self.extensionContext completeRequestWithSelectedCredential:passwordCredential completionHandler:nil];
+    [self.extensionContext completeRequestWithSelectedCredential:passwordCredential completionHandler:nil];*/
     break;
   }
   case ASCredentialRequestTypeOneTimeCode: {
@@ -60,8 +127,7 @@
     break;
   }
   case ASCredentialRequestTypePasskeyAssertion: {
-    NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain code:ASExtensionErrorCodeUserInteractionRequired userInfo:nil];
-    [self.extensionContext cancelRequestWithError:error];
+    [self exitWithUserInteractionRequired];
     break;
   }
   default:
@@ -70,10 +136,13 @@
   }
 }
 
-- (void)performPasskeyRegistrationWithoutUserInteractionIfPossible:(ASPasskeyCredentialRequest *) registrationRequest {}
+// - (void)performPasskeyRegistrationWithoutUserInteractionIfPossible:(ASPasskeyCredentialRequest *) registrationRequest {}
 
-- (void)embedQWidget:(QWidget *)widget {
-  NSView* rootView = (__bridge NSView*)reinterpret_cast<void*>(widget->winId());
+- (void)embedQWidget:(QWidget *)widget hideRootView:(BOOL)hide {
+  NSView* rootView = reinterpret_cast<NSView *>(widget->winId());
+  if (hide) {
+    rootView.frame = NSMakeRect(0, 0, 0, 0);
+  }
 
   [self.view addSubview:rootView];
 
@@ -93,7 +162,7 @@
 - (void)prepareInterfaceForExtensionConfiguration {
   QWidget* widget = new ExtensionConfigurationWidget(self.extensionContext);
 
-  [self embedQWidget:widget];
+  [self embedQWidget:widget hideRootView:NO];
 }
 
 - (void)exitWithUserInteractionRequired {

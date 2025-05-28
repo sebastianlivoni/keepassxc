@@ -105,7 +105,10 @@ public:
     static const QString PASSKEYS_ATTESTATION_DIRECT;
     static const QString PASSKEYS_ATTESTATION_NONE;
     QByteArray buildSignature(const QByteArray& authenticatorData, const QByteArray& clientDataHash, const QString& privateKeyPem);
-    QByteArray buildAuthenticatorData(const QString& rpId, const QString& extensions);
+    QByteArray buildAuthenticatorData(const QString& rpId, const QString& extensions, bool withAttestedCredentialData = false);
+    AttestationKeyPair buildCredentialPrivateKey(int alg,
+                                                 const QString& predefinedFirst = QString(),
+                                                 const QString& predefinedSecond = QString());
 
 private:
     QByteArray buildAttestationObject(const QJsonObject& credentialCreationOptions,
@@ -113,9 +116,6 @@ private:
                                       const QString& credentialId,
                                       const QByteArray& cborEncodedPublicKey,
                                       const TestingVariables& predefinedVariables = {});
-    AttestationKeyPair buildCredentialPrivateKey(int alg,
-                                                 const QString& predefinedFirst = QString(),
-                                                 const QString& predefinedSecond = QString());
     QJsonObject parseAuthData(const QByteArray& authData) const;
     QJsonObject parseFlags(const QByteArray& flags) const;
     char setFlagsFromJson(const QJsonObject& flags) const;

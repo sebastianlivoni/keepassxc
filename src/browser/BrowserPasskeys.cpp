@@ -203,7 +203,7 @@ QByteArray BrowserPasskeys::buildAttestationObject(const QJsonObject& credential
 }
 
 // Build a short version of the attestation object for webauthn.get
-QByteArray BrowserPasskeys::buildAuthenticatorData(const QString& rpId, const QString& extensions)
+QByteArray BrowserPasskeys::buildAuthenticatorData(const QString& rpId, const QString& extensions, bool withAttestedCredentialData)
 {
     QByteArray result;
 
@@ -211,7 +211,7 @@ QByteArray BrowserPasskeys::buildAuthenticatorData(const QString& rpId, const QS
     result.append(rpIdHash);
 
     const auto flags = setFlagsFromJson(QJsonObject(
-        {{"ED", !extensions.isEmpty()}, {"AT", false}, {"BS", true}, {"BE", true}, {"UV", true}, {"UP", true}}));
+        {{"ED", !extensions.isEmpty()}, {"AT", withAttestedCredentialData}, {"BS", true}, {"BE", true}, {"UV", true}, {"UP", true}})); // TODO: AT must be true on registration and false otherwise
     result.append(flags);
 
     // Signature counter (not supported, always 0

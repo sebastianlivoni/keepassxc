@@ -12,6 +12,8 @@ set(SOURCES
     ../browser/BrowserCbor.cpp
     ../browser/PasskeyUtils.cpp
     ../gui/UrlTools.cpp
+    ../quickunlock/QuickUnlockInterface.cpp
+    ../quickunlock/PinUnlock.cpp
     ../quickunlock/TouchID.mm
 )
 

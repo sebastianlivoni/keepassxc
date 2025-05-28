@@ -5,13 +5,16 @@
 #include "browser/BrowserMessageBuilder.h"
 #include "browser/BrowserPasskeysClient.h"
 #include "browser/BrowserPasskeys.h"
+#include "quickunlock/QuickUnlockInterface.h"
+#include "browser/PasskeyUtils.h"
+#include "core/Tools.h"
 
 #include <AuthenticationServices/AuthenticationServices.h>
+
 #include <QString>
+#include <QObject>
 #include <QJsonObject>
 #include <QJsonDocument>
-#include "core/Tools.h"
-#include "browser/PasskeyUtils.h"
 
 AutoFillService *AutoFillService::instance() {
   static AutoFillService instance;
@@ -84,14 +87,22 @@ void AutoFillService::resetCredentialStore() {
 
 ASPasswordCredential *AutoFillService::getPasswordCredentialFromIdentity(
     const ASPasswordCredentialIdentity *identity) {
-
   auto db = QSharedPointer<Database>::create();
-  auto key = QSharedPointer<CompositeKey>::create();
-  auto passwordKey = QSharedPointer<PasswordKey>::create("a");
-  key->addKey(passwordKey);
+  auto databaseKey = QSharedPointer<CompositeKey>::create();
+
+  QByteArray keyData;
+  auto qu = getQuickUnlock()->interface();
+
+  db->setFilePath("/Users/seb/Downloads/Adgangskoder.kdbx");
   
+  if (!qu->getKey(db->publicUuid(), keyData)) {
+    return nil;
+  }
+
+  databaseKey->setRawKey(keyData);
+
   QString error;
-  if (db->open("/Users/seb/Downloads/Adgangskoder.kdbx", key, &error)) {
+  if (db->open(databaseKey, &error)) {
     NSString *recordIdentifier = identity.recordIdentifier;
 
     QString uuidHex = QString::fromNSString(recordIdentifier);
@@ -184,7 +195,111 @@ ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
 ASPasskeyRegistrationCredential* AutoFillService::createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request) {
   ASPasskeyCredentialIdentity *identity = (ASPasskeyCredentialIdentity *)request.credentialIdentity;
 
-  NSData *clientDataHash = request.clientDataHash;
+  auto db = QSharedPointer<Database>::create();
+  auto databaseKey = QSharedPointer<CompositeKey>::create();
+
+  QByteArray keyData;
+  auto qu = getQuickUnlock()->interface();
+
+  db->setFilePath("/Users/seb/Downloads/Adgangskoder.kdbx");
+  
+  if (!qu->getKey(db->publicUuid(), keyData)) {
+    return nil;
+  }
+
+  databaseKey->setRawKey(keyData);
+
+  QString error;
+  if (!db->open(databaseKey, &error)) {
+    return nil;
+  }
+
+  QByteArray clientDataHash = QByteArray::fromNSData(request.clientDataHash);
+
+  NSNumber *firstAlgorithm = [request.supportedAlgorithms firstObject];
+  WebAuthnAlgorithms algorithm = WebAuthnAlgorithms::ES256;
+
+  if (firstAlgorithm != nil) {
+      int rawAlg = [firstAlgorithm intValue];
+      if (rawAlg == WebAuthnAlgorithms::ES256 || rawAlg == WebAuthnAlgorithms::RS256 || rawAlg == WebAuthnAlgorithms::EDDSA) {
+          algorithm = static_cast<WebAuthnAlgorithms>(rawAlg);
+      }
+  }
+
+  const auto privateKey = browserPasskeys()->buildCredentialPrivateKey(algorithm);
+
+  QString rpId = QString::fromNSString(identity.relyingPartyIdentifier);
+  QString extensions = QString("");
+  auto authenticatorData = browserPasskeys()->buildAuthenticatorData(rpId, extensions, true);
+
+  authenticatorData.append(browserMessageBuilder()->getArrayFromHexString(QStringLiteral("fdb141b25d84443e8a354698c205a502")));
+  
+  const auto credentialId = browserMessageBuilder()->getRandomBytesAsBase64(ID_BYTES);
+
+  const char credentialLength[2] = {0x00, ID_BYTES};
+  authenticatorData.append(QByteArray::fromRawData(credentialLength, 2));
+
+  authenticatorData.append(QByteArray::fromBase64(credentialId.toUtf8(), QByteArray::Base64UrlEncoding));
+
+  authenticatorData.append(privateKey.cborEncodedPublicKey);
+
+  //const auto signature = browserPasskeys()->buildSignature(authenticatorData, clientDataHash, QString(privateKey.privateKeyPem));
+
+  // Make AttestationObject
+  QCborMap attStmt;
+  /*attStmt.insert(QStringLiteral("alg"), algorithm);
+  attStmt.insert(QStringLiteral("sig"), signature);*/
+  // TODO: Why should attstmt be empty for fmt none?
+
+  QCborMap attestationObject;
+  attestationObject.insert(QStringLiteral("fmt"), QStringLiteral("none"));
+  attestationObject.insert(QStringLiteral("attStmt"), attStmt);
+  attestationObject.insert(QStringLiteral("authData"), authenticatorData);
+
+  QByteArray cborEncoded = QCborValue(attestationObject).toCbor();
+  QString base64String = cborEncoded.toBase64();
+  NSLog(@"Base64 Encoded CBOR: %@", base64String.toNSString());
+
+  // TODO: Save the credentials in a entry
+  // TODO: Add identity to store
+
+  Group* rootGroup = db->rootGroup();
+  auto* entry = new Entry();
+  entry->setUuid(QUuid::createUuid());
+  entry->setGroup(rootGroup);
+  entry->setTitle(QObject::tr("%1 (Passkey)").arg(QString::fromNSString(identity.relyingPartyIdentifier)));
+  entry->setUsername(QString::fromNSString(identity.userName));
+  entry->setUrl(QString::fromNSString(identity.relyingPartyIdentifier));
+  entry->setIcon(13); // KEEPASSXCBROWSER_PASSKEY_ICON
+
+  entry->beginUpdate();
+
+  entry->attributes()->set(EntryAttributes::KPEX_PASSKEY_USERNAME, QString::fromNSString(identity.userName));
+  entry->attributes()->set(EntryAttributes::KPEX_PASSKEY_CREDENTIAL_ID, credentialId, true);
+  entry->attributes()->set(EntryAttributes::KPEX_PASSKEY_PRIVATE_KEY_PEM, QString(privateKey.privateKeyPem), true);
+  entry->attributes()->set(EntryAttributes::KPEX_PASSKEY_RELYING_PARTY, QString::fromNSString(identity.relyingPartyIdentifier));
+  entry->attributes()->set(EntryAttributes::KPEX_PASSKEY_USER_HANDLE, QByteArray::fromNSData(identity.userHandle), true);
+  entry->addTag(QObject::tr("Passkey"));
+
+  entry->endUpdate();
+
+  entry->removeHistoryItems(entry->historyItems());
+
+  QString errorMessage;
+  if (!db->save(Database::Atomic, {}, &errorMessage)) { // TODO: What happens if saving in app extension while the db is open in main app
+    return nil;
+  }
+  
+  ASPasskeyRegistrationCredential *credential = [ASPasskeyRegistrationCredential credentialWithRelyingParty:identity.relyingPartyIdentifier
+                                                                                       clientDataHash:request.clientDataHash
+                                                                                         credentialID:QByteArray::fromBase64(credentialId.toUtf8(), QByteArray::Base64UrlEncoding).toNSData()
+                                                                                    attestationObject:cborEncoded.toNSData()];
+
+  replaceCredentialStore(db);
+
+  return credential;
+
+  /*NSData *clientDataHash = request.clientDataHash;
   NSString *userVerificationPreference = request.userVerificationPreference;
   NSArray<NSNumber *> *supportedAlgorithms = request.supportedAlgorithms;
 
@@ -192,19 +307,28 @@ ASPasskeyRegistrationCredential* AutoFillService::createPasskeyRegistrationCrede
   NSData *userHandle = identity.userHandle;
   NSString *relyingPartyIdentifier = identity.relyingPartyIdentifier;
   NSData *credentialID = identity.credentialID;
-  NSString *recordIdentifier = identity.recordIdentifier;
+  NSString *recordIdentifier = identity.recordIdentifier;*/
 }
 
 ASPasskeyAssertionCredential* AutoFillService::getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest *request) {
   ASPasskeyCredentialIdentity *identity = (ASPasskeyCredentialIdentity *)request.credentialIdentity;
 
   auto db = QSharedPointer<Database>::create();
-  auto key = QSharedPointer<CompositeKey>::create();
-  auto passwordKey = QSharedPointer<PasswordKey>::create("a");
-  key->addKey(passwordKey);
+  auto databaseKey = QSharedPointer<CompositeKey>::create();
+
+  QByteArray keyData;
+  auto qu = getQuickUnlock()->interface();
+
+  db->setFilePath("/Users/seb/Downloads/Adgangskoder.kdbx");
   
+  if (!qu->getKey(db->publicUuid(), keyData)) {
+    return nil;
+  }
+
+  databaseKey->setRawKey(keyData);
+
   QString error;
-  if (db->open("/Users/seb/Downloads/Adgangskoder.kdbx", key, &error)) {
+  if (db->open(databaseKey, &error)) {
     NSString *recordIdentifier = identity.recordIdentifier;
     QString uuidHex = QString::fromNSString(recordIdentifier);
     
