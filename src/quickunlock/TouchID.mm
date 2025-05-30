@@ -9,7 +9,6 @@
 
 #include <Foundation/Foundation.h>
 #include <CoreFoundation/CoreFoundation.h>
-#include <LocalAuthentication/LocalAuthentication.h>
 #include <Security/Security.h>
 
 #include <QCoreApplication>
@@ -216,6 +215,16 @@ bool TouchID::setKey(const QUuid& dbUuid, const QByteArray& passwordKey)
  */
 bool TouchID::getKey(const QUuid& dbUuid, QByteArray& key)
 {
+    LAContext *context = [[LAContext alloc] init];
+    /*context.localizedReason = QCoreApplication::translate("DatabaseOpenWidget", "authenticate to access the database")
+            .toNSString();*/
+    context.localizedReason = QCoreApplication::translate("DatabaseOpenWidget", "låse din database op")
+            .toNSString();
+    return getKey(dbUuid, key, context);
+}
+
+bool TouchID::getKey(const QUuid& dbUuid, QByteArray& key, LAContext *context)
+{
     key.clear();
 
     if (!hasKey(dbUuid)) {
@@ -228,13 +237,6 @@ bool TouchID::getKey(const QUuid& dbUuid, QByteArray& key)
 
     const QString keyName = databaseKeyName(dbUuid);
     NSString* accountName = keyName.toNSString(); // The NSString is released by Qt
-
-    LAContext *context = [[LAContext alloc] init];
-    /*context.localizedReason = QCoreApplication::translate("DatabaseOpenWidget", "authenticate to access the database")
-            .toNSString();*/
-
-    context.localizedReason = QCoreApplication::translate("DatabaseOpenWidget", "låse din database op")
-            .toNSString();
 
     CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
     CFDictionarySetValue(query, kSecAttrAccount, (__bridge CFStringRef) accountName);

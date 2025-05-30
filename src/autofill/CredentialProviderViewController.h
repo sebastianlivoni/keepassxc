@@ -8,7 +8,4 @@
 #include <AuthenticationServices/AuthenticationServices.h>
 
 @interface CredentialProviderViewController : ASCredentialProviderViewController
-
-@property NSViewController *viewController;
-
 @end

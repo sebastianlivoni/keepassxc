@@ -6,7 +6,6 @@
 #include "browser/BrowserPasskeysClient.h"
 #include "browser/BrowserPasskeys.h"
 #include "quickunlock/QuickUnlockInterface.h"
-#include "browser/PasskeyUtils.h"
 #include "core/Tools.h"
 
 #include <AuthenticationServices/AuthenticationServices.h>
@@ -86,53 +85,34 @@ void AutoFillService::resetCredentialStore() {
 }
 
 ASPasswordCredential *AutoFillService::getPasswordCredentialFromIdentity(
-    const ASPasswordCredentialIdentity *identity) {
-  auto db = QSharedPointer<Database>::create();
-  auto databaseKey = QSharedPointer<CompositeKey>::create();
+    const ASPasswordCredentialIdentity *identity, const QSharedPointer<Database> &db) {
+  NSString *recordIdentifier = identity.recordIdentifier;
 
-  QByteArray keyData;
-  auto qu = getQuickUnlock()->interface();
-
-  db->setFilePath("/Users/seb/Downloads/Adgangskoder.kdbx");
+  QString uuidHex = QString::fromNSString(recordIdentifier);
   
-  if (!qu->getKey(db->publicUuid(), keyData)) {
-    return nil;
-  }
-
-  databaseKey->setRawKey(keyData);
-
-  QString error;
-  if (db->open(databaseKey, &error)) {
-    NSString *recordIdentifier = identity.recordIdentifier;
-
-    QString uuidHex = QString::fromNSString(recordIdentifier);
-    
-    auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
-    if (!entry) {
-      return nullptr;
-    }
-
-    QString username = entry->username();
-    if (username.isEmpty()) {
-        return nullptr;
-    }
-
-    QString password = entry->password();
-    if (password.isEmpty()) {
-        return nullptr;
-    }
-
-    NSString *objcUsername = username.toNSString();
-    NSString *objcPassword = password.toNSString();
-
-    ASPasswordCredential *passwordCredential =
-      [[ASPasswordCredential alloc] initWithUser:objcUsername
-                                        password:objcPassword];
-
-    return passwordCredential;
-  } else {
+  auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
+  if (!entry) {
     return nullptr;
   }
+
+  QString username = entry->username();
+  if (username.isEmpty()) {
+      return nullptr;
+  }
+
+  QString password = entry->password();
+  if (password.isEmpty()) {
+      return nullptr;
+  }
+
+  NSString *objcUsername = username.toNSString();
+  NSString *objcPassword = password.toNSString();
+
+  ASPasswordCredential *passwordCredential =
+    [[ASPasswordCredential alloc] initWithUser:objcUsername
+                                      password:objcPassword];
+
+  return passwordCredential;
 }
 
 
@@ -160,59 +140,29 @@ ASPasswordCredentialIdentity* AutoFillService::getPasswordCredentialIdentityFrom
 }
 
 ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
-  const ASOneTimeCodeCredentialIdentity *identity) {
+  const ASOneTimeCodeCredentialIdentity *identity, const QSharedPointer<Database> &db) {
+  NSString *recordIdentifier = identity.recordIdentifier;
 
-  auto db = QSharedPointer<Database>::create();
-  auto key = QSharedPointer<CompositeKey>::create();
-  auto passwordKey = QSharedPointer<PasswordKey>::create("a");
-  key->addKey(passwordKey);
+  QString uuidHex = QString::fromNSString(recordIdentifier);
   
-  QString error;
-  if (db->open("/Users/seb/Downloads/Adgangskoder.kdbx", key, &error)) {
-    NSString *recordIdentifier = identity.recordIdentifier;
-
-    QString uuidHex = QString::fromNSString(recordIdentifier);
-    
-    auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
-    if (!entry) {
-      return nullptr;
-    }
-
-    QString totp = entry->totp();
-    if (totp.isEmpty()) {
-        return nullptr;
-    }
-
-    ASOneTimeCodeCredential *oneTimeCodeCredential =
-      [[ASOneTimeCodeCredential alloc] initWithCode:totp.toNSString()];
-
-    return oneTimeCodeCredential;
-  } else {
+  auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
+  if (!entry) {
     return nullptr;
   }
+
+  QString totp = entry->totp();
+  if (totp.isEmpty()) {
+      return nullptr;
+  }
+
+  ASOneTimeCodeCredential *oneTimeCodeCredential =
+    [[ASOneTimeCodeCredential alloc] initWithCode:totp.toNSString()];
+
+  return oneTimeCodeCredential;
 }
 
-ASPasskeyRegistrationCredential* AutoFillService::createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request) {
+ASPasskeyRegistrationCredential* AutoFillService::createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request, const QSharedPointer<Database> &db) {
   ASPasskeyCredentialIdentity *identity = (ASPasskeyCredentialIdentity *)request.credentialIdentity;
-
-  auto db = QSharedPointer<Database>::create();
-  auto databaseKey = QSharedPointer<CompositeKey>::create();
-
-  QByteArray keyData;
-  auto qu = getQuickUnlock()->interface();
-
-  db->setFilePath("/Users/seb/Downloads/Adgangskoder.kdbx");
-  
-  if (!qu->getKey(db->publicUuid(), keyData)) {
-    return nil;
-  }
-
-  databaseKey->setRawKey(keyData);
-
-  QString error;
-  if (!db->open(databaseKey, &error)) {
-    return nil;
-  }
 
   QByteArray clientDataHash = QByteArray::fromNSData(request.clientDataHash);
 
@@ -310,55 +260,34 @@ ASPasskeyRegistrationCredential* AutoFillService::createPasskeyRegistrationCrede
   NSString *recordIdentifier = identity.recordIdentifier;*/
 }
 
-ASPasskeyAssertionCredential* AutoFillService::getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest *request) {
+ASPasskeyAssertionCredential* AutoFillService::getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest *request, const QSharedPointer<Database> &db) {
   ASPasskeyCredentialIdentity *identity = (ASPasskeyCredentialIdentity *)request.credentialIdentity;
-
-  auto db = QSharedPointer<Database>::create();
-  auto databaseKey = QSharedPointer<CompositeKey>::create();
-
-  QByteArray keyData;
-  auto qu = getQuickUnlock()->interface();
-
-  db->setFilePath("/Users/seb/Downloads/Adgangskoder.kdbx");
+  NSString *recordIdentifier = identity.recordIdentifier;
+  QString uuidHex = QString::fromNSString(recordIdentifier);
   
-  if (!qu->getKey(db->publicUuid(), keyData)) {
-    return nil;
+  auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
+  if (!entry) {
+    return nullptr;
   }
 
-  databaseKey->setRawKey(keyData);
+  const QString privateKeyPem = entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_PRIVATE_KEY_PEM);
 
-  QString error;
-  if (db->open(databaseKey, &error)) {
-    NSString *recordIdentifier = identity.recordIdentifier;
-    QString uuidHex = QString::fromNSString(recordIdentifier);
-    
-    auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
-    if (!entry) {
-      return nullptr;
-    }
+  QByteArray clientDataHash = QByteArray::fromNSData(request.clientDataHash);
 
-    const QString privateKeyPem = entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_PRIVATE_KEY_PEM);
+  QString rpId = QString::fromNSString(identity.relyingPartyIdentifier);
+  QString extensions = QString("");
 
-    QByteArray clientDataHash = QByteArray::fromNSData(request.clientDataHash);
+  const auto authenticatorData = browserPasskeys()->buildAuthenticatorData(rpId, extensions);
+  const auto signature = browserPasskeys()->buildSignature(authenticatorData, clientDataHash, privateKeyPem);
 
-    QString rpId = QString::fromNSString(identity.relyingPartyIdentifier);
-    QString extensions = QString("");
+  ASPasskeyAssertionCredential *credential = [ASPasskeyAssertionCredential credentialWithUserHandle:identity.userHandle
+                                                                                      relyingParty:identity.relyingPartyIdentifier
+                                                                                        signature:signature.toNSData()
+                                                                                    clientDataHash:request.clientDataHash
+                                                                                authenticatorData:authenticatorData.toNSData()
+                                                                                      credentialID:identity.credentialID];
 
-    const auto authenticatorData = browserPasskeys()->buildAuthenticatorData(rpId, extensions);
-    const auto signature = browserPasskeys()->buildSignature(authenticatorData, clientDataHash, privateKeyPem);
-
-    ASPasskeyAssertionCredential *credential = [ASPasskeyAssertionCredential credentialWithUserHandle:identity.userHandle
-                                                                                       relyingParty:identity.relyingPartyIdentifier
-                                                                                          signature:signature.toNSData()
-                                                                                     clientDataHash:request.clientDataHash
-                                                                                  authenticatorData:authenticatorData.toNSData()
-                                                                                       credentialID:identity.credentialID];
-
-    return credential;
-  }
-  
-  
-  return nullptr;
+  return credential;
 }
 
 ASOneTimeCodeCredentialIdentity* AutoFillService::getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry) {

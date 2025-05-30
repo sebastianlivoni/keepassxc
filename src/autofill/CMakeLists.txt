@@ -1,8 +1,8 @@
 set(SOURCES
     CredentialProviderViewController.mm
     ExtensionConfigurationWidget.mm
-    PasskeyRegistrationWidget.mm
-    ProvidePasskeyWidget.mm
+    PasskeyConfirmationWidget.mm
+    ConfirmationWidget.mm
     CredentialListWidget.mm
     AutoFillService.mm
     AutoFillViewController.mm
@@ -19,7 +19,7 @@ set(SOURCES
 
 add_executable(KeePassXCAutoFillExtension ${SOURCES})
 
-target_link_libraries(KeePassXCAutoFillExtension Qt5::Core Qt5::Network Qt5::Widgets keepassxc_core "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security")
+target_link_libraries(KeePassXCAutoFillExtension Qt5::Core Qt5::Network Qt5::Widgets keepassxc_core "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security -framework LocalAuthenticationEmbeddedUI")
 
 # Add the linker flag for _NSExtensionMain
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -e _NSExtensionMain")

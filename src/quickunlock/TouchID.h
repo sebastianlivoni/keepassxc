@@ -21,6 +21,12 @@
 #include "QuickUnlockInterface.h"
 #include <QHash>
 
+#ifdef __OBJC__
+#import <LocalAuthentication/LocalAuthentication.h>
+#else
+class LAContext;
+#endif
+
 class TouchID : public QuickUnlockInterface
 {
 public:
@@ -29,6 +35,7 @@ public:
 
     bool setKey(const QUuid& dbUuid, const QByteArray& passwordKey) override;
     bool getKey(const QUuid& dbUuid, QByteArray& passwordKey) override;
+    bool getKey(const QUuid& dbUuid, QByteArray& passwordKey, LAContext *context);
     bool hasKey(const QUuid& dbUuid) const override;
 
     bool canRemember() const override;

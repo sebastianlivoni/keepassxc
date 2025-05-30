@@ -17,12 +17,12 @@ public:
   void updateEntry();
 
   ASPasswordCredential *getPasswordCredentialFromIdentity(
-      const ASPasswordCredentialIdentity *identity);
+      const ASPasswordCredentialIdentity *identity, const QSharedPointer<Database> &db);
   ASOneTimeCodeCredential *getOneTimeCodeCredentialFromIdentity(
-      const ASOneTimeCodeCredentialIdentity *identity);
-  ASPasskeyAssertionCredential* getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest *request);
+      const ASOneTimeCodeCredentialIdentity *identity, const QSharedPointer<Database> &db);
+  ASPasskeyAssertionCredential* getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest *request, const QSharedPointer<Database> &db);
 
-  ASPasskeyRegistrationCredential* createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request);
+  ASPasskeyRegistrationCredential* createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request, const QSharedPointer<Database> &db);
 
 private:
   ASPasswordCredentialIdentity* getPasswordCredentialIdentityFromEntry(const Entry *entry);
