@@ -14,6 +14,8 @@
 	</array>
 	<key>com.apple.security.app-sandbox</key>
  	<true/>
+	<key>com.apple.security.cs.disable-library-validation</key>
+ 	<true/>
 	<key>com.apple.developer.authentication-services.autofill-credential-provider</key>
 	<true/>
  	<key>com.apple.security.device.usb</key>
@@ -38,6 +40,10 @@
 		<string>/Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts/</string>
 		<string>/Library/Application Support/Microsoft Edge/NativeMessagingHosts/</string>
 		<string>/Users/seb/Downloads/Adgangskoder.kdbx</string>
+	</array>
+	<key>com.apple.security.temporary-exception.files.absolute-path.read-only</key>
+	<array>
+		<string>/opt/homebrew/Cellar/</string>
 	</array>
 	<key>com.apple.security.temporary-exception.sbpl</key>
 	<array>
