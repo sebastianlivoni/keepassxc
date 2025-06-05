@@ -1,11 +1,11 @@
 set(SOURCES
     CredentialProviderViewController.mm
     ExtensionConfigurationWidget.mm
-    PasskeyConfirmationWidget.mm
     ConfirmationWidget.mm
+    PasskeyConfirmationWidget.mm
+    PasskeyRegistrationWidget.mm
     CredentialListWidget.mm
     AutoFillService.mm
-    AutoFillViewController.mm
     ../browser/BrowserMessageBuilder.cpp
     ../browser/BrowserPasskeysClient.cpp
     ../browser/BrowserPasskeys.cpp

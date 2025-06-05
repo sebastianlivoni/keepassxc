@@ -8,6 +8,9 @@
 #include "core/Database.h"
 #include "core/Entry.h"
 
+#ifndef CONFIRMATIONWIDGET_H
+#define CONFIRMATIONWIDGET_H
+
 class ConfirmationWidget : public QWidget {
   public:
     virtual void completeRequest() = 0;
@@ -24,6 +27,7 @@ class ConfirmationWidget : public QWidget {
     void authenticateWithKey();
     bool unlockDatabase(QSharedPointer<CompositeKey> compositeKey);
     void exitCancelRequest();
+    void initNativeView();
 
     ASCredentialProviderExtensionContext* m_extensionContext;
     ASPasskeyCredentialRequest* m_credentialRequest;
@@ -36,3 +40,5 @@ class ConfirmationWidget : public QWidget {
     QLineEdit* m_passwordInput;
     QWidget* m_nativeWidget;
 };
+
+#endif

@@ -4,6 +4,7 @@
 
 #include <QVBoxLayout>
 #include <QWindow>
+#include <QLabel>
 
 ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
     ASPasskeyCredentialRequest* credentialRequest,
@@ -14,38 +15,61 @@ ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* ext
       m_credentialRequest((ASPasskeyCredentialRequest *)CFBridgingRetain(credentialRequest)),
       m_laView(laView),
       m_laContext(laContext) {
+
   m_db = QSharedPointer<Database>::create();
-  const QString dbPath = "/Users/seb/Downloads/Adgangskoder.kdbx"; // TODO: Get the dbpath somehow
+  const QString dbPath = "/Users/seb/Downloads/Adgangskoder.kdbx"; // TODO: Make dynamic
   m_db->setFilePath(dbPath);
 
-  // UI
-  auto *layout = new QVBoxLayout(this);
-  setLayout(layout);
+  // Overall layout
+  auto *mainLayout = new QVBoxLayout(this);
+  mainLayout->setAlignment(Qt::AlignCenter);
+  mainLayout->setContentsMargins(40, 40, 40, 40);
+  mainLayout->setSpacing(20);
 
+  // Title
+  QLabel *titleLabel = new QLabel(tr("Unlock KeePassXC Database"), this);
+  QFont titleFont = titleLabel->font();
+  titleFont.setPointSize(16);
+  titleFont.setBold(true);
+  titleLabel->setFont(titleFont);
+  titleLabel->setAlignment(Qt::AlignCenter);
+  mainLayout->addWidget(titleLabel);
+
+  // Password input
   m_passwordInput = new QLineEdit(this);
   m_passwordInput->setEchoMode(QLineEdit::Password);
-  m_passwordInput->setPlaceholderText(tr("Enter KeePassXC password"));
+  m_passwordInput->setPlaceholderText(tr("Enter your master password"));
+  m_passwordInput->setMinimumHeight(30);
+  m_passwordInput->setStyleSheet("padding: 6px; font-size: 14px;");
 
-  m_submitButton = new QPushButton(tr("Submit"), this);
+  mainLayout->addWidget(m_passwordInput);
+
+  // Button row
+  auto *buttonLayout = new QHBoxLayout();
+  buttonLayout->setSpacing(15);
+  m_submitButton = new QPushButton(tr("Unlock"), this);
   m_cancel = new QPushButton(tr("Cancel"), this);
 
-  QWindow *nativeWindow = QWindow::fromWinId(reinterpret_cast<WId>(m_laView));
-  QWidget *m_nativeWidget = QWidget::createWindowContainer(nativeWindow, this);
+  buttonLayout->addStretch();
+  buttonLayout->addWidget(m_cancel);
+  buttonLayout->addWidget(m_submitButton);
+  buttonLayout->addStretch();
 
-  m_nativeWidget->setFixedSize(50, 50);
+  mainLayout->addLayout(buttonLayout);
 
-  layout->addWidget(m_nativeWidget);
-  layout->addWidget(m_passwordInput);
-  layout->addWidget(m_cancel);
-  layout->addWidget(m_submitButton);
-
+  // Connect signals
   connect(m_cancel, &QPushButton::clicked, this, &ConfirmationWidget::exitCancelRequest);
   connect(m_submitButton, &QPushButton::clicked, this, &ConfirmationWidget::authenticateWithKey);
 
+  // Initialize unlock logic
   QTimer::singleShot(0, this, &ConfirmationWidget::setupQuickUnlock);
 
+  setLayout(mainLayout);
+  resize(450, 220);
+  setWindowTitle(tr("Confirm Access"));
   show();
 }
+
 
 void ConfirmationWidget::setupQuickUnlock() {
   [m_laContext evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics

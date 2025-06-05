@@ -6,10 +6,10 @@
 #include <QPushButton>
 
 #include "AutoFillService.h"
-#include "AutoFillViewController.h"
 #include "ExtensionConfigurationWidget.h"
 #include "CredentialListWidget.h"
 #include "PasskeyConfirmationWidget.h"
+#include "PasskeyRegistrationWidget.h"
 
 #include "quickunlock/QuickUnlockInterface.h"
 #include "quickunlock/TouchID.h"
@@ -30,6 +30,10 @@
 
 - (void)viewDidLoad {
   [super viewDidLoad];
+}
+
+- (void)loadView {
+  [super loadView];
 
   int argc = 0;
   char *argv[] = { nullptr };
@@ -40,6 +44,8 @@
 
 - (void)viewDidAppear {
   [super viewDidAppear];
+
+  return;
 
   /*[self.context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
         localizedReason:@"låse din database op"
@@ -148,7 +154,7 @@
 
   LAAuthenticationView *laView = [[LAAuthenticationView alloc] initWithContext:self.context];
   [self.rootView addSubview:laView];
-  self.rootView.translatesAutoresizingMaskIntoConstraints = NO;;
+  self.rootView.translatesAutoresizingMaskIntoConstraints = NO;
 }
 
 - (void)prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers requestParameters:(ASPasskeyCredentialRequestParameters *) requestParameters {
@@ -158,23 +164,36 @@
 - (void)prepareOneTimeCodeCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {}
 
 - (void)prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {  
-  /*QWidget* widget = new CredentialListWidget(self.extensionContext);
-  [self embedQWidget:widget hideRootView:NO];
-
   LAAuthenticationView *laView = [[LAAuthenticationView alloc] initWithContext:self.context];
-  [self.rootView addSubview:laView];
-  self.rootView.translatesAutoresizingMaskIntoConstraints = NO;;*/
+  laView.translatesAutoresizingMaskIntoConstraints = NO;
 
-  self.credentialRequest = registrationRequest;
+  QWidget* widget = new PasskeyRegistrationWidget(self.extensionContext, registrationRequest, laView, self.context);
+  [self embedQWidget:widget hideRootView:NO];
+  NSView* rootView = reinterpret_cast<NSView *>(widget->winId());
+  [rootView addSubview:laView];
+
+  //self.credentialRequest = registrationRequest;
 }
 
 - (void)prepareInterfaceToProvideCredentialForRequest:(id<ASCredentialRequest>) credentialRequest {
-  /*LAAuthenticationView *laView = [[LAAuthenticationView alloc] initWithContext:self.context];
+  LAAuthenticationView *laView = [[LAAuthenticationView alloc] initWithContext:self.context];
   laView.translatesAutoresizingMaskIntoConstraints = NO;
 
-  QWidget* widget = new PasskeyConfirmationWidget(self.extensionContext, credentialRequest, laView, self.context);
-  [self embedQWidget:widget hideRootView:NO];*/
-  self.credentialRequest = credentialRequest;
+  switch (credentialRequest.type) {
+    case ASCredentialRequestTypePasskeyAssertion: {
+      QWidget* widget = new PasskeyConfirmationWidget(self.extensionContext, credentialRequest, laView, self.context);
+      [self embedQWidget:widget hideRootView:NO];
+      
+      NSView* rootView = reinterpret_cast<NSView *>(widget->winId());
+      [rootView addSubview:laView];
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  
+  //self.credentialRequest = credentialRequest;
 }
 
 - (void)provideCredentialWithoutUserInteractionForRequest:(id<ASCredentialRequest>) credentialRequest {
