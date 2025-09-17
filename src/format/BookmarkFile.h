@@ -9,4 +9,5 @@ public:
     void close() override;
 private:
     NSString* bookmarkKey();
+    void* m_location;
 };

@@ -36,7 +36,7 @@ void ExtensionConfigurationWidget::close()
     // //auto passwordKey = QSharedPointer<PasswordKey>::create("a");
     // //key->addKey(passwordKey);
 
-    // db->setFilePath("/Users/seb/Downloads/Adgangskoder.kdbx");
+    // db->setFilePath("/Users/seb/Developer/Adgangskoder.kdbx");
 
     // QByteArray keyData;
     // quickLock->getKey(db->publicUuid(), keyData);
@@ -49,6 +49,6 @@ void ExtensionConfigurationWidget::close()
     //     NSLog(@"Error: %@", error.toNSString());
     //     NSLog(@"Ikke låst op");
     // }
-    
+
     [extensionContext completeExtensionConfigurationRequest];
 }

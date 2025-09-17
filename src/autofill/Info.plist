@@ -1,5 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
@@ -23,13 +24,13 @@
 			<key>ASCredentialProviderExtensionCapabilities</key>
 			<dict>
 				<key>ProvidesOneTimeCodes</key>
-				<true/>
+				<true />
 				<key>ProvidesPasswords</key>
-				<true/>
+				<true />
 				<key>ProvidesPasskeys</key>
-				<true/>
+				<true />
 				<key>ShowsConfigurationUI</key>
-				<true/>
+				<false />
 				<!--<key>SupportsConditionalPasskeyRegistration</key>
 				<true/>-->
 			</dict>

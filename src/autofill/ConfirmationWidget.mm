@@ -17,7 +17,7 @@ ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* ext
       m_laContext(laContext) {
 
   m_db = QSharedPointer<Database>::create();
-  const QString dbPath = "/Users/seb/Downloads/Adgangskoder.kdbx"; // TODO: Make dynamic
+  const QString dbPath = "/Users/seb/Developer/Adgangskoder.kdbx"; // TODO: Make dynamic
   m_db->setFilePath(dbPath);
 
   // Overall layout
@@ -33,6 +33,7 @@ ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* ext
   titleFont.setBold(true);
   titleLabel->setFont(titleFont);
   titleLabel->setAlignment(Qt::AlignCenter);
+
   mainLayout->addWidget(titleLabel);
 
   // Password input
@@ -72,32 +73,32 @@ ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* ext
 
 
 void ConfirmationWidget::setupQuickUnlock() {
-  [m_laContext evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
-        localizedReason:@"Authenticate to unlock keychain item"
-                  reply:^(BOOL success, NSError * _Nullable error) {
-      if (!success) {
-        return;
-      }
+    [m_laContext evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
+            localizedReason:@"Authenticate to unlock keychain item"
+                    reply:^(BOOL success, NSError * _Nullable error) {
+        if (!success || error) {
+            return;
+        }
 
-      auto quickUnlock = new TouchID();
-      const auto dbUuid = m_db->publicUuid();
+        auto quickUnlock = new TouchID();
+        const auto dbUuid = m_db->publicUuid();
 
-      QByteArray keyData;
-      if (!quickUnlock->hasKey(dbUuid) || !quickUnlock->getKey(dbUuid, keyData, m_laContext)) {
-        exitCancelRequest();
-        return;
-      }
+        QByteArray keyData;
+        if (!quickUnlock->hasKey(dbUuid) || !quickUnlock->getKey(dbUuid, keyData, m_laContext)) {
+            exitCancelRequest();
+            return;
+        }
 
-      auto compositeKey = QSharedPointer<CompositeKey>::create();
-      compositeKey->setRawKey(keyData);
+        auto compositeKey = QSharedPointer<CompositeKey>::create();
+        compositeKey->setRawKey(keyData);
 
-      if (!unlockDatabase(compositeKey)) {
-        exitCancelRequest();
-        return;
-      }
+        if (!unlockDatabase(compositeKey)) {
+            exitCancelRequest();
+            return;
+        }
 
-      completeRequest();
-  }];
+        completeRequest();
+    }];
 }
 
 void ConfirmationWidget::authenticateWithKey() {
@@ -122,7 +123,7 @@ bool ConfirmationWidget::unlockDatabase(QSharedPointer<CompositeKey> compositeKe
   if (!result) {
     NSLog(@"Failed to open database: %@", error.toNSString());
   }
-  
+
   return result;
 }
 

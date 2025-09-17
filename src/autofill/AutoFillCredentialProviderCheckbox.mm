@@ -4,37 +4,39 @@
 
 #include <AuthenticationServices/AuthenticationServices.h>
 
-AutoFillCredentialProviderCheckbox::AutoFillCredentialProviderCheckbox(QWidget *parent) : QCheckBox(parent)
+AutoFillCredentialProviderCheckbox::AutoFillCredentialProviderCheckbox(QWidget *parent) : QCheckBox(parent), m_lastCredentialRequestTime(QDateTime::fromMSecsSinceEpoch(0))
 {
     connect(qApp, &QApplication::applicationStateChanged, this, &AutoFillCredentialProviderCheckbox::checkCredentialProviderEnabled);
 }
 
 void AutoFillCredentialProviderCheckbox::mousePressEvent(QMouseEvent *e) {
-    if (e->button() == Qt::LeftButton) {
-        // TODO: Replace this with below but apparently this does not work
-        /*[ASSettingsHelper
-            requestToTurnOnCredentialProviderExtensionWithCompletionHandler:^(
-                BOOL appWasEnabledForAutoFill) {
-                if (appWasEnabledForAutoFill) {
-                    NSLog(@"Credential Provider Extension was successfully enabled.");
-                } else {
-                    NSLog(@"Failed to enable Credential Provider Extension or user "
-                        @"canceled.");
-                }
-            }];*/
-
-        [ASSettingsHelper openCredentialProviderAppSettingsWithCompletionHandler:^(NSError *error) {
-            if (error) {
-            NSLog(@"Failed to open Credential Provider settings: %@",
-                    error.localizedDescription);
-            } else {
-            NSLog(@"Successfully opened Credential Provider settings.");
-            }
-        }];
+    if (e->button() != Qt::LeftButton) {
+        return;
     }
-}
 
-void AutoFillCredentialProviderCheckbox::mouseReleaseEvent(QMouseEvent *e) { }
+    const qint64 kCooldownMillis = 10 * 1000;
+    qint64 timeSinceLastRequest = m_lastCredentialRequestTime.msecsTo(QDateTime::currentDateTime());
+
+    ASCredentialIdentityStore *store = [ASCredentialIdentityStore sharedStore];
+    [store getCredentialIdentityStoreStateWithCompletion:^(ASCredentialIdentityStoreState * _Nonnull state) {
+        if (timeSinceLastRequest >= kCooldownMillis && !state.isEnabled) {
+            m_lastCredentialRequestTime = QDateTime::currentDateTime();
+
+            [ASSettingsHelper requestToTurnOnCredentialProviderExtensionWithCompletionHandler:^(BOOL appWasEnabledForAutoFill) {
+                setChecked(appWasEnabledForAutoFill);
+            }];
+        } else {
+            [ASSettingsHelper openCredentialProviderAppSettingsWithCompletionHandler:^(NSError *error) {
+                if (error) {
+                    NSLog(@"Failed to open Credential Provider settings: %@",
+                            error.localizedDescription);
+                } else {
+                    NSLog(@"Successfully opened Credential Provider settings.");
+                }
+            }];
+        }
+    }];
+}
 
 void AutoFillCredentialProviderCheckbox::checkCredentialProviderEnabled(Qt::ApplicationState state)
 {

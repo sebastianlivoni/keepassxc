@@ -1,6 +1,7 @@
 #include <QCheckBox>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QDateTime>
 
 class AutoFillCredentialProviderCheckbox : public QCheckBox
 {
@@ -11,8 +12,10 @@ public:
 
 protected:
     void mousePressEvent(QMouseEvent *e) override;
-    void mouseReleaseEvent(QMouseEvent *e) override;
 
 private slots:
     void checkCredentialProviderEnabled(Qt::ApplicationState state);
+
+private:
+    QDateTime m_lastCredentialRequestTime;
 };

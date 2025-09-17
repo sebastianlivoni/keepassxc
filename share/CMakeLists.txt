@@ -62,17 +62,17 @@ if(UNIX AND NOT APPLE AND NOT HAIKU)
 
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/linux/${APP_ID}.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
     if("${CMAKE_SYSTEM}" MATCHES "Linux")
-      install(FILES ${CMAKE_CURRENT_BINARY_DIR}/linux/${APP_ID}.policy DESTINATION ${CMAKE_INSTALL_DATADIR}/polkit-1/actions)
+        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/linux/${APP_ID}.policy DESTINATION ${CMAKE_INSTALL_DATADIR}/polkit-1/actions)
     endif()
     install(FILES linux/${APP_ID}.appdata.xml DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
 endif(UNIX AND NOT APPLE AND NOT HAIKU)
 
 if(APPLE)
-  install(FILES macosx/keepassxc.icns DESTINATION ${DATA_INSTALL_DIR})
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/macosx/keepassxc.icns" DESTINATION "${CMAKE_BINARY_DIR}/src/${DATA_INSTALL_DIR}")
 endif()
 
 if(WIN32)
-  install(FILES windows/qt.conf DESTINATION ${BIN_INSTALL_DIR})
+    install(FILES windows/qt.conf DESTINATION ${BIN_INSTALL_DIR})
 endif()
 
 install(FILES icons/application/256x256/apps/keepassxc.png DESTINATION ${DATA_INSTALL_DIR}/icons/application/256x256/apps)

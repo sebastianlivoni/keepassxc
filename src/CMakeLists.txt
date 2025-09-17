@@ -261,7 +261,7 @@ if(UNIX AND NOT APPLE)
 
     find_library(KEYUTILS_LIBRARIES NAMES keyutils)
     if(NOT KEYUTILS_LIBRARIES)
-		message(FATAL_ERROR "Could not find libkeyutils")
+        message(FATAL_ERROR "Could not find libkeyutils")
     endif()
 endif()
 
@@ -371,7 +371,8 @@ configure_file(git-info.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/git-info.h)
 # Core Library Definition
 add_library(keepassxc_core STATIC ${core_SOURCES})
 set_target_properties(keepassxc_core PROPERTIES COMPILE_DEFINITIONS KEEPASSX_BUILDING_CORE)
-target_link_libraries(keepassxc_core 
+target_link_libraries(keepassxc_core "-framework Foundation") # TODO: Remove
+target_link_libraries(keepassxc_core
         ${qrcode_LIB}
         Qt5::Core
         Qt5::Concurrent

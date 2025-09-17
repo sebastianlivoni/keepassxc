@@ -52,7 +52,7 @@
                   reply:^(BOOL success, NSError * _Nullable error) {
       if (success) {*/
           auto db = [self unlockDatabase];
-          
+
           if (!db) {
             [self exitCancelRequest];
             return;
@@ -120,7 +120,7 @@
 - (QSharedPointer<Database>)unlockDatabase {
   auto database = QSharedPointer<Database>::create();
   auto compositeKey = QSharedPointer<CompositeKey>::create();
-  const QString dbPath = "/Users/seb/Downloads/Adgangskoder.kdbx"; // TODO: Get the dbpath somehow
+  const QString dbPath = "/Users/seb/Developer/Adgangskoder.kdbx"; // TODO: Get the dbpath somehow
 
   database->setFilePath(dbPath);
 
@@ -163,7 +163,7 @@
 
 - (void)prepareOneTimeCodeCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {}
 
-- (void)prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {  
+- (void)prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {
   LAAuthenticationView *laView = [[LAAuthenticationView alloc] initWithContext:self.context];
   laView.translatesAutoresizingMaskIntoConstraints = NO;
 
@@ -183,7 +183,7 @@
     case ASCredentialRequestTypePasskeyAssertion: {
       QWidget* widget = new PasskeyConfirmationWidget(self.extensionContext, credentialRequest, laView, self.context);
       [self embedQWidget:widget hideRootView:NO];
-      
+
       NSView* rootView = reinterpret_cast<NSView *>(widget->winId());
       [rootView addSubview:laView];
       break;
@@ -192,7 +192,7 @@
       break;
     }
   }
-  
+
   //self.credentialRequest = credentialRequest;
 }
 

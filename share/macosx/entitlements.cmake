@@ -39,16 +39,16 @@
 		<string>/Library/Application Support/TorBrowser-Data/Browser/Mozilla/NativeMessagingHosts/</string>
 		<string>/Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts/</string>
 		<string>/Library/Application Support/Microsoft Edge/NativeMessagingHosts/</string>
-		<string>/Users/seb/Downloads/Adgangskoder.kdbx</string>
+		<!--<string>/Users/seb/Developer/Adgangskoder.kdbx</string>-->
 	</array>
 	<key>com.apple.security.temporary-exception.files.absolute-path.read-only</key>
 	<array>
 		<string>/opt/homebrew/Cellar/</string>
 	</array>
-	<key>com.apple.security.temporary-exception.sbpl</key>
+	<!--<key>com.apple.security.temporary-exception.sbpl</key>
 	<array>
 		<string>(allow file-read* (regex #"\.kdbx"))</string>
 		<string>(allow file-write* (regex #"\.kdbx"))</string>
-	</array>
+	</array>-->
 </dict>
 </plist>
