@@ -1978,8 +1978,6 @@ void DatabaseWidget::closeEvent(QCloseEvent* event)
         event->ignore();
         return;
     }
-
-    m_databaseOpenWidget->resetQuickUnlock();
     event->accept();
 }
 
