@@ -996,12 +996,19 @@ class AppSign(Command):
                     _run(['hdiutil', 'detach', mnt.as_posix()], cwd=None)
             elif file.is_dir() and file.suffix == '.app':
                 logger.debug('Copying .app directory...')
-                shutil.copytree(file, app_dir, symlinks=True)
+                shutil.copytree(file, app_dir, symlinks=True, dirs_exist_ok=True)
+                app_dir_app = app_dir
             else:
                 logger.warning('Skipping non-app file "%s"', file)
                 return None
 
-            app_dir_app = list(app_dir.glob('*.app'))[0]
+            apps = list(app_dir.glob('*.app'))
+            if apps:
+                app_dir_app = apps[0]
+            elif app_dir.suffix == '.app' or (app_dir / 'Contents').exists():
+                app_dir_app = app_dir
+            else:
+                raise Error(f'No .app bundle found inside "{app_dir}"')
 
             logger.debug('Signing libraries and frameworks...')
             _run(['xcrun', 'codesign', f'--sign={identity}', '--force', '--options=runtime', '--deep',
@@ -1010,7 +1017,7 @@ class AppSign(Command):
             # (Re-)Sign main executable with --entitlements
             logger.debug('Signing main executable...')
             _run(['xcrun', 'codesign', f'--sign={identity}', '--force', '--options=runtime',
-                  '--entitlements', (src_dir / 'share/macosx/keepassxc.entitlements').as_posix(),
+                  '--entitlements', (src_dir / 'build/src/keepassxc.entitlements').as_posix(),
                   (app_dir_app / 'Contents/MacOS/KeePassXC').as_posix()], cwd=None)
 
             tmp_out = out_file.with_suffix(f'.{"".join(random.choices(string.ascii_letters, k=8))}{file.suffix}')

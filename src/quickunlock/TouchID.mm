@@ -65,6 +65,7 @@ void TouchID::deleteKeyEntry(const QString& accountName)
    CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
    CFDictionarySetValue(query, kSecAttrAccount, (__bridge CFStringRef) nsAccountName);
    CFDictionarySetValue(query, kSecReturnData, kCFBooleanFalse);
+   CFDictionarySetValue(query, kSecUseDataProtectionKeychain, kCFBooleanTrue);
 
    // get data from the KeyChain
    OSStatus status = SecItemDelete(query);
@@ -166,6 +167,7 @@ bool TouchID::setKey(const QUuid& dbUuid, const QByteArray& key, const bool igno
     CFDictionarySetValue(attributes, kSecAttrAccount, (__bridge CFStringRef) accountName);
     CFDictionarySetValue(attributes, kSecValueData, (__bridge CFDataRef) keyValueData);
     CFDictionarySetValue(attributes, kSecAttrSynchronizable, kCFBooleanFalse);
+    CFDictionarySetValue(attributes, kSecUseDataProtectionKeychain, kCFBooleanTrue);
     CFDictionarySetValue(attributes, kSecUseAuthenticationUI, kSecUseAuthenticationUIAllow);
 #ifndef QT_DEBUG
     // Only use TouchID when in release build, also requires application entitlements and signing
@@ -224,14 +226,15 @@ bool TouchID::getKey(const QUuid& dbUuid, QByteArray& key)
 
     const QString keyName = databaseKeyName(dbUuid);
     NSString* accountName = keyName.toNSString(); // The NSString is released by Qt
-    NSString* touchPromptMessage =
-        QCoreApplication::translate("DatabaseOpenWidget", "authenticate to access the database")
-            .toNSString();  // The NSString is released by Qt
+    LAContext *context = [[LAContext alloc] init];
+    context.localizedReason = QCoreApplication::translate("DatabaseOpenWidget", "unlock your database")
+            .toNSString();
 
     CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
     CFDictionarySetValue(query, kSecAttrAccount, (__bridge CFStringRef) accountName);
     CFDictionarySetValue(query, kSecReturnData, kCFBooleanTrue);
-    CFDictionarySetValue(query, kSecUseOperationPrompt, (__bridge CFStringRef) touchPromptMessage);
+    CFDictionarySetValue(query, kSecUseDataProtectionKeychain, kCFBooleanTrue);
+    CFDictionarySetValue(query, kSecUseAuthenticationContext, context);
 
     // get data from the KeyChain
     CFTypeRef dataTypeRef = NULL;
@@ -265,12 +268,18 @@ bool TouchID::hasKey(const QUuid& dbUuid) const
     CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
     CFDictionarySetValue(query, kSecAttrAccount, (__bridge CFStringRef) accountName);
     CFDictionarySetValue(query, kSecReturnData, kCFBooleanFalse);
+    CFDictionarySetValue(query, kSecUseDataProtectionKeychain, kCFBooleanTrue);
+    CFDictionarySetValue(query, kSecUseAuthenticationUI, kSecUseAuthenticationUIFail);
 
-    CFTypeRef item = NULL;
-    OSStatus status = SecItemCopyMatching(query, &item);
+    CFTypeRef result = NULL;
+    OSStatus status = SecItemCopyMatching(query, &result);
+
+    if (result) {
+        CFRelease(result);
+    }
     CFRelease(query);
 
-    return status == errSecSuccess;
+    return status == errSecInteractionNotAllowed;
 }
 
 // TODO: Both functions below should probably handle the returned errors to
