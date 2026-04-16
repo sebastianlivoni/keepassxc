@@ -12,43 +12,9 @@
 	<array>
 		<string>${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}</string>
 	</array>
-	<key>com.apple.security.app-sandbox</key>
- 	<true/>
-	<key>com.apple.security.cs.disable-library-validation</key>
- 	<true/>
 	<key>com.apple.developer.authentication-services.autofill-credential-provider</key>
 	<true/>
- 	<key>com.apple.security.device.usb</key>
+	<key>com.apple.security.cs.disable-library-validation</key>
  	<true/>
- 	<key>com.apple.security.files.user-selected.read-write</key>
- 	<true/>
- 	<key>com.apple.security.network.client</key>
- 	<true/>
-	<key>com.apple.security.network.server</key>
-	<true/>
-	<key>com.apple.security.files.bookmarks.app-scope</key>
-	<true/>
-	<key>com.apple.security.files.bookmarks.document-scope</key>
-	<true/>
-	<key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key>
-	<array>
-		<string>/Library/Application Support/Google/Chrome/NativeMessagingHosts/</string>
-		<string>/Library/Application Support/Chromium/NativeMessagingHosts/</string>
-		<string>/Library/Application Support/Mozilla/NativeMessagingHosts/</string>
-		<string>/Library/Application Support/Vivaldi/NativeMessagingHosts/</string>
-		<string>/Library/Application Support/TorBrowser-Data/Browser/Mozilla/NativeMessagingHosts/</string>
-		<string>/Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts/</string>
-		<string>/Library/Application Support/Microsoft Edge/NativeMessagingHosts/</string>
-		<!--<string>/Users/seb/Developer/Adgangskoder.kdbx</string>-->
-	</array>
-	<key>com.apple.security.temporary-exception.files.absolute-path.read-only</key>
-	<array>
-		<string>/opt/homebrew/Cellar/</string>
-	</array>
-	<!--<key>com.apple.security.temporary-exception.sbpl</key>
-	<array>
-		<string>(allow file-read* (regex #"\.kdbx"))</string>
-		<string>(allow file-write* (regex #"\.kdbx"))</string>
-	</array>-->
 </dict>
 </plist>

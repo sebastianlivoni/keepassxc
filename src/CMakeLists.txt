@@ -215,7 +215,7 @@ set(gui_SOURCES
         ../share/wizard/wizard.qrc)
 
 if(APPLE)
-    list (APPEND core_SOURCES
+    list(APPEND core_SOURCES
             format/BookmarkFile.mm)
 
     list(APPEND gui_SOURCES
