@@ -37,7 +37,7 @@ install(TARGETS KeePassXCAutoFillExtension
 #install(FILES ${CMAKE_SOURCE_DIR}/src/autofill/embedded.provisionprofile DESTINATION ${PLUGIN_INSTALL_DIR}/KeePassXCAutoFillExtension.appex/Contents/)
 
 if(WITH_APP_BUNDLE)
-    add_custom_command(TARGET KeePassXCAutoFillExtension
+  add_custom_command(TARGET KeePassXCAutoFillExtension
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${PLUGIN_INSTALL_DIR}/KeePassXCAutoFillExtension.appex
         COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -46,5 +46,5 @@ if(WITH_APP_BUNDLE)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/src
         COMMENT "Copying autofill appex into plugins")
 
-    set_property(GLOBAL APPEND PROPERTY _MACDEPLOYQT_EXTRA_BINARIES "${PLUGIN_INSTALL_DIR}/KeePassXCAutoFillExtension.appex/Contents/MacOS/KeePassXCAutoFillExtension")
+  set_property(GLOBAL APPEND PROPERTY _MACDEPLOYQT_EXTRA_BINARIES "${PLUGIN_INSTALL_DIR}/KeePassXCAutoFillExtension.appex/Contents/MacOS/KeePassXCAutoFillExtension")
 endif()

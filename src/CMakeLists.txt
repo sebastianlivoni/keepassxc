@@ -296,6 +296,8 @@ if(WITH_XC_BROWSER)
             gui/reports/ReportsPageBrowserStatistics.cpp)
 endif()
 
+add_subdirectory(autofill/rendezvous)
+
 add_subdirectory(autofill)
 
 if(WITH_XC_BROWSER_PASSKEYS)
@@ -402,7 +404,7 @@ if(APPLE)
     target_compile_definitions(keepassxc_core PRIVATE
         APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
 
-    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework AuthenticationServices")
+    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework AuthenticationServices -framework ServiceManagement")
     if(Qt5MacExtras_FOUND)
         target_link_libraries(keepassxc_gui Qt5::MacExtras)
     endif()

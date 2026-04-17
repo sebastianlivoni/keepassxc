@@ -24,7 +24,7 @@
 	<true/>
 	<key>com.apple.security.files.bookmarks.document-scope</key>
 	<true/>
-  <key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key>
+    <key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key>
 	<array>
 		<string>/Developer/KeePassXC/build/_CPack_Packages/OSX/DragNDrop/KeePassXC-2.8.0-snapshot/ALL_IN_ONE/KeePassXC.app/Contents/PlugIns/</string>
 	</array>
@@ -36,6 +36,10 @@
 	<array>
 		<string>(allow file-read* (regex #"\.kdbx"))</string>
 		<string>(allow file-write* (regex #"\.kdbx"))</string>
+	</array>
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+	    <string>me.livoni.KeePassXC.AutoFillXPCRendezvous</string>
 	</array>
 </dict>
 </plist>

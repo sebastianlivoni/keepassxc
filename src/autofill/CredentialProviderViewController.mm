@@ -1,13 +1,14 @@
 #include "CredentialProviderViewController.h"
 
+#include <Foundation/Foundation.h>
 #include <QApplication>
 #include <QMacNativeWidget>
-#include <QVBoxLayout>
 #include <QPushButton>
+#include <QVBoxLayout>
 
 #include "AutoFillService.h"
-#include "ExtensionConfigurationWidget.h"
 #include "CredentialListWidget.h"
+#include "ExtensionConfigurationWidget.h"
 #include "PasskeyConfirmationWidget.h"
 #include "PasskeyRegistrationWidget.h"
 
@@ -17,12 +18,14 @@
 #include <LocalAuthentication/LocalAuthentication.h>
 #include <LocalAuthenticationEmbeddedUI/LAAuthenticationView.h>
 
-@interface CredentialProviderViewController()
+#include "rendezvous/AutofillXPCRendezvousProtocol.h"
 
-@property (nonatomic, strong) id<ASCredentialRequest> credentialRequest;
+@interface CredentialProviderViewController ()
 
-@property (nonatomic, strong) LAContext *context;
-@property (nonatomic, strong) NSView *rootView;
+@property(nonatomic, strong) id<ASCredentialRequest> credentialRequest;
+
+@property(nonatomic, strong) LAContext *context;
+@property(nonatomic, strong) NSView *rootView;
 
 @end
 
@@ -36,8 +39,34 @@
   [super loadView];
 
   int argc = 0;
-  char *argv[] = { nullptr };
+  char *argv[] = {nullptr};
   QApplication *qtApp = new QApplication(argc, argv);
+
+  NSXPCConnection *connection =
+      [[NSXPCConnection alloc] initWithMachServiceName:@"me.livoni.KeePassXC.AutoFillXPCRendezvous"
+                                                options:0];
+
+  NSXPCInterface *interface =
+      [NSXPCInterface interfaceWithProtocol:@protocol(AutofillXPCRendezvousProtocol)];
+
+  connection.remoteObjectInterface = interface;
+
+  [connection resume];
+
+  id proxy = [connection remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull error) {
+      NSLog(@"XPC error: %@", error);
+  }];
+
+  NSXPCListener *providerListener = [[NSXPCListener anonymousListener] init];
+  NSXPCListenerEndpoint *endpoint = providerListener.endpoint;
+
+  [proxy registerProvider:endpoint withReply:^(NSError *error) {
+      if (error) {
+          NSLog(@"Failed to register provider: %@", error);
+      } else {
+          NSLog(@"Provider registered successfully");
+      }
+  }];
 
   self.context = [[LAContext alloc] init];
 }
@@ -51,86 +80,109 @@
         localizedReason:@"låse din database op"
                   reply:^(BOOL success, NSError * _Nullable error) {
       if (success) {*/
-          auto db = [self unlockDatabase];
+  auto db = [self unlockDatabase];
 
-          if (!db) {
-            [self exitCancelRequest];
-            return;
-          }
+  if (!db) {
+    [self exitCancelRequest];
+    return;
+  }
 
-          switch (self.credentialRequest.type) {
-            case ASCredentialRequestTypePasskeyAssertion: {
-              auto *passkeyCredential = autoFillService()->getPasskeyCredentialFromPasskeyRequest(self.credentialRequest, db);
+  switch (self.credentialRequest.type) {
+  case ASCredentialRequestTypePasskeyAssertion: {
+    auto *passkeyCredential =
+        autoFillService()->getPasskeyCredentialFromPasskeyRequest(
+            self.credentialRequest, db);
 
-              if (!passkeyCredential ) {
-                [self exitCancelRequest];
-                return;
-              }
+    if (!passkeyCredential) {
+      [self exitCancelRequest];
+      return;
+    }
 
-              [self.extensionContext completeAssertionRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:nil];
-              break;
-            }
-            case ASCredentialRequestTypePasskeyRegistration: {
-              auto *passkeyCredential  = autoFillService()->createPasskeyRegistrationCredential(self.credentialRequest, db);
+    [self.extensionContext
+        completeAssertionRequestWithSelectedPasskeyCredential:passkeyCredential
+                                            completionHandler:nil];
+    break;
+  }
+  case ASCredentialRequestTypePasskeyRegistration: {
+    auto *passkeyCredential =
+        autoFillService()->createPasskeyRegistrationCredential(
+            self.credentialRequest, db);
 
-              if (!passkeyCredential ) {
-                [self exitCancelRequest];
-                return;
-              }
+    if (!passkeyCredential) {
+      [self exitCancelRequest];
+      return;
+    }
 
-              [self.extensionContext completeRegistrationRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:nil];
-              break;
-            }
-            case ASCredentialRequestTypePassword: {
-              ASPasswordCredentialIdentity *credentialIdentity = (ASPasswordCredentialIdentity *)self.credentialRequest.credentialIdentity;
-              auto *passwordCredential = autoFillService()->getPasswordCredentialFromIdentity(credentialIdentity, db);
+    [self.extensionContext
+        completeRegistrationRequestWithSelectedPasskeyCredential:
+            passkeyCredential
+                                               completionHandler:nil];
+    break;
+  }
+  case ASCredentialRequestTypePassword: {
+    ASPasswordCredentialIdentity *credentialIdentity =
+        (ASPasswordCredentialIdentity *)
+            self.credentialRequest.credentialIdentity;
+    auto *passwordCredential =
+        autoFillService()->getPasswordCredentialFromIdentity(credentialIdentity,
+                                                             db);
 
-              if (!passwordCredential ) {
-                [self exitCancelRequest];
-                return;
-              }
+    if (!passwordCredential) {
+      [self exitCancelRequest];
+      return;
+    }
 
-              [self.extensionContext completeRequestWithSelectedCredential:passwordCredential completionHandler:nil];
-              break;
-            }
-            case ASCredentialRequestTypeOneTimeCode: {
-              ASOneTimeCodeCredentialIdentity *credentialIdentity = (ASOneTimeCodeCredentialIdentity *)self.credentialRequest.credentialIdentity;
-              ASOneTimeCodeCredential *oneTimeCodeCredential = autoFillService()->getOneTimeCodeCredentialFromIdentity(credentialIdentity, db);
+    [self.extensionContext
+        completeRequestWithSelectedCredential:passwordCredential
+                            completionHandler:nil];
+    break;
+  }
+  case ASCredentialRequestTypeOneTimeCode: {
+    ASOneTimeCodeCredentialIdentity *credentialIdentity =
+        (ASOneTimeCodeCredentialIdentity *)
+            self.credentialRequest.credentialIdentity;
+    ASOneTimeCodeCredential *oneTimeCodeCredential =
+        autoFillService()->getOneTimeCodeCredentialFromIdentity(
+            credentialIdentity, db);
 
-              if (!oneTimeCodeCredential ) {
-                [self exitCancelRequest];
-                return;
-              }
+    if (!oneTimeCodeCredential) {
+      [self exitCancelRequest];
+      return;
+    }
 
-              [self.extensionContext completeOneTimeCodeRequestWithSelectedCredential:oneTimeCodeCredential completionHandler:nil];
-              break;
-            }
-            default: {
-              /*QWidget* widget = new CredentialListWidget(self.extensionContext);
-              [self embedQWidget:widget hideRootView:YES];*/
-              break;
-            }
-          }
-      /*} else {
-        [self exitCancelRequest];
-      }
-  }];*/
+    [self.extensionContext
+        completeOneTimeCodeRequestWithSelectedCredential:oneTimeCodeCredential
+                                       completionHandler:nil];
+    break;
+  }
+  default: {
+    /*QWidget* widget = new CredentialListWidget(self.extensionContext);
+    [self embedQWidget:widget hideRootView:YES];*/
+    break;
+  }
+  }
+  /*} else {
+    [self exitCancelRequest];
+  }
+}];*/
 }
 
 - (QSharedPointer<Database>)unlockDatabase {
   auto database = QSharedPointer<Database>::create();
   auto compositeKey = QSharedPointer<CompositeKey>::create();
-  const QString dbPath = "/Users/seb/Developer/Adgangskoder.kdbx"; // TODO: Get the dbpath somehow
+  const QString dbPath =
+      "/Users/seb/Developer/Adgangskoder.kdbx"; // TODO: Get the dbpath somehow
 
   database->setFilePath(dbPath);
 
-  auto quickUnlockInterface = qSharedPointerCast<TouchID>(getQuickUnlock()->interface());
+  auto quickUnlockInterface =
+      qSharedPointerCast<TouchID>(getQuickUnlock()->interface());
   const auto dbUuid = database->publicUuid();
 
   if (quickUnlockInterface->hasKey(dbUuid)) {
     QByteArray keyData;
-    if (!quickUnlockInterface->getKey(dbUuid, keyData/*, self.context*/)) {
-        return nil;
+    if (!quickUnlockInterface->getKey(dbUuid, keyData /*, self.context*/)) {
+      return nil;
     }
     compositeKey->setRawKey(keyData);
   } else {
@@ -148,62 +200,79 @@
   return database;
 }
 
-- (void)prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {
-  QWidget* widget = new CredentialListWidget(self.extensionContext);
+- (void)prepareCredentialListForServiceIdentifiers:
+    (NSArray<ASCredentialServiceIdentifier *> *)serviceIdentifiers {
+  QWidget *widget = new CredentialListWidget(self.extensionContext);
   [self embedQWidget:widget hideRootView:NO];
 
-  LAAuthenticationView *laView = [[LAAuthenticationView alloc] initWithContext:self.context];
+  LAAuthenticationView *laView =
+      [[LAAuthenticationView alloc] initWithContext:self.context];
   [self.rootView addSubview:laView];
   self.rootView.translatesAutoresizingMaskIntoConstraints = NO;
 }
 
-- (void)prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers requestParameters:(ASPasskeyCredentialRequestParameters *) requestParameters {
+- (void)prepareCredentialListForServiceIdentifiers:
+            (NSArray<ASCredentialServiceIdentifier *> *)serviceIdentifiers
+                                 requestParameters:
+                                     (ASPasskeyCredentialRequestParameters *)
+                                         requestParameters {
   // TODO: This will be called for passkeys
 }
 
-- (void)prepareOneTimeCodeCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier *> *) serviceIdentifiers {}
-
-- (void)prepareInterfaceForPasskeyRegistration:(id<ASCredentialRequest>) registrationRequest {
-  LAAuthenticationView *laView = [[LAAuthenticationView alloc] initWithContext:self.context];
-  laView.translatesAutoresizingMaskIntoConstraints = NO;
-
-  QWidget* widget = new PasskeyRegistrationWidget(self.extensionContext, registrationRequest, laView, self.context);
-  [self embedQWidget:widget hideRootView:NO];
-  NSView* rootView = reinterpret_cast<NSView *>(widget->winId());
-  [rootView addSubview:laView];
-
-  //self.credentialRequest = registrationRequest;
+- (void)prepareOneTimeCodeCredentialListForServiceIdentifiers:
+    (NSArray<ASCredentialServiceIdentifier *> *)serviceIdentifiers {
 }
 
-- (void)prepareInterfaceToProvideCredentialForRequest:(id<ASCredentialRequest>) credentialRequest {
-  LAAuthenticationView *laView = [[LAAuthenticationView alloc] initWithContext:self.context];
+- (void)prepareInterfaceForPasskeyRegistration:
+    (id<ASCredentialRequest>)registrationRequest {
+  LAAuthenticationView *laView =
+      [[LAAuthenticationView alloc] initWithContext:self.context];
+  laView.translatesAutoresizingMaskIntoConstraints = NO;
+
+  QWidget *widget = new PasskeyRegistrationWidget(
+      self.extensionContext, registrationRequest, laView, self.context);
+  [self embedQWidget:widget hideRootView:NO];
+  NSView *rootView = reinterpret_cast<NSView *>(widget->winId());
+  [rootView addSubview:laView];
+
+  // self.credentialRequest = registrationRequest;
+}
+
+- (void)prepareInterfaceToProvideCredentialForRequest:
+    (id<ASCredentialRequest>)credentialRequest {
+  LAAuthenticationView *laView =
+      [[LAAuthenticationView alloc] initWithContext:self.context];
   laView.translatesAutoresizingMaskIntoConstraints = NO;
 
   switch (credentialRequest.type) {
-    case ASCredentialRequestTypePasskeyAssertion: {
-      QWidget* widget = new PasskeyConfirmationWidget(self.extensionContext, credentialRequest, laView, self.context);
-      [self embedQWidget:widget hideRootView:NO];
+  case ASCredentialRequestTypePasskeyAssertion: {
+    QWidget *widget = new PasskeyConfirmationWidget(
+        self.extensionContext, credentialRequest, laView, self.context);
+    [self embedQWidget:widget hideRootView:NO];
 
-      NSView* rootView = reinterpret_cast<NSView *>(widget->winId());
-      [rootView addSubview:laView];
-      break;
-    }
-    default: {
-      break;
-    }
+    NSView *rootView = reinterpret_cast<NSView *>(widget->winId());
+    [rootView addSubview:laView];
+    break;
+  }
+  default: {
+    break;
+  }
   }
 
-  //self.credentialRequest = credentialRequest;
+  // self.credentialRequest = credentialRequest;
 }
 
-- (void)provideCredentialWithoutUserInteractionForRequest:(id<ASCredentialRequest>) credentialRequest {
+- (void)provideCredentialWithoutUserInteractionForRequest:
+    (id<ASCredentialRequest>)credentialRequest {
   [self exitWithUserInteractionRequired];
 }
 
-// - (void)performPasskeyRegistrationWithoutUserInteractionIfPossible:(ASPasskeyCredentialRequest *) registrationRequest {}
+// -
+// (void)performPasskeyRegistrationWithoutUserInteractionIfPossible:(ASPasskeyCredentialRequest
+// *) registrationRequest {}
 
 - (void)embedQWidget:(QWidget *)widget hideRootView:(BOOL)hide {
-  NSView* rootView = reinterpret_cast<NSView *>(widget->winId());
+  NSView *rootView = reinterpret_cast<NSView *>(widget->winId());
   if (hide) {
     rootView.frame = NSMakeRect(0, 0, 0, 0);
   }
@@ -214,13 +283,18 @@
 
   [NSLayoutConstraint activateConstraints:@[
     [self.view.topAnchor constraintEqualToAnchor:rootView.topAnchor constant:0],
-    [self.view.leadingAnchor constraintEqualToAnchor:rootView.leadingAnchor constant:0],
-    [self.view.trailingAnchor constraintEqualToAnchor:rootView.trailingAnchor constant:0],
-    [self.view.bottomAnchor constraintEqualToAnchor:rootView.bottomAnchor constant:0]
+    [self.view.leadingAnchor constraintEqualToAnchor:rootView.leadingAnchor
+                                            constant:0],
+    [self.view.trailingAnchor constraintEqualToAnchor:rootView.trailingAnchor
+                                             constant:0],
+    [self.view.bottomAnchor constraintEqualToAnchor:rootView.bottomAnchor
+                                           constant:0]
   ]];
 
-  [self.view.widthAnchor constraintEqualToConstant:rootView.frame.size.width].active = YES;
-  [self.view.heightAnchor constraintEqualToConstant:rootView.frame.size.height].active = YES;
+  [self.view.widthAnchor constraintEqualToConstant:rootView.frame.size.width]
+      .active = YES;
+  [self.view.heightAnchor constraintEqualToConstant:rootView.frame.size.height]
+      .active = YES;
 
   self.rootView = rootView;
 }
@@ -232,9 +306,10 @@
 }
 
 - (void)exitWithUserInteractionRequired {
-  NSError *error = [NSError errorWithDomain:ASExtensionErrorDomain
-                                       code:ASExtensionErrorCodeUserInteractionRequired
-                                   userInfo:nil];
+  NSError *error =
+      [NSError errorWithDomain:ASExtensionErrorDomain
+                          code:ASExtensionErrorCodeUserInteractionRequired
+                      userInfo:nil];
   [self.extensionContext cancelRequestWithError:error];
 }
 
