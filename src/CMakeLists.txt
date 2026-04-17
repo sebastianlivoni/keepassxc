@@ -25,7 +25,7 @@ add_feature_info(KeeShare WITH_XC_KEESHARE "Sharing integration with KeeShare")
 add_feature_info(YubiKey WITH_XC_YUBIKEY "YubiKey HMAC-SHA1 challenge-response")
 add_feature_info(UpdateCheck WITH_XC_UPDATECHECK "Automatic update checking")
 if(UNIX AND NOT APPLE)
-    add_feature_info(FdoSecrets WITH_XC_FDOSECRETS "Implement freedesktop.org Secret Storage Spec server side API.")
+  add_feature_info(FdoSecrets WITH_XC_FDOSECRETS "Implement freedesktop.org Secret Storage Spec server side API.")
 endif()
 
 set(core_SOURCES
@@ -139,6 +139,7 @@ set(gui_SOURCES
         gui/PasswordGeneratorWidget.cpp
         gui/ApplicationSettingsWidget.mm
         autofill/AutoFillCredentialProviderCheckbox.mm
+        autofill/rendezvous/AutoFillXPCService.m
         gui/Icons.cpp
         gui/SearchWidget.cpp
         gui/SettingsWidget.cpp
@@ -215,10 +216,10 @@ set(gui_SOURCES
         ../share/wizard/wizard.qrc)
 
 if(APPLE)
-    list(APPEND core_SOURCES
+  list(APPEND core_SOURCES
             format/BookmarkFile.mm)
 
-    list(APPEND gui_SOURCES
+  list(APPEND gui_SOURCES
             gui/osutils/macutils/MacPasteboard.cpp
             gui/osutils/macutils/MacUtils.cpp
             gui/osutils/macutils/ScreenLockListenerMac.cpp
@@ -227,69 +228,69 @@ if(APPLE)
             autofill/AutoFillService.mm
             quickunlock/TouchID.mm)
 
-    # TODO: Remove -Wno-error once deprecation warnings have been resolved.
-    set_source_files_properties(quickunlock/TouchID.mm PROPERTY COMPILE_FLAGS "-Wno-old-style-cast")
+  # TODO: Remove -Wno-error once deprecation warnings have been resolved.
+  set_source_files_properties(quickunlock/TouchID.mm PROPERTY COMPILE_FLAGS "-Wno-old-style-cast")
 endif()
 
 if(UNIX AND NOT APPLE)
-    list(APPEND gui_SOURCES
+  list(APPEND gui_SOURCES
             gui/osutils/nixutils/ScreenLockListenerDBus.cpp
             gui/osutils/nixutils/NixUtils.cpp)
-    if("${CMAKE_SYSTEM}" MATCHES "Linux")
-        list(APPEND core_SOURCES
+  if("${CMAKE_SYSTEM}" MATCHES "Linux")
+    list(APPEND core_SOURCES
                 quickunlock/Polkit.cpp
                 quickunlock/PolkitDbusTypes.cpp)
-    endif()
-    if(WITH_XC_X11)
-        list(APPEND gui_SOURCES
+  endif()
+  if(WITH_XC_X11)
+    list(APPEND gui_SOURCES
             gui/osutils/nixutils/X11Funcs.cpp)
-    endif()
-    qt5_add_dbus_adaptor(gui_SOURCES
+  endif()
+  qt5_add_dbus_adaptor(gui_SOURCES
             gui/org.keepassxc.KeePassXC.MainWindow.xml
             gui/MainWindow.h
             MainWindow)
 
-    set_source_files_properties(
+  set_source_files_properties(
         quickunlock/dbus/org.freedesktop.PolicyKit1.Authority.xml
         PROPERTIES
         INCLUDE "quickunlock/PolkitDbusTypes.h"
         )
-    qt5_add_dbus_interface(core_SOURCES
+  qt5_add_dbus_interface(core_SOURCES
         quickunlock/dbus/org.freedesktop.PolicyKit1.Authority.xml
         polkit_dbus
     )
 
-    find_library(KEYUTILS_LIBRARIES NAMES keyutils)
-    if(NOT KEYUTILS_LIBRARIES)
-        message(FATAL_ERROR "Could not find libkeyutils")
-    endif()
+  find_library(KEYUTILS_LIBRARIES NAMES keyutils)
+  if(NOT KEYUTILS_LIBRARIES)
+    message(FATAL_ERROR "Could not find libkeyutils")
+  endif()
 endif()
 
 if(WIN32)
-    list(APPEND gui_SOURCES
+  list(APPEND gui_SOURCES
             gui/osutils/winutils/ScreenLockListenerWin.cpp
             gui/osutils/winutils/WinUtils.cpp)
-    if (MSVC)
-        list(APPEND gui_SOURCES quickunlock/WindowsHello.cpp)
-    endif()
+  if (MSVC)
+    list(APPEND gui_SOURCES quickunlock/WindowsHello.cpp)
+  endif()
 endif()
 
 if(WITH_XC_YUBIKEY)
-    list(APPEND gui_SOURCES gui/osutils/DeviceListener.cpp)
-    if(APPLE)
-        list(APPEND gui_SOURCES gui/osutils/macutils/DeviceListenerMac.cpp)
-    elseif(UNIX)
-        list(APPEND gui_SOURCES gui/osutils/nixutils/DeviceListenerLibUsb.cpp)
-    elseif(WIN32)
-        list(APPEND gui_SOURCES gui/osutils/winutils/DeviceListenerWin.cpp)
-    endif()
+  list(APPEND gui_SOURCES gui/osutils/DeviceListener.cpp)
+  if(APPLE)
+    list(APPEND gui_SOURCES gui/osutils/macutils/DeviceListenerMac.cpp)
+  elseif(UNIX)
+    list(APPEND gui_SOURCES gui/osutils/nixutils/DeviceListenerLibUsb.cpp)
+  elseif(WIN32)
+    list(APPEND gui_SOURCES gui/osutils/winutils/DeviceListenerWin.cpp)
+  endif()
 endif()
 
 add_subdirectory(browser)
 add_subdirectory(proxy)
 if(WITH_XC_BROWSER)
-    set(browser_LIB browser)
-    list(APPEND gui_SOURCES
+  set(browser_LIB browser)
+  list(APPEND gui_SOURCES
             gui/dbsettings/DatabaseSettingsWidgetBrowser.cpp
             gui/entry/EntryURLModel.cpp
             gui/reports/ReportsWidgetBrowserStatistics.cpp
@@ -301,7 +302,7 @@ add_subdirectory(autofill/rendezvous)
 add_subdirectory(autofill)
 
 if(WITH_XC_BROWSER_PASSKEYS)
-    list(APPEND gui_SOURCES
+  list(APPEND gui_SOURCES
             gui/reports/ReportsWidgetPasskeys.cpp
             gui/reports/ReportsPagePasskeys.cpp
             gui/passkeys/PasskeyExporter.cpp
@@ -317,17 +318,17 @@ set(qrcode_LIB qrcode)
 
 add_subdirectory(keeshare)
 if(WITH_XC_KEESHARE)
-    set(keeshare_LIB keeshare)
+  set(keeshare_LIB keeshare)
 endif()
 
 add_subdirectory(sshagent)
 if(WITH_XC_SSHAGENT)
-    set(sshagent_LIB sshagent)
+  set(sshagent_LIB sshagent)
 endif()
 
 add_subdirectory(fdosecrets)
 if(WITH_XC_FDOSECRETS)
-    set(fdosecrets_LIB fdosecrets)
+  set(fdosecrets_LIB fdosecrets)
 endif()
 
 add_subdirectory(thirdparty)
@@ -345,20 +346,20 @@ add_library(autotype STATIC ${autotype_SOURCES})
 target_link_libraries(autotype Qt5::Core Qt5::Widgets)
 
 if(WITH_XC_YUBIKEY)
-    list(APPEND core_SOURCES
+  list(APPEND core_SOURCES
         keys/drivers/YubiKey.h
         keys/drivers/YubiKey.cpp
         keys/drivers/YubiKeyInterface.cpp
         keys/drivers/YubiKeyInterfaceUSB.cpp
         keys/drivers/YubiKeyInterfacePCSC.cpp)
 else()
-    list(APPEND core_SOURCES
+  list(APPEND core_SOURCES
         keys/drivers/YubiKey.h
         keys/drivers/YubiKeyStub.cpp)
 endif()
 
 if(WITH_XC_NETWORKING)
-    list(APPEND gui_SOURCES
+  list(APPEND gui_SOURCES
             networking/HibpDownloader.cpp
             networking/NetworkManager.cpp
             networking/UpdateChecker.cpp
@@ -401,35 +402,35 @@ target_link_libraries(keepassxc_gui
         ${sshagent_LIB})
 
 if(APPLE)
-    target_compile_definitions(keepassxc_core PRIVATE
+  target_compile_definitions(keepassxc_core PRIVATE
         APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
 
-    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework AuthenticationServices -framework ServiceManagement")
-    if(Qt5MacExtras_FOUND)
-        target_link_libraries(keepassxc_gui Qt5::MacExtras)
-    endif()
+  target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework AuthenticationServices -framework ServiceManagement")
+  if(Qt5MacExtras_FOUND)
+    target_link_libraries(keepassxc_gui Qt5::MacExtras)
+  endif()
 endif()
 if(HAIKU)
-    target_link_libraries(keepassxc_gui network)
+  target_link_libraries(keepassxc_gui network)
 endif()
 if(UNIX AND NOT APPLE)
-    target_link_libraries(keepassxc_core Qt5::DBus ${LIBUSB_LIBRARIES})
-    if(WITH_XC_X11)
-        target_link_libraries(keepassxc_gui Qt5::X11Extras X11)
-    endif()
-    include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+  target_link_libraries(keepassxc_core Qt5::DBus ${LIBUSB_LIBRARIES})
+  if(WITH_XC_X11)
+    target_link_libraries(keepassxc_gui Qt5::X11Extras X11)
+  endif()
+  include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
 endif()
 if(WIN32)
-    target_link_libraries(keepassxc_gui Wtsapi32.lib Ws2_32.lib)
-    if (MSVC)
-        target_link_libraries(keepassxc_gui WindowsApp.lib)
-    endif()
+  target_link_libraries(keepassxc_gui Wtsapi32.lib Ws2_32.lib)
+  if (MSVC)
+    target_link_libraries(keepassxc_gui WindowsApp.lib)
+  endif()
 endif()
 
 # Main Executable Definition
 if(WIN32)
-    include(GenerateProductVersion)
-    generate_product_version(
+  include(GenerateProductVersion)
+  generate_product_version(
             WIN32_ResourceFiles
             NAME "KeePassXC"
             COMPANY_NAME "KeePassXC Team"
@@ -437,7 +438,7 @@ if(WIN32)
             VERSION_MINOR ${KEEPASSXC_VERSION_MINOR}
             VERSION_PATCH ${KEEPASSXC_VERSION_PATCH}
     )
-    list(APPEND WIN32_ResourceFiles "${CMAKE_SOURCE_DIR}/share/windows/icon.rc")
+  list(APPEND WIN32_ResourceFiles "${CMAKE_SOURCE_DIR}/share/windows/icon.rc")
 endif()
 
 add_executable(${PROGNAME} WIN32 main.cpp ${WIN32_ResourceFiles})
@@ -446,31 +447,31 @@ set_target_properties(${PROGNAME} PROPERTIES ENABLE_EXPORTS ON)
 
 # macOS App Bundle
 if(APPLE AND WITH_APP_BUNDLE)
-    set(APPLE_TEAM_ID "G2S7P7J672" CACHE STRING "Apple Developer Team ID")
-    set(APPLE_APP_IDENTIFIER "org.keepassxc.keepassxc" CACHE STRING "App bundle identifier")
+  set(APPLE_TEAM_ID "G2S7P7J672" CACHE STRING "Apple Developer Team ID")
+  set(APPLE_APP_IDENTIFIER "org.keepassxc.keepassxc" CACHE STRING "App bundle identifier")
 
-    install(FILES ${CMAKE_SOURCE_DIR}/share/macosx/embedded.provisionprofile DESTINATION ${BUNDLE_INSTALL_DIR})
-    configure_file(${CMAKE_SOURCE_DIR}/share/macosx/Info.plist.cmake ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
-    configure_file(${CMAKE_SOURCE_DIR}/share/macosx/entitlements.cmake ${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements)
-    set_target_properties(${PROGNAME} PROPERTIES
+  install(FILES ${CMAKE_SOURCE_DIR}/share/macosx/embedded.provisionprofile DESTINATION ${BUNDLE_INSTALL_DIR})
+  configure_file(${CMAKE_SOURCE_DIR}/share/macosx/Info.plist.cmake ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
+  configure_file(${CMAKE_SOURCE_DIR}/share/macosx/entitlements.cmake ${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements)
+  set_target_properties(${PROGNAME} PROPERTIES
             MACOSX_BUNDLE ON
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info.plist
             CPACK_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements")
 
-    if(QT_MAC_USE_COCOA AND EXISTS "${QT_LIBRARY_DIR}/Resources/qt_menu.nib")
-        install(DIRECTORY "${QT_LIBRARY_DIR}/Resources/qt_menu.nib"
+  if(QT_MAC_USE_COCOA AND EXISTS "${QT_LIBRARY_DIR}/Resources/qt_menu.nib")
+    install(DIRECTORY "${QT_LIBRARY_DIR}/Resources/qt_menu.nib"
                 DESTINATION "${DATA_INSTALL_DIR}")
-    endif()
+  endif()
 
-    set(CPACK_GENERATOR "DragNDrop")
-    set(CPACK_DMG_FORMAT "UDBZ")
-    set(CPACK_DMG_DS_STORE "${CMAKE_SOURCE_DIR}/share/macosx/DS_Store.in")
-    set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/share/macosx/background.tiff")
-    set(CPACK_DMG_VOLUME_NAME "${PROGNAME}")
-    set(CPACK_SYSTEM_NAME "OSX")
-    set(CPACK_STRIP_FILES ON)
-    set(CPACK_PACKAGE_FILE_NAME "${PROGNAME}-${KEEPASSXC_VERSION}")
-    include(CPack)
+  set(CPACK_GENERATOR "DragNDrop")
+  set(CPACK_DMG_FORMAT "UDBZ")
+  set(CPACK_DMG_DS_STORE "${CMAKE_SOURCE_DIR}/share/macosx/DS_Store.in")
+  set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/share/macosx/background.tiff")
+  set(CPACK_DMG_VOLUME_NAME "${PROGNAME}")
+  set(CPACK_SYSTEM_NAME "OSX")
+  set(CPACK_STRIP_FILES ON)
+  set(CPACK_PACKAGE_FILE_NAME "${PROGNAME}-${KEEPASSXC_VERSION}")
+  include(CPack)
 endif()
 
 install(TARGETS ${PROGNAME}
@@ -479,112 +480,112 @@ install(TARGETS ${PROGNAME}
 
 # Windows Installer Definition
 if(WIN32)
-    if(${CMAKE_SIZEOF_VOID_P} EQUAL "8")
-        set(OUTPUT_FILE_POSTFIX "Win64")
-    else()
-        set(OUTPUT_FILE_POSTFIX "Win32")
-    endif()
+  if(${CMAKE_SIZEOF_VOID_P} EQUAL "8")
+    set(OUTPUT_FILE_POSTFIX "Win64")
+  else()
+    set(OUTPUT_FILE_POSTFIX "Win32")
+  endif()
 
-    # We have to copy the license file in the configuration phase.
-    # CMake checks that CPACK_RESOURCE_FILE_LICENSE actually exists and
-    # we have to copy it because WiX needs it to have a .txt extension.
-    execute_process(COMMAND ${CMAKE_COMMAND} -E copy
+  # We have to copy the license file in the configuration phase.
+  # CMake checks that CPACK_RESOURCE_FILE_LICENSE actually exists and
+  # we have to copy it because WiX needs it to have a .txt extension.
+  execute_process(COMMAND ${CMAKE_COMMAND} -E copy
             "${CMAKE_SOURCE_DIR}/LICENSE.GPL-2"
             "${CMAKE_CURRENT_BINARY_DIR}/INSTALLER_LICENSE.txt")
 
-    # Prepare portal zip file
-    set(CPACK_INSTALL_SCRIPTS "${CMAKE_SOURCE_DIR}/cmake/MakePortableZip.cmake")
+  # Prepare portal zip file
+  set(CPACK_INSTALL_SCRIPTS "${CMAKE_SOURCE_DIR}/cmake/MakePortableZip.cmake")
 
-    string(REGEX REPLACE "-.*$" "" KEEPASSXC_VERSION_CLEAN ${KEEPASSXC_VERSION})
+  string(REGEX REPLACE "-.*$" "" KEEPASSXC_VERSION_CLEAN ${KEEPASSXC_VERSION})
 
-    set(CPACK_GENERATOR "ZIP;WIX")
-    set(CPACK_COMPONENTS_ALL "")
-    set(CPACK_STRIP_FILES OFF)
-    set(CPACK_PACKAGE_FILE_NAME "${PROGNAME}-${KEEPASSXC_VERSION}-${OUTPUT_FILE_POSTFIX}")
-    set(CPACK_PACKAGE_INSTALL_DIRECTORY ${PROGNAME})
-    set(CPACK_PACKAGE_VERSION ${KEEPASSXC_VERSION_CLEAN})
-    set(CPACK_PACKAGE_VENDOR "${PROGNAME} Team")
-    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_BINARY_DIR}/INSTALLER_LICENSE.txt")
-    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
-    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/share/windows/keepassxc.ico")
-    set(CPACK_NSIS_MUI_UNIICON "${CPACK_NSIS_MUI_ICON}")
-    set(CPACK_NSIS_INSTALLED_ICON_NAME "\\\\${PROGNAME}.exe")
-    set(CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP "${CMAKE_SOURCE_DIR}/share/windows/installer-wizard.png")
-    set(CPACK_NSIS_MUI_UNWELCOMEFINISHPAGE_BITMAP "${CMAKE_SOURCE_DIR}/share/windows/installer-wizard.png")
-    set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${PROGNAME}.lnk' '$INSTDIR\\\\${PROGNAME}.exe'")
-    set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\$START_MENU\\\\${PROGNAME}.lnk'")
-    set(CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "ExecWait 'Taskkill /IM KeePassXC.exe'")
-    set(CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "${CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS}\nExecWait 'Taskkill /IM keepassxc-proxy.exe /F'")
-    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "ExecWait 'Taskkill /IM KeePassXC.exe'")
-    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "${CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS}\nExecWait 'Taskkill /IM keepassxc-proxy.exe /F'")
-    set(CPACK_NSIS_URL_INFO_ABOUT "https://keepassxc.org")
-    set(CPACK_NSIS_DISPLAY_NAME ${PROGNAME})
-    set(CPACK_NSIS_PACKAGE_NAME "${PROGNAME} v${KEEPASSXC_VERSION}")
-    set(CPACK_NSIS_MUI_FINISHPAGE_RUN "../${PROGNAME}.exe")
-    set(CPACK_WIX_UPGRADE_GUID 88785A72-3EAE-4F29-89E3-BC6B19BA9A5B)
-    set(CPACK_WIX_PRODUCT_ICON "${CMAKE_SOURCE_DIR}/share/windows/keepassxc.ico")
-    set(CPACK_WIX_UI_BANNER "${CMAKE_SOURCE_DIR}/share/windows/installer-banner.png")
-    set(CPACK_WIX_UI_DIALOG "${CMAKE_SOURCE_DIR}/share/windows/installer-wizard.png")
-    set(CPACK_WIX_UI_REF "KPXC_InstallDir")
-    set(CPACK_WIX_TEMPLATE "${CMAKE_SOURCE_DIR}/share/windows/wix-template.xml")
-    set(CPACK_WIX_PATCH_FILE "${CMAKE_SOURCE_DIR}/share/windows/wix-patch.xml")
-    set(CPACK_WIX_EXTRA_SOURCES
+  set(CPACK_GENERATOR "ZIP;WIX")
+  set(CPACK_COMPONENTS_ALL "")
+  set(CPACK_STRIP_FILES OFF)
+  set(CPACK_PACKAGE_FILE_NAME "${PROGNAME}-${KEEPASSXC_VERSION}-${OUTPUT_FILE_POSTFIX}")
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY ${PROGNAME})
+  set(CPACK_PACKAGE_VERSION ${KEEPASSXC_VERSION_CLEAN})
+  set(CPACK_PACKAGE_VENDOR "${PROGNAME} Team")
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_BINARY_DIR}/INSTALLER_LICENSE.txt")
+  set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+  set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/share/windows/keepassxc.ico")
+  set(CPACK_NSIS_MUI_UNIICON "${CPACK_NSIS_MUI_ICON}")
+  set(CPACK_NSIS_INSTALLED_ICON_NAME "\\\\${PROGNAME}.exe")
+  set(CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP "${CMAKE_SOURCE_DIR}/share/windows/installer-wizard.png")
+  set(CPACK_NSIS_MUI_UNWELCOMEFINISHPAGE_BITMAP "${CMAKE_SOURCE_DIR}/share/windows/installer-wizard.png")
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${PROGNAME}.lnk' '$INSTDIR\\\\${PROGNAME}.exe'")
+  set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\$START_MENU\\\\${PROGNAME}.lnk'")
+  set(CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "ExecWait 'Taskkill /IM KeePassXC.exe'")
+  set(CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "${CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS}\nExecWait 'Taskkill /IM keepassxc-proxy.exe /F'")
+  set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "ExecWait 'Taskkill /IM KeePassXC.exe'")
+  set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "${CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS}\nExecWait 'Taskkill /IM keepassxc-proxy.exe /F'")
+  set(CPACK_NSIS_URL_INFO_ABOUT "https://keepassxc.org")
+  set(CPACK_NSIS_DISPLAY_NAME ${PROGNAME})
+  set(CPACK_NSIS_PACKAGE_NAME "${PROGNAME} v${KEEPASSXC_VERSION}")
+  set(CPACK_NSIS_MUI_FINISHPAGE_RUN "../${PROGNAME}.exe")
+  set(CPACK_WIX_UPGRADE_GUID 88785A72-3EAE-4F29-89E3-BC6B19BA9A5B)
+  set(CPACK_WIX_PRODUCT_ICON "${CMAKE_SOURCE_DIR}/share/windows/keepassxc.ico")
+  set(CPACK_WIX_UI_BANNER "${CMAKE_SOURCE_DIR}/share/windows/installer-banner.png")
+  set(CPACK_WIX_UI_DIALOG "${CMAKE_SOURCE_DIR}/share/windows/installer-wizard.png")
+  set(CPACK_WIX_UI_REF "KPXC_InstallDir")
+  set(CPACK_WIX_TEMPLATE "${CMAKE_SOURCE_DIR}/share/windows/wix-template.xml")
+  set(CPACK_WIX_PATCH_FILE "${CMAKE_SOURCE_DIR}/share/windows/wix-patch.xml")
+  set(CPACK_WIX_EXTRA_SOURCES
             "${CMAKE_SOURCE_DIR}/share/windows/KPXC_InstallDir.wxs"
             "${CMAKE_SOURCE_DIR}/share/windows/KPXC_InstallDirDlg.wxs"
             "${CMAKE_SOURCE_DIR}/share/windows/KPXC_ExitDlg.wxs")
-    set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT  "https://keepassxc.org")
-    set(CPACK_WIX_EXTENSIONS "WixUtilExtension.dll")
-    include(CPack)
+  set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT  "https://keepassxc.org")
+  set(CPACK_WIX_EXTENSIONS "WixUtilExtension.dll")
+  include(CPack)
 
-    if(NOT VCPKG_INSTALLED_DIR)
-        install(CODE "set(gp_tool \"objdump\")" COMPONENT Runtime)
+  if(NOT VCPKG_INSTALLED_DIR)
+    install(CODE "set(gp_tool \"objdump\")" COMPONENT Runtime)
 
-        # Deploy all 3rd party library dependencies first
-        install(CODE "include(BundleUtilities)
+    # Deploy all 3rd party library dependencies first
+    install(CODE "include(BundleUtilities)
                       fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/${PROGNAME}.exe\" \"\" \"\")"
                 COMPONENT Runtime)
 
-        # Use windeployqt.exe to setup Qt dependencies
-        if(Qt5Core_VERSION VERSION_LESS "5.14.1")
-            set(WINDEPLOYQT_MODE "--release")
-            if(CMAKE_BUILD_TYPE_LOWER STREQUAL "debug")
-                set(WINDEPLOYQT_MODE "--debug")
-            endif()
-        endif()
+    # Use windeployqt.exe to setup Qt dependencies
+    if(Qt5Core_VERSION VERSION_LESS "5.14.1")
+      set(WINDEPLOYQT_MODE "--release")
+      if(CMAKE_BUILD_TYPE_LOWER STREQUAL "debug")
+        set(WINDEPLOYQT_MODE "--debug")
+      endif()
+    endif()
 
-        install(CODE "execute_process(COMMAND ${WINDEPLOYQT_EXE} ${PROGNAME}.exe ${WINDEPLOYQT_MODE} WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX} OUTPUT_QUIET)"
+    install(CODE "execute_process(COMMAND ${WINDEPLOYQT_EXE} ${PROGNAME}.exe ${WINDEPLOYQT_MODE} WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX} OUTPUT_QUIET)"
                 COMPONENT Runtime)
 
-        # install OpenSSL library
-        if(WITH_XC_NETWORKING)
-            find_file(OPENSSL_DLL
+    # install OpenSSL library
+    if(WITH_XC_NETWORKING)
+      find_file(OPENSSL_DLL
                     NAMES libssl-3.dll libssl-3-x64.dll
                     HINTS "${OPENSSL_ROOT_DIR}/bin"
                     )
-            if (NOT OPENSSL_DLL)
-                message(FATAL_ERROR "Cannot find libssl dll, ensure openssl is properly installed.")
-            endif()
+      if (NOT OPENSSL_DLL)
+        message(FATAL_ERROR "Cannot find libssl dll, ensure openssl is properly installed.")
+      endif()
 
-            find_file(CRYPTO_DLL
+      find_file(CRYPTO_DLL
                     NAMES libcrypto-3.dll libcrypto-3-x64.dll
                     HINTS "${OPENSSL_ROOT_DIR}/bin"
                     )
-            if (NOT CRYPTO_DLL)
-                message(FATAL_ERROR "Cannot find libcrypto dll, ensure openssl is properly installed.")
-            endif()
+      if (NOT CRYPTO_DLL)
+        message(FATAL_ERROR "Cannot find libcrypto dll, ensure openssl is properly installed.")
+      endif()
 
-            install(FILES ${OPENSSL_DLL} ${CRYPTO_DLL} DESTINATION ".")
-        endif()
+      install(FILES ${OPENSSL_DLL} ${CRYPTO_DLL} DESTINATION ".")
     endif()
+  endif()
 
-    # install CA cert chains
-    find_file(SSL_CA_BUNDLE ca-bundle.crt PATHS "${Qt5_PREFIX}/ssl/certs")
-    if(SSL_CA_BUNDLE)
-        install(FILES ${SSL_CA_BUNDLE} DESTINATION "ssl/certs")
-    else()
-        file(DOWNLOAD "https://curl.se/ca/cacert.pem" "${CMAKE_BINARY_DIR}/ca-bundle.crt" TLS_VERIFY ON)
-        install(FILES "${CMAKE_BINARY_DIR}/ca-bundle.crt" DESTINATION "ssl/certs")
-    endif()
+  # install CA cert chains
+  find_file(SSL_CA_BUNDLE ca-bundle.crt PATHS "${Qt5_PREFIX}/ssl/certs")
+  if(SSL_CA_BUNDLE)
+    install(FILES ${SSL_CA_BUNDLE} DESTINATION "ssl/certs")
+  else()
+    file(DOWNLOAD "https://curl.se/ca/cacert.pem" "${CMAKE_BINARY_DIR}/ca-bundle.crt" TLS_VERIFY ON)
+    install(FILES "${CMAKE_BINARY_DIR}/ca-bundle.crt" DESTINATION "ssl/certs")
+  endif()
 
 endif()
 

@@ -3,6 +3,10 @@
 #include <QPainter>
 #include <QDateTime>
 
+#ifdef __OBJC__
+#include "rendezvous/AutoFillXPCService.h"
+#endif
+
 class AutoFillCredentialProviderCheckbox : public QCheckBox
 {
     Q_OBJECT
@@ -18,4 +22,8 @@ private slots:
 
 private:
     QDateTime m_lastCredentialRequestTime;
+
+    #ifdef __OBJC__
+    __strong AutoFillXPCService *m_xpcService;
+    #endif
 };

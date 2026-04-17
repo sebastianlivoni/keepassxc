@@ -6,7 +6,9 @@
 
 #include <ServiceManagement/SMAppService.h>
 
-#include "rendezvous/AutofillXPCRendezvousProtocol.h"
+#ifdef __OBJC__
+#include "rendezvous/AutoFillXPCRendezvousProtocol.h"
+#endif
 
 AutoFillCredentialProviderCheckbox::AutoFillCredentialProviderCheckbox(QWidget *parent) : QCheckBox(parent), m_lastCredentialRequestTime(QDateTime::fromMSecsSinceEpoch(0))
 {
@@ -32,12 +34,18 @@ AutoFillCredentialProviderCheckbox::AutoFillCredentialProviderCheckbox(QWidget *
         NSLog(@"Successfully registered agent service");
     }
 
-    NSXPCConnection *connection =
+    #ifdef __OBJC__
+    AutoFillXPCService *service = [[AutoFillXPCService alloc] init];
+    [service start];
+    m_xpcService = service;
+    #endif
+
+    /*NSXPCConnection *connection =
         [[NSXPCConnection alloc] initWithMachServiceName:@"me.livoni.KeePassXC.AutoFillXPCRendezvous"
                                                   options:0];
 
     NSXPCInterface *interface =
-        [NSXPCInterface interfaceWithProtocol:@protocol(AutofillXPCRendezvousProtocol)];
+        [NSXPCInterface interfaceWithProtocol:@protocol(AutoFillXPCRendezvousProtocol)];
 
     connection.remoteObjectInterface = interface;
 
@@ -56,7 +64,7 @@ AutoFillCredentialProviderCheckbox::AutoFillCredentialProviderCheckbox(QWidget *
         } else {
             NSLog(@"Provider registered successfully");
         }
-    }];
+        }];*/
 
     connect(qApp, &QApplication::applicationStateChanged, this, &AutoFillCredentialProviderCheckbox::checkCredentialProviderEnabled);
 }

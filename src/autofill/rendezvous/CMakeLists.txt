@@ -11,6 +11,8 @@ set_target_properties(KeePassXCAutoFillXPCRendezvous PROPERTIES
 
 target_link_libraries(KeePassXCAutoFillXPCRendezvous "-framework Foundation")
 
+#target_compile_options(KeePassXCAutoFillXPCRendezvous PRIVATE "-fobjc-arc")
+
 install(TARGETS KeePassXCAutoFillXPCRendezvous
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

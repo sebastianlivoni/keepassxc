@@ -17,8 +17,9 @@
 
 #include <LocalAuthentication/LocalAuthentication.h>
 #include <LocalAuthenticationEmbeddedUI/LAAuthenticationView.h>
+#include <os/log.h>
 
-#include "rendezvous/AutofillXPCRendezvousProtocol.h"
+#include "rendezvous/AutoFillXPCRendezvousProtocol.h"
 
 @interface CredentialProviderViewController ()
 
@@ -37,35 +38,55 @@
 
 - (void)loadView {
   [super loadView];
-
   int argc = 0;
   char *argv[] = {nullptr};
   QApplication *qtApp = new QApplication(argc, argv);
 
-  NSXPCConnection *connection =
-      [[NSXPCConnection alloc] initWithMachServiceName:@"me.livoni.KeePassXC.AutoFillXPCRendezvous"
-                                                options:0];
+  self.xpcService = [[AutoFillXPCServiceClient alloc] init];
+  [self.xpcService start];
+  os_log(OS_LOG_DEFAULT, "[AutoFill] Starting XPC rendezvous connection");
 
-  NSXPCInterface *interface =
-      [NSXPCInterface interfaceWithProtocol:@protocol(AutofillXPCRendezvousProtocol)];
+  id proxy = [self.xpcService.rendezvousConnection
+      remoteObjectProxyWithErrorHandler:^(NSError *error) {
+        os_log_error(OS_LOG_DEFAULT,
+                     "[AutoFill] Rendezvous connection error: %{public}@", error);
+      }];
 
-  connection.remoteObjectInterface = interface;
+  [proxy getEndpointWithReply:^(NSXPCListenerEndpoint *endpoint,
+                                NSError *error) {
+    if (error) {
+      os_log_error(OS_LOG_DEFAULT,
+                   "[AutoFill] Failed to obtain service endpoint from rendezvous: %{public}@",
+                   error);
+      return;
+    }
 
-  [connection resume];
+    os_log(OS_LOG_DEFAULT, "[AutoFill] Obtained service endpoint, establishing direct connection");
+    self.xpcService.connection = [[NSXPCConnection alloc]
+        initWithListenerEndpoint:endpoint];
+    self.xpcService.connection.remoteObjectInterface = [NSXPCInterface
+        interfaceWithProtocol:@protocol(AutoFillXCPServiceProtocol)];
+    [self.xpcService.connection resume];
 
-  id proxy = [connection remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull error) {
-      NSLog(@"XPC error: %@", error);
-  }];
+    os_log(OS_LOG_DEFAULT, "[AutoFill] Direct connection to AutoFill service established");
 
-  NSXPCListener *providerListener = [[NSXPCListener anonymousListener] init];
-  NSXPCListenerEndpoint *endpoint = providerListener.endpoint;
+    id proxy = [self.xpcService.connection
+        remoteObjectProxyWithErrorHandler:^(NSError *_Nonnull error) {
+          os_log_error(OS_LOG_DEFAULT,
+                       "[AutoFill] AutoFill service connection error: %{public}@",
+                       error);
+        }];
 
-  [proxy registerProvider:endpoint withReply:^(NSError *error) {
+    [proxy getMessageWithReply:^(NSString *message, NSError *error) {
       if (error) {
-          NSLog(@"Failed to register provider: %@", error);
-      } else {
-          NSLog(@"Provider registered successfully");
+        os_log_error(OS_LOG_DEFAULT,
+                     "[AutoFill] Failed to get message from service: %{public}@",
+                     error);
+        return;
       }
+      os_log(OS_LOG_DEFAULT,
+             "[AutoFill] Received message from service: %{public}@", message);
+    }];
   }];
 
   self.context = [[LAContext alloc] init];
