@@ -1,9 +1,11 @@
+#ifndef KEEPASSX_AUTOFILL_XPCSERVICE_H
+#define KEEPASSX_AUTOFILL_XPCSERVICE_H
 
-#include "AutoFillXCPServiceProtocol.h"
+#include "AutoFillXPCServiceProtocol.h"
 #include <Foundation/Foundation.h>
 
 @interface AutoFillXPCService
-    : NSObject <NSXPCListenerDelegate, AutoFillXCPServiceProtocol> {
+    : NSObject <NSXPCListenerDelegate, AutoFillXPCServiceProtocol> {
 }
 
 @property(nonatomic, strong) NSXPCConnection *rendezvousConnection;
@@ -13,3 +15,5 @@
 - (void)start;
 
 @end
+
+#endif // KEEPASSX_AUTOFILL_XPCSERVICE_H

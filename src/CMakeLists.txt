@@ -139,7 +139,6 @@ set(gui_SOURCES
         gui/PasswordGeneratorWidget.cpp
         gui/ApplicationSettingsWidget.mm
         autofill/AutoFillCredentialProviderCheckbox.mm
-        autofill/rendezvous/AutoFillXPCService.m
         gui/Icons.cpp
         gui/SearchWidget.cpp
         gui/SettingsWidget.cpp
@@ -225,7 +224,9 @@ if(APPLE)
             gui/osutils/macutils/ScreenLockListenerMac.cpp
             gui/osutils/macutils/AppKitImpl.mm
             gui/osutils/macutils/AppKit.h
+            autofill/rendezvous/AutoFillXPCService.mm
             autofill/AutoFillService.mm
+            autofill/AutoFillServicev2.mm
             quickunlock/TouchID.mm)
 
   # TODO: Remove -Wno-error once deprecation warnings have been resolved.

@@ -1,5 +1,5 @@
 
-#include "AutoFillXCPServiceProtocol.h"
+#include "AutoFillXPCServiceProtocol.h"
 #include <Foundation/Foundation.h>
 
 @interface AutoFillXPCServiceClient: NSObject {

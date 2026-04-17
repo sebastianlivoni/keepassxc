@@ -1,4 +1,5 @@
 #include "AutoFillXPCService.h"
+#include "AutoFillServicev2.h"
 #include "AutofillXPCRendezvousProtocol.h"
 #include <OSLog/OSLog.h>
 
@@ -58,7 +59,7 @@
     shouldAcceptNewConnection:(NSXPCConnection *)newConnection {
   newConnection.exportedObject = self;
   newConnection.exportedInterface = [NSXPCInterface
-      interfaceWithProtocol:@protocol(AutoFillXCPServiceProtocol)];
+      interfaceWithProtocol:@protocol(AutoFillXPCServiceProtocol)];
   os_log(
       OS_LOG_DEFAULT,
       "New connection to AutoFillXPCService from hopefully autofill extension");
@@ -69,8 +70,21 @@
 
 - (void)getMessageWithReply:(void (^__strong)(NSString *__strong,
                                               NSError *__strong))reply {
-  NSString *message = @"Hello from provider!";
-  reply(message, nil);
+  autoFillServiceV2()->getMessage(reply);
+}
+
+- (void)fetchPasswordCredentialForRecordIdentifier:(NSString *)recordIdentifier
+                                         withReply:(void (^)(NSString *,
+                                                             NSString *,
+                                                             NSError *))reply {
+  autoFillServiceV2()->fetchPasswordCredentialForRecordIdentifier(
+      recordIdentifier, reply);
+}
+
+- (void)fetchOneTimeCodeForRecordIdentifier:(NSString *)recordIdentifier
+                                  withReply:(void (^)(NSString *code,
+                                                      NSError *error))reply {
+  autoFillServiceV2()->fetchOneTimeCodeForRecordIdentifier(recordIdentifier, reply);
 }
 
 @end

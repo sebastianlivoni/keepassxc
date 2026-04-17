@@ -5,7 +5,6 @@ set(SOURCES
     PasskeyConfirmationWidget.mm
     PasskeyRegistrationWidget.mm
     CredentialListWidget.mm
-    AutoFillService.mm
     ../browser/BrowserMessageBuilder.cpp
     ../browser/BrowserPasskeysClient.cpp
     ../browser/BrowserPasskeys.cpp
@@ -16,11 +15,12 @@ set(SOURCES
     ../quickunlock/PinUnlock.cpp
     ../quickunlock/TouchID.mm
     rendezvous/AutoFillXPCServiceClient.m
+    AutoFillService.mm
 )
 
 add_executable(KeePassXCAutoFillExtension ${SOURCES})
 
-target_link_libraries(KeePassXCAutoFillExtension Qt5::Core Qt5::Network Qt5::Widgets keepassxc_core "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security -framework LocalAuthenticationEmbeddedUI")
+target_link_libraries(KeePassXCAutoFillExtension Qt5::Core Qt5::Network Qt5::Widgets keepassxc_core "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security -framework LocalAuthenticationEmbeddedUI -framework ServiceManagement")
 
 #target_compile_options(KeePassXCAutoFillExtension PRIVATE "-fobjc-arc")
 

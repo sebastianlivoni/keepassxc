@@ -1,5 +1,6 @@
 #include "CredentialProviderViewController.h"
 
+#include <AuthenticationServices/AuthenticationServices.h>
 #include <Foundation/Foundation.h>
 #include <QApplication>
 #include <QMacNativeWidget>
@@ -49,39 +50,44 @@
   id proxy = [self.xpcService.rendezvousConnection
       remoteObjectProxyWithErrorHandler:^(NSError *error) {
         os_log_error(OS_LOG_DEFAULT,
-                     "[AutoFill] Rendezvous connection error: %{public}@", error);
+                     "[AutoFill] Rendezvous connection error: %{public}@",
+                     error);
       }];
 
   [proxy getEndpointWithReply:^(NSXPCListenerEndpoint *endpoint,
                                 NSError *error) {
     if (error) {
       os_log_error(OS_LOG_DEFAULT,
-                   "[AutoFill] Failed to obtain service endpoint from rendezvous: %{public}@",
+                   "[AutoFill] Failed to obtain service endpoint from "
+                   "rendezvous: %{public}@",
                    error);
       return;
     }
 
-    os_log(OS_LOG_DEFAULT, "[AutoFill] Obtained service endpoint, establishing direct connection");
-    self.xpcService.connection = [[NSXPCConnection alloc]
-        initWithListenerEndpoint:endpoint];
+    os_log(
+        OS_LOG_DEFAULT,
+        "[AutoFill] Obtained service endpoint, establishing direct connection");
+    self.xpcService.connection =
+        [[NSXPCConnection alloc] initWithListenerEndpoint:endpoint];
     self.xpcService.connection.remoteObjectInterface = [NSXPCInterface
-        interfaceWithProtocol:@protocol(AutoFillXCPServiceProtocol)];
+        interfaceWithProtocol:@protocol(AutoFillXPCServiceProtocol)];
     [self.xpcService.connection resume];
 
-    os_log(OS_LOG_DEFAULT, "[AutoFill] Direct connection to AutoFill service established");
+    os_log(OS_LOG_DEFAULT,
+           "[AutoFill] Direct connection to AutoFill service established");
 
-    id proxy = [self.xpcService.connection
-        remoteObjectProxyWithErrorHandler:^(NSError *_Nonnull error) {
-          os_log_error(OS_LOG_DEFAULT,
-                       "[AutoFill] AutoFill service connection error: %{public}@",
-                       error);
-        }];
+    id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
+                                               NSError *_Nonnull error) {
+      os_log_error(OS_LOG_DEFAULT,
+                   "[AutoFill] AutoFill service connection error: %{public}@",
+                   error);
+    }];
 
     [proxy getMessageWithReply:^(NSString *message, NSError *error) {
       if (error) {
-        os_log_error(OS_LOG_DEFAULT,
-                     "[AutoFill] Failed to get message from service: %{public}@",
-                     error);
+        os_log_error(
+            OS_LOG_DEFAULT,
+            "[AutoFill] Failed to get message from service: %{public}@", error);
         return;
       }
       os_log(OS_LOG_DEFAULT,
@@ -285,7 +291,73 @@
 
 - (void)provideCredentialWithoutUserInteractionForRequest:
     (id<ASCredentialRequest>)credentialRequest {
-  [self exitWithUserInteractionRequired];
+  switch (credentialRequest.type) {
+  case ASCredentialRequestTypePassword: {
+    ASPasswordCredentialIdentity *identity =
+        static_cast<ASPasswordCredentialIdentity *>(
+            credentialRequest.credentialIdentity);
+
+    NSString *recordIdentifier = identity.recordIdentifier;
+
+    id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
+                                               NSError *_Nonnull error) {
+      os_log_error(OS_LOG_DEFAULT,
+                   "[AutoFill] AutoFill service connection error: %{public}@",
+                   error);
+    }];
+
+    [proxy
+        fetchPasswordCredentialForRecordIdentifier:recordIdentifier
+                                         withReply:^(NSString *username,
+                                                     NSString *password,
+                                                     NSError *error) {
+                                           ASPasswordCredential *credential =
+                                               [[ASPasswordCredential alloc]
+                                                   initWithUser:username
+                                                       password:password];
+
+                                           [self.extensionContext
+                                               completeRequestWithSelectedCredential:
+                                                   credential
+                                                                   completionHandler:
+                                                                       nil];
+                                         }];
+    break;
+  }
+  case ASCredentialRequestTypeOneTimeCode: {
+    ASOneTimeCodeCredentialIdentity *identity =
+        static_cast<ASOneTimeCodeCredentialIdentity *>(
+            credentialRequest.credentialIdentity);
+
+    NSString *recordIdentifier = identity.recordIdentifier;
+
+    id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
+                                               NSError *_Nonnull error) {
+      os_log_error(OS_LOG_DEFAULT,
+                   "[AutoFill] AutoFill service connection error: %{public}@",
+                   error);
+    }];
+
+    [proxy
+        fetchOneTimeCodeForRecordIdentifier:recordIdentifier
+                                  withReply:^(NSString *code, NSError *error) {
+                                    ASOneTimeCodeCredential *credential =
+                                        [[ASOneTimeCodeCredential alloc]
+                                            initWithCode:code];
+
+                                    [self.extensionContext
+                                        completeOneTimeCodeRequestWithSelectedCredential:
+                                            credential
+                                                                       completionHandler:
+                                                                           nil];
+                                  }];
+    break;
+  }
+  default: {
+    [self exitWithUserInteractionRequired];
+    break;
+  }
+  }
 }
 
 // -

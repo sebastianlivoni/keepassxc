@@ -48,6 +48,8 @@
 #include "gui/osutils/OSUtils.h"
 #include "gui/remote/RemoteSettings.h"
 
+#include "autofill/AutoFillServicev2.h"
+
 #ifdef WITH_XC_UPDATECHECK
 #include "gui/UpdateCheckDialog.h"
 #include "networking/UpdateChecker.h"
@@ -92,6 +94,10 @@ MainWindow::MainWindow()
     g_MainWindow = this;
 
     m_ui->setupUi(this);
+
+    #ifdef Q_OS_MACOS
+    autoFillServiceV2()->start();
+    #endif
 
 #if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS) && !defined(QT_NO_DBUS)
     new MainWindowAdaptor(this);
