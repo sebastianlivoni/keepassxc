@@ -4,6 +4,7 @@
 #include <ServiceManagement/SMAppService.h>
 
 #include "../gui/MainWindow.h"
+#include "AutoFillService.h"
 
 void AutoFillServiceV2::start() {
   NSError *agentError = nil;
@@ -61,21 +62,42 @@ void AutoFillServiceV2::fetchPasswordCredentialForRecordIdentifier(
 void AutoFillServiceV2::fetchOneTimeCodeForRecordIdentifier(
     NSString *recordIdentifier,
     void (^reply)(NSString *__strong code, NSError *__strong error)) {
-        if (auto *window = getMainWindow()) {
-          for (auto *widget : window->getOpenDatabases()) {
-            if (!widget || widget->isLocked()) {
-              continue;
-            }
+  if (auto *window = getMainWindow()) {
+    for (auto *widget : window->getOpenDatabases()) {
+      if (!widget || widget->isLocked()) {
+        continue;
+      }
 
-            auto database = widget->database();
-            if (database.isNull()) {
-              continue;
-            }
+      auto database = widget->database();
+      if (database.isNull()) {
+        continue;
+      }
 
-            ASOneTimeCodeCredential *oneTimeCredential =
-                getOneTimeCodeCredentialFromIdentity(recordIdentifier, database);
+      ASOneTimeCodeCredential *oneTimeCredential =
+          getOneTimeCodeCredentialFromIdentity(recordIdentifier, database);
 
-            reply(oneTimeCredential.code, nil);
-          }
-        }
+      reply(oneTimeCredential.code, nil);
     }
+  }
+}
+
+void AutoFillServiceV2::fetchPasskeyCredentialFromPasskeyRequest(
+    ASPasskeyCredentialRequest *request,
+    void (^reply)(ASPasskeyAssertionCredential *__strong credential, NSError *__strong error)) {
+  if (auto *window = getMainWindow()) {
+    for (auto *widget : window->getOpenDatabases()) {
+      if (!widget || widget->isLocked()) {
+        continue;
+      }
+
+      auto database = widget->database();
+      if (database.isNull()) {
+        continue;
+      }
+
+      ASPasskeyAssertionCredential *credential = getPasskeyCredentialFromPasskeyRequest(request, database);
+
+      reply(credential, nil);
+    }
+  }
+}

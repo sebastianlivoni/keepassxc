@@ -84,7 +84,18 @@
 - (void)fetchOneTimeCodeForRecordIdentifier:(NSString *)recordIdentifier
                                   withReply:(void (^)(NSString *code,
                                                       NSError *error))reply {
-  autoFillServiceV2()->fetchOneTimeCodeForRecordIdentifier(recordIdentifier, reply);
+  autoFillServiceV2()->fetchOneTimeCodeForRecordIdentifier(recordIdentifier,
+                                                           reply);
+}
+
+- (void)
+    fetchPasskeyCredentialFromPasskeyRequest:
+        (ASPasskeyCredentialRequest *)request
+                                   withReply:
+                                       (void (^)(ASPasskeyAssertionCredential *,
+                                                 NSError *))reply {
+                                                     NSLog(@"Halli hallo");
+  autoFillServiceV2()->fetchPasskeyCredentialFromPasskeyRequest(request, reply);
 }
 
 @end

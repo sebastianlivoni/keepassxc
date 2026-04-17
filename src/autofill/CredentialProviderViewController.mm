@@ -2,6 +2,7 @@
 
 #include <AuthenticationServices/AuthenticationServices.h>
 #include <Foundation/Foundation.h>
+#include <Foundation/NSObjCRuntime.h>
 #include <QApplication>
 #include <QMacNativeWidget>
 #include <QPushButton>
@@ -351,6 +352,32 @@
                                                                        completionHandler:
                                                                            nil];
                                   }];
+    break;
+  }
+  case ASCredentialRequestTypePasskeyAssertion: {
+    ASPasskeyCredentialRequest *request =
+        static_cast<ASPasskeyCredentialRequest *>(credentialRequest);
+
+    id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
+                                               NSError *_Nonnull error) {
+      os_log_error(OS_LOG_DEFAULT,
+                   "[AutoFill] AutoFill service connection error: %{public}@",
+                   error);
+    }];
+
+    NSLog(@"Hejsa!");
+
+    [proxy
+        fetchPasskeyCredentialFromPasskeyRequest:request
+                                       withReply:^(ASPasskeyAssertionCredential
+                                                       *credential,
+                                                   NSError *error) {
+                                         [self.extensionContext
+                                             completeAssertionRequestWithSelectedPasskeyCredential:
+                                                 credential
+                                                                                 completionHandler:
+                                                                                     nil];
+                                       }];
     break;
   }
   default: {

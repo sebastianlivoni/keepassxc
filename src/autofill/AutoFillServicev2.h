@@ -16,6 +16,9 @@ public:
     void fetchOneTimeCodeForRecordIdentifier(
         NSString *recordIdentifier,
         void (^reply)(NSString *__strong code, NSError *__strong error));
+    void fetchPasskeyCredentialFromPasskeyRequest(
+        ASPasskeyCredentialRequest *request,
+        void (^reply)(ASPasskeyAssertionCredential *__strong credential, NSError *__strong error));
 
 private:
 #ifdef __OBJC__

@@ -125,6 +125,13 @@ ASPasswordCredential *AutoFillService::getPasswordCredentialFromIdentity(
 
 ASPasswordCredentialIdentity *
 AutoFillService::getPasswordCredentialIdentityFromEntry(const Entry *entry) {
+  QString username = entry->username();
+  QString password = entry->password();
+
+  if (username.isEmpty() || password.isEmpty()) {
+    return nullptr;
+  }
+
   NSString *uuidString = uuidStringFromEntry(entry);
 
   auto *serviceIdentifier = getCredentialServiceIdentifierFromEntry(entry);
@@ -150,14 +157,13 @@ AutoFillService::getPasswordCredentialIdentityFromEntry(const Entry *entry) {
 ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
     const ASOneTimeCodeCredentialIdentity *identity,
     const QSharedPointer<Database> &db) {
-        NSString *recordIdentifier = identity.recordIdentifier;
+  NSString *recordIdentifier = identity.recordIdentifier;
 
-        return getOneTimeCodeCredentialFromIdentity(recordIdentifier, db);
-    }
+  return getOneTimeCodeCredentialFromIdentity(recordIdentifier, db);
+}
 
 ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
-    const NSString *recordIdentifier,
-    const QSharedPointer<Database> &db) {
+    const NSString *recordIdentifier, const QSharedPointer<Database> &db) {
   QString uuidHex = QString::fromNSString(recordIdentifier);
 
   auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
@@ -306,7 +312,7 @@ AutoFillService::getPasskeyCredentialFromPasskeyRequest(
     const ASPasskeyCredentialRequest *request,
     const QSharedPointer<Database> &db) {
   ASPasskeyCredentialIdentity *identity =
-      (ASPasskeyCredentialIdentity *)request.credentialIdentity;
+      static_cast<ASPasskeyCredentialIdentity *>(request.credentialIdentity);
   NSString *recordIdentifier = identity.recordIdentifier;
   QString uuidHex = QString::fromNSString(recordIdentifier);
 
