@@ -365,8 +365,6 @@
                    error);
     }];
 
-    NSLog(@"Hejsa!");
-
     [proxy
         fetchPasskeyCredentialFromPasskeyRequest:request
                                        withReply:^(ASPasskeyAssertionCredential

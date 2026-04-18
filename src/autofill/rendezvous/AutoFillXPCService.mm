@@ -18,7 +18,7 @@
   os_log(OS_LOG_DEFAULT, "Starting AutoFillXPCService");
 
   self.rendezvousConnection = [[NSXPCConnection alloc]
-      initWithMachServiceName:@"me.livoni.KeePassXC.AutoFillXPCRendezvous"
+      initWithMachServiceName:@"6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous"
                       options:0];
 
   NSXPCInterface *interface = [NSXPCInterface
@@ -94,7 +94,6 @@
                                    withReply:
                                        (void (^)(ASPasskeyAssertionCredential *,
                                                  NSError *))reply {
-                                                     NSLog(@"Halli hallo");
   autoFillServiceV2()->fetchPasskeyCredentialFromPasskeyRequest(request, reply);
 }
 

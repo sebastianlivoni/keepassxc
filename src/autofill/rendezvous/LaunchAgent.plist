@@ -4,12 +4,12 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>me.livoni.KeePassXC.AutoFillXPCRendezvous</string>
+    <string>6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous</string>
     <key>BundleProgram</key>
     <string>Contents/MacOS/KeePassXCAutoFillXPCRendezvous</string>
     <key>MachServices</key>
     <dict>
-        <key>me.livoni.KeePassXC.AutoFillXPCRendezvous</key>
+        <key>6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous</key>
         <true />
     </dict>
 </dict>

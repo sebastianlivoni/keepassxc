@@ -16,9 +16,5 @@
 	<true/>
 	<key>com.apple.security.cs.disable-library-validation</key>
  	<true/>
-  <key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
-	<array>
-	    <string>6HH7K3R53J.me.livoni.KeePassXC.AutoFillService.Listener</string>
-	</array>
 </dict>
 </plist>

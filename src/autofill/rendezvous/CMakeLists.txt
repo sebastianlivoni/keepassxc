@@ -9,7 +9,7 @@ set_target_properties(KeePassXCAutoFillXPCRendezvous PROPERTIES
   MACOSX_BUNDLE_BUNDLE_NAME "KeePassXCAutoFillXPCRendezvous"
 )
 
-target_link_libraries(KeePassXCAutoFillXPCRendezvous "-framework Foundation")
+target_link_libraries(KeePassXCAutoFillXPCRendezvous "-framework Foundation" "-sectcreate __TEXT __info_plist ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist")
 
 #target_compile_options(KeePassXCAutoFillXPCRendezvous PRIVATE "-fobjc-arc")
 

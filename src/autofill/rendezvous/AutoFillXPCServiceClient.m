@@ -12,7 +12,7 @@
 
 - (void)start {
   self.rendezvousConnection = [[NSXPCConnection alloc]
-      initWithMachServiceName:@"me.livoni.KeePassXC.AutoFillXPCRendezvous"
+      initWithMachServiceName:@"6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous"
                       options:0];
 
   NSXPCInterface *interface = [NSXPCInterface

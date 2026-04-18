@@ -7,7 +7,7 @@ int main(void) {
   @autoreleasepool {
     os_log(OS_LOG_DEFAULT, "KeePassXC AutoFillXPCRendezvous starting.");
     NSXPCListener *listener = [[NSXPCListener alloc]
-        initWithMachServiceName:@"me.livoni.KeePassXC.AutoFillXPCRendezvous"];
+        initWithMachServiceName:@"6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous"];
     AutofillXPCRendezvous *service = [[AutofillXPCRendezvous alloc] init];
     listener.delegate = service;
     [listener resume];
