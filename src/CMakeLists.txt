@@ -139,6 +139,7 @@ set(gui_SOURCES
         gui/PasswordGeneratorWidget.cpp
         gui/ApplicationSettingsWidget.mm
         autofill/AutoFillCredentialProviderCheckbox.mm
+        autofill/AutoFillLaunchAgentCheckbox.mm
         gui/Icons.cpp
         gui/SearchWidget.cpp
         gui/SettingsWidget.cpp

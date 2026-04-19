@@ -37,9 +37,5 @@
 		<string>(allow file-read* (regex #"\.kdbx"))</string>
 		<string>(allow file-write* (regex #"\.kdbx"))</string>
 	</array>
-	<!--<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
-	<array>
-	    <string>6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous</string>
-	</array>-->
 </dict>
 </plist>

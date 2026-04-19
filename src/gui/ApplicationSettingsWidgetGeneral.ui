@@ -1384,6 +1384,16 @@
         </widget>
        </item>
        <item>
+        <widget class="AutoFillLaunchAgentCheckbox">
+         <property name="text">
+          <string>Use agent service for native AutoFill</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer_7">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
