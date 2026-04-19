@@ -1,6 +1,7 @@
 #include "AutoFillXPCService.h"
 #include "AutoFillServicev2.h"
 #include "AutofillXPCRendezvousProtocol.h"
+#include <AuthenticationServices/AuthenticationServices.h>
 #include <OSLog/OSLog.h>
 
 @implementation AutoFillXPCService
@@ -18,7 +19,8 @@
   os_log(OS_LOG_DEFAULT, "Starting AutoFillXPCService");
 
   self.rendezvousConnection = [[NSXPCConnection alloc]
-      initWithMachServiceName:@"6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous"
+      initWithMachServiceName:
+          @"6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous"
                       options:0];
 
   NSXPCInterface *interface = [NSXPCInterface
@@ -73,19 +75,17 @@
   autoFillServiceV2()->getMessage(reply);
 }
 
-- (void)fetchPasswordCredentialForRecordIdentifier:(NSString *)recordIdentifier
-                                         withReply:(void (^)(NSString *,
-                                                             NSString *,
-                                                             NSError *))reply {
-  autoFillServiceV2()->fetchPasswordCredentialForRecordIdentifier(
-      recordIdentifier, reply);
+- (void)fetchPasswordCredentialForIdentiity:
+            (ASPasswordCredentialIdentity *)identity
+                                  withReply:(void (^)(ASPasswordCredential *,
+                                                      NSError *))reply {
+  autoFillServiceV2()->fetchPasswordCredentialFromIdentity(identity, reply);
 }
 
-- (void)fetchOneTimeCodeForRecordIdentifier:(NSString *)recordIdentifier
-                                  withReply:(void (^)(NSString *code,
+- (void)fetchOneTimeCodeForIdentity:(ASOneTimeCodeCredentialIdentity *)identity
+                                  withReply:(void (^)(ASOneTimeCodeCredential *credential,
                                                       NSError *error))reply {
-  autoFillServiceV2()->fetchOneTimeCodeForRecordIdentifier(recordIdentifier,
-                                                           reply);
+  autoFillServiceV2()->fetchOneTimeCodeForIdentity(identity, reply);
 }
 
 - (void)

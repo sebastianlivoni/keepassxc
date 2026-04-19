@@ -36,10 +36,9 @@ void AutoFillServiceV2::getMessage(void (^reply)(NSString *__strong,
   reply(message, nil);
 }
 
-void AutoFillServiceV2::fetchPasswordCredentialForRecordIdentifier(
-    NSString *recordIdentifier,
-    void (^reply)(NSString *__strong username, NSString *__strong password,
-                  NSError *__strong error)) {
+void AutoFillServiceV2::fetchPasswordCredentialFromIdentity(
+    ASPasswordCredentialIdentity *identity,
+    void (^reply)(ASPasswordCredential *__strong credential, NSError *__strong error)) {
   if (auto *window = getMainWindow()) {
     for (auto *widget : window->getOpenDatabases()) {
       if (!widget || widget->isLocked()) {
@@ -52,16 +51,16 @@ void AutoFillServiceV2::fetchPasswordCredentialForRecordIdentifier(
       }
 
       ASPasswordCredential *passwordCredential =
-          getPasswordCredentialFromIdentity(recordIdentifier, database);
+          getPasswordCredentialFromIdentity(identity, database);
 
-      reply(passwordCredential.user, passwordCredential.password, nil);
+      reply(passwordCredential, nil);
     }
   }
 }
 
-void AutoFillServiceV2::fetchOneTimeCodeForRecordIdentifier(
-    NSString *recordIdentifier,
-    void (^reply)(NSString *__strong code, NSError *__strong error)) {
+void AutoFillServiceV2::fetchOneTimeCodeForIdentity(
+    ASOneTimeCodeCredentialIdentity *identity,
+    void (^reply)(ASOneTimeCodeCredential *__strong credential, NSError *__strong error)) {
   if (auto *window = getMainWindow()) {
     for (auto *widget : window->getOpenDatabases()) {
       if (!widget || widget->isLocked()) {
@@ -74,9 +73,9 @@ void AutoFillServiceV2::fetchOneTimeCodeForRecordIdentifier(
       }
 
       ASOneTimeCodeCredential *oneTimeCredential =
-          getOneTimeCodeCredentialFromIdentity(recordIdentifier, database);
+          getOneTimeCodeCredentialFromIdentity(identity, database);
 
-      reply(oneTimeCredential.code, nil);
+      reply(oneTimeCredential, nil);
     }
   }
 }

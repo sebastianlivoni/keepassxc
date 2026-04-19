@@ -308,29 +308,21 @@
     }];
 
     [proxy
-        fetchPasswordCredentialForRecordIdentifier:recordIdentifier
-                                         withReply:^(NSString *username,
-                                                     NSString *password,
-                                                     NSError *error) {
-                                           ASPasswordCredential *credential =
-                                               [[ASPasswordCredential alloc]
-                                                   initWithUser:username
-                                                       password:password];
-
-                                           [self.extensionContext
-                                               completeRequestWithSelectedCredential:
-                                                   credential
-                                                                   completionHandler:
-                                                                       nil];
-                                         }];
+        fetchPasswordCredentialForIdentiity:identity
+                                  withReply:^(ASPasswordCredential *credential,
+                                              NSError *error) {
+                                    [self.extensionContext
+                                        completeRequestWithSelectedCredential:
+                                            credential
+                                                            completionHandler:
+                                                                nil];
+                                  }];
     break;
   }
   case ASCredentialRequestTypeOneTimeCode: {
     ASOneTimeCodeCredentialIdentity *identity =
         static_cast<ASOneTimeCodeCredentialIdentity *>(
             credentialRequest.credentialIdentity);
-
-    NSString *recordIdentifier = identity.recordIdentifier;
 
     id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
                                                NSError *_Nonnull error) {
@@ -339,13 +331,7 @@
                    error);
     }];
 
-    [proxy
-        fetchOneTimeCodeForRecordIdentifier:recordIdentifier
-                                  withReply:^(NSString *code, NSError *error) {
-                                    ASOneTimeCodeCredential *credential =
-                                        [[ASOneTimeCodeCredential alloc]
-                                            initWithCode:code];
-
+    [proxy fetchOneTimeCodeForIdentity:identity withReply:^(ASOneTimeCodeCredential *credential, NSError *error) {
                                     [self.extensionContext
                                         completeOneTimeCodeRequestWithSelectedCredential:
                                             credential

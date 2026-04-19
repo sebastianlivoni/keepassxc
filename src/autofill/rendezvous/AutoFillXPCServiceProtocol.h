@@ -7,13 +7,12 @@
 @protocol AutoFillXPCServiceProtocol <NSObject>
 
 - (void)getMessageWithReply:(void (^)(NSString *message, NSError *error))reply;
-- (void)fetchPasswordCredentialForRecordIdentifier:(NSString *)recordIdentifier
+- (void)fetchPasswordCredentialForIdentiity:(ASPasswordCredentialIdentity *)identity
                                          withReply:
-                                             (void (^)(NSString *username,
-                                                       NSString *password,
+                                             (void (^)(ASPasswordCredential *credential,
                                                        NSError *error))reply;
-- (void)fetchOneTimeCodeForRecordIdentifier:(NSString *)recordIdentifier
-                                  withReply:(void (^)(NSString *code,
+- (void)fetchOneTimeCodeForIdentity:(ASOneTimeCodeCredentialIdentity *)identity
+                                  withReply:(void (^)(ASOneTimeCodeCredential *credential,
                                                       NSError *error))reply;
 
 - (void)fetchPasskeyCredentialFromPasskeyRequest:(ASPasskeyCredentialRequest *)request withReply:(void (^)(ASPasskeyAssertionCredential *credential, NSError *error))reply;
