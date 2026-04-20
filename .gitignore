@@ -32,3 +32,5 @@ out/
 vcpkg_installed*/
 
 keepassxc.entitlements
+
+.cache/
