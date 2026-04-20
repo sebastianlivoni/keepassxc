@@ -17,7 +17,7 @@
   <key>CFBundleIconName</key>
   <string>${MACOSX_BUNDLE_ICON_NAME}</string>
   <key>CFBundleIdentifier</key>
-  <string>${MACOSX_BUNDLE_IDENTIFIER}</string>
+  <string>${APPLE_APP_IDENTIFIER}</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
@@ -51,6 +51,17 @@
         </array>
         <key>CFBundleTypeRole</key>
         <string>Editor</string>
+      </dict>
+    </array>
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>otpauth</string>
+        </array>
       </dict>
     </array>
   </dict>

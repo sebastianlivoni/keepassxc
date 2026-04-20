@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>com.apple.application-identifier</key>
+	<string>6HH7K3R53J.me.livoni.KeePassXC.AutoFillExtension</string>
+	<key>com.apple.developer.authentication-services.autofill-credential-provider</key>
+	<true/>
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.cs.disable-library-validation</key>
+ 	<true/>
+	<key>com.apple.security.application-groups</key>
+ 	<array>
+ 		<string>6HH7K3R53J.me.livoni.KeePassXC</string>
+ 	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>6HH7K3R53J.me.livoni.KeePassXC</string>
+	</array>
+    <key>com.apple.security.files.user-selected.read-write</key>
+ 	<true/>
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
+	<key>com.apple.security.files.bookmarks.document-scope</key>
+	<true/>
+    <key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key>
+	<array>
+		<string>/Developer/KeePassXC/build/_CPack_Packages/OSX/DragNDrop/KeePassXC-2.8.0-snapshot/ALL_IN_ONE/KeePassXC.app/Contents/PlugIns/</string>
+	</array>
+	<key>com.apple.security.temporary-exception.files.absolute-path.read-only</key>
+	<array>
+		<string>/opt/homebrew/Cellar/</string>
+	</array>
+	<key>com.apple.security.temporary-exception.sbpl</key>
+	<array>
+		<string>(allow file-read* (regex #"\.kdbx"))</string>
+		<string>(allow file-write* (regex #"\.kdbx"))</string>
+	</array>
+</dict>
+</plist>

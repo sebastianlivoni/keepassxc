@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src/autofill)
 
 set(core_SOURCES
         core/Alloc.cpp
@@ -222,6 +222,11 @@ if(APPLE)
             gui/osutils/macutils/ScreenLockListenerMac.cpp
             gui/osutils/macutils/AppKitImpl.mm
             gui/osutils/macutils/AppKit.h
+            autofill/rendezvous/AutoFillXPCService.mm
+            autofill/AutoFillService.mm
+            autofill/AutoFillServicev2.mm
+            autofill/AutoFillCredentialProviderCheckbox.mm
+            autofill/AutoFillLaunchAgentCheckbox.mm
             quickunlock/TouchID.mm)
 
     # TODO: Remove -Wno-error once deprecation warnings have been resolved.
@@ -299,6 +304,9 @@ endif()
 add_subdirectory(cli)
 add_subdirectory(thirdparty)
 
+add_subdirectory(autofill/rendezvous)
+add_subdirectory(autofill)
+
 add_subdirectory(autotype)
 set(autotype_LIB autotype)
 
@@ -326,7 +334,7 @@ configure_file(git-info.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/git-info.h)
 # Core Library Definition
 add_library(keepassxc_core STATIC ${core_SOURCES})
 target_compile_definitions(keepassxc_core PRIVATE KPXC_BUILDING_CORE)
-target_link_libraries(keepassxc_core 
+target_link_libraries(keepassxc_core
         ${qrcode_LIB}
         Qt5::Core
         Qt5::Concurrent
@@ -353,7 +361,9 @@ target_link_libraries(keepassxc_gui
         ${sshagent_LIB})
 
 if(APPLE)
-    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit")
+  target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework AuthenticationServices -framework ServiceManagement")
+  target_compile_definitions(keepassxc_core PRIVATE APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
+
     if(Qt5MacExtras_FOUND)
         target_link_libraries(keepassxc_gui Qt5::MacExtras)
     endif()
@@ -395,10 +405,12 @@ if(WIN32)
     target_sources(${PROGNAME} PUBLIC ${WIN32_ResourceFiles})
 
 elseif(APPLE AND WITH_APP_BUNDLE)
-    set(MACOSX_BUNDLE_IDENTIFIER org.keepassxc.keepassxc)
+    set(APPLE_TEAM_ID "G2S7P7J672" CACHE STRING "Apple Developer Team ID")
+    set(APPLE_APP_IDENTIFIER "org.keepassxc.keepassxc" CACHE STRING "App bundle identifier")
     set(MACOSX_BUNDLE_ICON_NAME keepassxc)
     set(MACOSX_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements")
     configure_file("${CMAKE_SOURCE_DIR}/share/macosx/Info.plist.cmake" ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
+    configure_file(${CMAKE_SOURCE_DIR}/share/macosx/entitlements.cmake ${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements)
     install(FILES "${CMAKE_SOURCE_DIR}/share/macosx/embedded.provisionprofile" DESTINATION ${BUNDLE_INSTALL_DIR})
     set(MACOSX_BUNDLE_RESOURCE_FILES
             "${CMAKE_SOURCE_DIR}/share/macosx/Assets.car"

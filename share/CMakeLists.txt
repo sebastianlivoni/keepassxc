@@ -67,6 +67,10 @@ if(UNIX AND NOT APPLE AND NOT HAIKU)
     install(FILES linux/${APP_ID}.appdata.xml DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
 endif(UNIX AND NOT APPLE AND NOT HAIKU)
 
+if(APPLE)
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/macosx/keepassxc.icns" DESTINATION "${CMAKE_BINARY_DIR}/src/${DATA_INSTALL_DIR}")
+endif()
+
 if(WIN32)
   install(FILES windows/qt.conf DESTINATION ${BIN_INSTALL_DIR})
 endif()

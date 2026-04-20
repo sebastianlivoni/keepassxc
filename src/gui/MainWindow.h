@@ -29,6 +29,9 @@
 #include "core/SignalMultiplexer.h"
 #include "gui/DatabaseWidget.h"
 #include "gui/osutils/ScreenLockListener.h"
+#ifdef Q_OS_MACOS
+class AutoFill;
+#endif
 
 namespace Ui
 {
@@ -50,6 +53,10 @@ class MainWindow : public QMainWindow
 public:
     MainWindow();
     ~MainWindow() override;
+
+#ifdef Q_OS_MACOS
+    AutoFill* autoFill() const { return m_autoFill; }
+#endif
 
     QList<DatabaseWidget*> getOpenDatabases();
     void restoreConfigState();
@@ -189,6 +196,9 @@ private:
     QPointer<QProgressBar> m_progressBar;
     QPointer<QLabel> m_progressBarLabel;
     QPointer<QLabel> m_statusBarLabel;
+#ifdef Q_OS_MACOS
+    AutoFill* m_autoFill = nullptr;
+#endif
 
     Q_DISABLE_COPY(MainWindow)
 

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>KeePassXC Autofill</string>
+	<key>CFBundleExecutable</key>
+	<string>KeePassXCAutoFillExtension</string>
+	<key>CFBundleIdentifier</key>
+	<string>${APPLE_APP_IDENTIFIER}.AutoFillExtension</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>KeePassXCAutoFillExtension</string>
+	<key>CFBundleVersion</key>
+	<string>1.0</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<key>ASCredentialProviderExtensionCapabilities</key>
+			<dict>
+				<key>ProvidesOneTimeCodes</key>
+				<true />
+				<key>ProvidesPasswords</key>
+				<true />
+				<key>ProvidesPasskeys</key>
+				<true />
+				<key>ShowsConfigurationUI</key>
+				<false />
+				<!--<key>SupportsConditionalPasskeyRegistration</key>
+				<true/>-->
+			</dict>
+		</dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.authentication-services-credential-provider-ui</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>CredentialProviderViewController</string>
+	</dict>
+</dict>
+</plist>

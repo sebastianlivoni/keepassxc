@@ -76,6 +76,10 @@
 #include "mainwindowadaptor.h"
 #endif
 
+#ifdef Q_OS_MACOS
+#include "autofill/AutoFillServiceV2.h"
+#endif
+
 const QString MainWindow::BaseWindowTitle = "KeePassXC";
 
 MainWindow* g_MainWindow = nullptr;
@@ -93,6 +97,7 @@ MainWindow::MainWindow()
 
 #ifdef Q_OS_MACOS
     macUtils()->configureWindowAndHelpMenus(this, m_ui->menuHelp);
+    autoFillServiceV2()->start();
 #endif
 
 #if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS) && !defined(QT_NO_DBUS)

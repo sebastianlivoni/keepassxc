@@ -912,6 +912,15 @@ void BrowserService::addEntry(const EntryParameters& entryParameters,
     }
 }
 
+Entry* BrowserService::getEntryByUuid(const QString& uuid) {
+    auto db = getDatabase();
+    if (!db) {
+        return nullptr;
+    }
+
+    return db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuid));
+}
+
 bool BrowserService::updateEntry(const EntryParameters& entryParameters, const QString& uuid)
 {
     // TODO: select database based on this key id
