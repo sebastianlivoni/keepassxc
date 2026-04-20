@@ -25,7 +25,7 @@ target_compile_definitions(KeePassXCAutoFillExtension PRIVATE
   RENDEZVOUS_APP_IDENTIFIER="${RENDEZVOUS_APP_IDENTIFIER}"
 )
 
-#target_compile_options(KeePassXCAutoFillExtension PRIVATE "-fobjc-arc")
+target_compile_options(KeePassXCAutoFillExtension PRIVATE "-fobjc-arc")
 
 # Add the linker flag for _NSExtensionMain
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -e _NSExtensionMain")

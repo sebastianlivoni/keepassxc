@@ -252,7 +252,7 @@
   QWidget *widget = new PasskeyRegistrationWidget(
       self.extensionContext, registrationRequest, laView, self.context);
   [self embedQWidget:widget hideRootView:NO];
-  NSView *rootView = reinterpret_cast<NSView *>(widget->winId());
+  NSView *rootView = (__bridge NSView *)(void *)widget->winId();
   [rootView addSubview:laView];
 
   // self.credentialRequest = registrationRequest;
@@ -270,7 +270,7 @@
         self.extensionContext, credentialRequest, laView, self.context);
     [self embedQWidget:widget hideRootView:NO];
 
-    NSView *rootView = reinterpret_cast<NSView *>(widget->winId());
+    NSView *rootView = (__bridge NSView *)(void *)widget->winId();
     [rootView addSubview:laView];
     break;
   }
@@ -369,7 +369,7 @@
 // *) registrationRequest {}
 
 - (void)embedQWidget:(QWidget *)widget hideRootView:(BOOL)hide {
-  NSView *rootView = reinterpret_cast<NSView *>(widget->winId());
+  NSView *rootView = (__bridge NSView *)(void *)widget->winId();
   if (hide) {
     rootView.frame = NSMakeRect(0, 0, 0, 0);
   }

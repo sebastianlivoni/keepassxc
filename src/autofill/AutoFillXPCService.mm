@@ -52,8 +52,7 @@
   [self.listener resume];
 }
 
-- (BOOL)listener:(NSXPCListener *)listener
-    shouldAcceptNewConnection:(NSXPCConnection *)newConnection {
+- (BOOL)listener:(NSXPCListener *)listener shouldAcceptNewConnection:(NSXPCConnection *)newConnection {
   newConnection.exportedObject = self;
   newConnection.exportedInterface = [NSXPCInterface
       interfaceWithProtocol:@protocol(AutoFillXPCServiceProtocol)];
@@ -65,26 +64,15 @@
   return newConnection;
 }
 
-- (void)fetchPasswordCredentialForIdentiity:
-            (ASPasswordCredentialIdentity *)identity
-                                  withReply:(void (^)(ASPasswordCredential *,
-                                                      NSError *))reply {
+- (void)fetchPasswordCredentialForIdentiity:(ASPasswordCredentialIdentity *)identity withReply:(void (^)(ASPasswordCredential *, NSError *))reply {
   autoFillServiceV2()->fetchPasswordCredentialFromIdentity(identity, reply);
 }
 
-- (void)fetchOneTimeCodeForIdentity:(ASOneTimeCodeCredentialIdentity *)identity
-                          withReply:
-                              (void (^)(ASOneTimeCodeCredential *credential,
-                                        NSError *error))reply {
+- (void)fetchOneTimeCodeForIdentity:(ASOneTimeCodeCredentialIdentity *)identity withReply:(void (^)(ASOneTimeCodeCredential *credential, NSError *error))reply {
   autoFillServiceV2()->fetchOneTimeCodeForIdentity(identity, reply);
 }
 
-- (void)
-    fetchPasskeyCredentialFromPasskeyRequest:
-        (ASPasskeyCredentialRequest *)request
-                                   withReply:
-                                       (void (^)(ASPasskeyAssertionCredential *,
-                                                 NSError *))reply {
+- (void)fetchPasskeyCredentialFromPasskeyRequest: (ASPasskeyCredentialRequest *)request withReply: (void (^)(ASPasskeyAssertionCredential *, NSError *))reply {
   autoFillServiceV2()->fetchPasskeyCredentialFromPasskeyRequest(request, reply);
 }
 

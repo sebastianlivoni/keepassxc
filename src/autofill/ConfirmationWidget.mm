@@ -12,7 +12,7 @@ ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* ext
     LAContext* laContext,
     QWidget *parent) : QWidget(parent),
       m_extensionContext(extensionContext),
-      m_credentialRequest((ASPasskeyCredentialRequest *)CFBridgingRetain(credentialRequest)),
+      m_credentialRequest(static_cast<ASPasskeyCredentialRequest*>(CFBridgingRelease(CFBridgingRetain(credentialRequest)))),
       m_laView(laView),
       m_laContext(laContext) {
 
@@ -136,7 +136,6 @@ void ConfirmationWidget::exitCancelRequest() {
 
 ConfirmationWidget::~ConfirmationWidget() {
     if (m_credentialRequest) {
-        CFRelease(m_credentialRequest);
         m_credentialRequest = nullptr;
     }
 }

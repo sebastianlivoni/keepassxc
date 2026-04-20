@@ -22,7 +22,7 @@ target_compile_definitions(KeePassXCAutoFillXPCRendezvous PRIVATE
   RENDEZVOUS_APP_IDENTIFIER="${RENDEZVOUS_APP_IDENTIFIER}"
 )
 
-#target_compile_options(KeePassXCAutoFillXPCRendezvous PRIVATE "-fobjc-arc")
+target_compile_options(KeePassXCAutoFillXPCRendezvous PRIVATE "-fobjc-arc")
 
 install(TARGETS KeePassXCAutoFillXPCRendezvous
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
