@@ -83,8 +83,9 @@
 }
 
 - (void)fetchOneTimeCodeForIdentity:(ASOneTimeCodeCredentialIdentity *)identity
-                                  withReply:(void (^)(ASOneTimeCodeCredential *credential,
-                                                      NSError *error))reply {
+                          withReply:
+                              (void (^)(ASOneTimeCodeCredential *credential,
+                                        NSError *error))reply {
   autoFillServiceV2()->fetchOneTimeCodeForIdentity(identity, reply);
 }
 

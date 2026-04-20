@@ -74,7 +74,6 @@
 - (void)getEndpointWithReply:(void (^)(NSXPCListenerEndpoint *endpoint,
                                        NSError *error))reply {
   void (^replyCopy)(NSXPCListenerEndpoint *, NSError *) = [reply copy];
-  os_log_error(OS_LOG_DEFAULT, "getEndpointWithReply");
 
   dispatch_async(self.dispatchQueue, ^{
     if (!self.providerEndpoint) {
