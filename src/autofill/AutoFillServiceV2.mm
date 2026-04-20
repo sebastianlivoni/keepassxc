@@ -9,7 +9,7 @@ void AutoFillServiceV2::start() {
   NSError *agentError = nil;
 
   SMAppService *agentService = [SMAppService
-      agentServiceWithPlistName:@"me.livoni.KeePassXC.AutoFillService.plist"];
+      agentServiceWithPlistName:[NSString stringWithFormat:@"%@.plist", @RENDEZVOUS_APP_IDENTIFIER]];
 
   BOOL agentRegistered = [agentService registerAndReturnError:&agentError];
 

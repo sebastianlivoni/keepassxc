@@ -8,7 +8,7 @@
 #include <AuthenticationServices/AuthenticationServices.h>
 
 #ifdef __OBJC__
-#include "rendezvous/AutoFillXPCServiceClient.h"
+#include "AutoFillXPCServiceClient.h"
 #endif
 
 @interface CredentialProviderViewController : ASCredentialProviderViewController

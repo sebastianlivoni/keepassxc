@@ -53,7 +53,7 @@
                        error);
         }];
 
-    [proxy getEndpointWithReply:^(NSXPCListenerEndpoint *endpoint,
+    [proxy getEndpoint:^(NSXPCListenerEndpoint *endpoint,
                                   NSError *error) {
       if (error) {
         os_log_error(OS_LOG_DEFAULT,
@@ -71,7 +71,7 @@
           interfaceWithProtocol:@protocol(AutoFillXPCServiceProtocol)];
       [self.xpcService.connection
           setCodeSigningRequirement:
-              @"anchor apple generic and identifier \"me.livoni.KeePassXC\""];
+              @"anchor apple generic and identifier \"" @APPLE_APP_IDENTIFIER "\""];
       [self.xpcService.connection resume];
 
       os_log(OS_LOG_DEFAULT,

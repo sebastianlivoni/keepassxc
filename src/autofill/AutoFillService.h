@@ -5,7 +5,7 @@
 #include "core/Group.h"
 
 #ifdef __OBJC__
-#include "rendezvous/AutoFillXPCService.h"
+#include "AutoFillXPCService.h"
 #include <AuthenticationServices/AuthenticationServices.h>
 #include <Foundation/Foundation.h>
 #else

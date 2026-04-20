@@ -5,12 +5,10 @@
 
 int main(void) {
   @autoreleasepool {
-    os_log(OS_LOG_DEFAULT, "KeePassXC AutoFillXPCRendezvous starting.");
-    NSXPCListener *listener = [[NSXPCListener alloc]
-        initWithMachServiceName:@"6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous"];
+    NSXPCListener *listener = [[NSXPCListener alloc] initWithMachServiceName:@RENDEZVOUS_XPC_SERVICE_NAME];
     AutoFillXPCRendezvous *service = [[AutoFillXPCRendezvous alloc] init];
     listener.delegate = service;
-    [listener setConnectionCodeSigningRequirement:@"anchor apple generic and (identifier \"me.livoni.KeePassXC\" or identifier \"me.livoni.KeePassXC.AutoFillExtension\")"];
+    [listener setConnectionCodeSigningRequirement:@"anchor apple generic and (identifier \"" @APPLE_APP_IDENTIFIER "\" or identifier \"" @AUTOFILL_EXTENSION_IDENTIFIER "\")"];
     [listener resume];
     [[NSRunLoop currentRunLoop] run];
   }

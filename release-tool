@@ -1214,21 +1214,21 @@ appsign() {
 
             # Sign autofill extension
             if ! xcrun codesign --sign "${key}" --verbose --force --options runtime --entitlements \
-                "${real_src_dir}/src/autofill/autofill.entitlements" "${app_dir_tmp}/Contents/PlugIns/KeePassXCAutoFillExtension.appex/Contents/MacOS/KeePassXCAutoFillExtension"; then
+                "${SRC_DIR}/build/src/autofill/autofill.entitlements" "${app_dir_tmp}/Contents/PlugIns/KeePassXCAutoFillExtension.appex/Contents/MacOS/KeePassXCAutoFillExtension"; then
                 cd "${orig_dir}"
                 exitError "Signing failed!"
             fi
 
             # Sign KeePassXCAutoFillXPCRendezvous extension
             if ! xcrun codesign --sign "${key}" --verbose --force --options runtime --entitlements \
-                "${real_src_dir}/src/autofill/rendezvous/KeePassXCAutoFillXPCRendezvous.entitlements" "${app_dir_tmp}/Contents/MacOS/KeePassXCAutoFillXPCRendezvous"; then
+                "${SRC_DIR}/build/src/autofill/rendezvous/rendezvous.entitlements" "${app_dir_tmp}/Contents/MacOS/KeePassXCAutoFillXPCRendezvous"; then
                 cd "${orig_dir}"
                 exitError "Signing failed!"
             fi
 
             # Sign main executable with additional entitlements
             if ! xcrun codesign --sign "${key}" --verbose --force --options runtime --entitlements \
-                "${real_src_dir}/share/macosx/keepassxc.entitlements" "${app_dir_tmp}/Contents/MacOS/KeePassXC"; then
+                "${SRC_DIR}/build/src/keepassxc.entitlements" "${app_dir_tmp}/Contents/MacOS/KeePassXC"; then
                 cd "${orig_dir}"
                 exitError "Signing failed!"
             fi

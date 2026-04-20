@@ -11,7 +11,7 @@ set(SOURCES
     ../browser/BrowserCbor.cpp
     ../browser/PasskeyUtils.cpp
     ../gui/UrlTools.cpp
-    rendezvous/AutoFillXPCServiceClient.m
+    AutoFillXPCServiceClient.m
     AutoFillService.mm
 )
 
@@ -19,16 +19,24 @@ add_executable(KeePassXCAutoFillExtension ${SOURCES})
 
 target_link_libraries(KeePassXCAutoFillExtension Qt5::Core Qt5::Network Qt5::Widgets keepassxc_core "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security -framework LocalAuthenticationEmbeddedUI -framework ServiceManagement")
 
+target_compile_definitions(KeePassXCAutoFillExtension PRIVATE
+  APPLE_APP_IDENTIFIER="${APPLE_APP_IDENTIFIER}"
+  RENDEZVOUS_XPC_SERVICE_NAME="${RENDEZVOUS_XPC_SERVICE_NAME}"
+  RENDEZVOUS_APP_IDENTIFIER="${RENDEZVOUS_APP_IDENTIFIER}"
+)
+
 #target_compile_options(KeePassXCAutoFillExtension PRIVATE "-fobjc-arc")
 
 # Add the linker flag for _NSExtensionMain
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -e _NSExtensionMain")
 
+configure_file(${CMAKE_SOURCE_DIR}/share/macosx/autofill/autofill.entitlements ${CMAKE_CURRENT_BINARY_DIR}/autofill.entitlements)
+
 set_target_properties(KeePassXCAutoFillExtension PROPERTIES
     MACOSX_BUNDLE ON
-    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/src/autofill/Info.plist
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/share/macosx/autofill/Info.plist
     BUNDLE_EXTENSION appex
-    CPACK_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/src/autofill/autofill.entitlements"
+    CPACK_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/share/macosx/autofill.entitlements"
 )
 
 install(TARGETS KeePassXCAutoFillExtension

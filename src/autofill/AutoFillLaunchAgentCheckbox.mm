@@ -17,7 +17,7 @@ void AutoFillLaunchAgentCheckbox::mousePressEvent(QMouseEvent *e) {
         return;
     }
     SMAppService *agentService = [SMAppService
-        agentServiceWithPlistName:@"me.livoni.KeePassXC.AutoFillService.plist"];
+        agentServiceWithPlistName:[NSString stringWithFormat:@"%@.plist", @RENDEZVOUS_APP_IDENTIFIER]];
     if (!isChecked()) {
         NSError *error;
         BOOL isRegistered = [agentService registerAndReturnError:&error];
@@ -41,7 +41,7 @@ void AutoFillLaunchAgentCheckbox::checkCredentialProviderEnabled(Qt::Application
     }
 
     SMAppService *agentService = [SMAppService
-        agentServiceWithPlistName:@"me.livoni.KeePassXC.AutoFillService.plist"];
+        agentServiceWithPlistName:[NSString stringWithFormat:@"%@.plist", @RENDEZVOUS_APP_IDENTIFIER]];
 
     switch (agentService.status) {
         case SMAppServiceStatusEnabled:

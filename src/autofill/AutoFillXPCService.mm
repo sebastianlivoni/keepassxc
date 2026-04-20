@@ -1,6 +1,6 @@
 #include "AutoFillXPCService.h"
 #include "AutoFillServiceV2.h"
-#include "AutoFillXPCRendezvousProtocol.h"
+#include "rendezvous/AutoFillXPCRendezvousProtocol.h"
 #include <AuthenticationServices/AuthenticationServices.h>
 #include <OSLog/OSLog.h>
 
@@ -11,7 +11,7 @@
   if (self) {
     _listener = [NSXPCListener anonymousListener];
     _listener.delegate = self;
-    [_listener setConnectionCodeSigningRequirement:@"anchor apple generic and identifier \"me.livoni.KeePassXC.AutoFillExtension\""];
+    [_listener setConnectionCodeSigningRequirement:@"anchor apple generic and identifier \"" @AUTOFILL_EXTENSION_IDENTIFIER "\""];
   }
   return self;
 }
@@ -19,10 +19,7 @@
 - (void)start {
   os_log(OS_LOG_DEFAULT, "Starting AutoFillXPCService");
 
-  self.rendezvousConnection = [[NSXPCConnection alloc]
-      initWithMachServiceName:
-          @"6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous"
-                      options:0];
+  self.rendezvousConnection = [[NSXPCConnection alloc] initWithMachServiceName:@RENDEZVOUS_XPC_SERVICE_NAME options:0];
 
   NSXPCInterface *interface = [NSXPCInterface
       interfaceWithProtocol:@protocol(AutoFillXPCRendezvousProtocol)];
@@ -38,7 +35,7 @@
 
   NSXPCListenerEndpoint *endpoint = self.listener.endpoint;
 
-  [proxy register:endpoint
+  [proxy registerEndpoint:endpoint
         withReply:^(NSError *error) {
           /*__strong typeof(self) strongSelf = weakSelf;
             if (!strongSelf)

@@ -222,12 +222,16 @@ if(APPLE)
             gui/osutils/macutils/ScreenLockListenerMac.cpp
             gui/osutils/macutils/AppKitImpl.mm
             gui/osutils/macutils/AppKit.h
-            autofill/rendezvous/AutoFillXPCService.mm
+            autofill/AutoFillXPCService.mm
             autofill/AutoFillService.mm
-            autofill/AutoFillServicev2.mm
+            autofill/AutoFillServiceV2.mm
             autofill/AutoFillCredentialProviderCheckbox.mm
             autofill/AutoFillLaunchAgentCheckbox.mm
             quickunlock/TouchID.mm)
+
+    set(RENDEZVOUS_APP_IDENTIFIER "${APPLE_APP_IDENTIFIER}.AutoFillXPCRendezvous")
+    set(RENDEZVOUS_XPC_SERVICE_NAME "${APPLE_TEAM_ID}.${RENDEZVOUS_APP_IDENTIFIER}")
+    set(AUTOFILL_EXTENSION_IDENTIFIER "${APPLE_APP_IDENTIFIER}.AutoFillExtension")
 
     # TODO: Remove -Wno-error once deprecation warnings have been resolved.
     set_source_files_properties(quickunlock/TouchID.mm PROPERTY COMPILE_FLAGS "-Wno-old-style-cast")
@@ -362,7 +366,15 @@ target_link_libraries(keepassxc_gui
 
 if(APPLE)
   target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework AuthenticationServices -framework ServiceManagement")
-  target_compile_definitions(keepassxc_core PRIVATE APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
+  target_compile_definitions(keepassxc_core PRIVATE
+    APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}"
+  )
+
+  target_compile_definitions(keepassxc_gui PRIVATE
+    RENDEZVOUS_XPC_SERVICE_NAME="${RENDEZVOUS_XPC_SERVICE_NAME}"
+    RENDEZVOUS_APP_IDENTIFIER="${RENDEZVOUS_APP_IDENTIFIER}"
+    AUTOFILL_EXTENSION_IDENTIFIER="${AUTOFILL_EXTENSION_IDENTIFIER}"
+  )
 
     if(Qt5MacExtras_FOUND)
         target_link_libraries(keepassxc_gui Qt5::MacExtras)
@@ -410,7 +422,7 @@ elseif(APPLE AND WITH_APP_BUNDLE)
     set(MACOSX_BUNDLE_ICON_NAME keepassxc)
     set(MACOSX_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements")
     configure_file("${CMAKE_SOURCE_DIR}/share/macosx/Info.plist.cmake" ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
-    configure_file(${CMAKE_SOURCE_DIR}/share/macosx/entitlements.cmake ${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements)
+    configure_file(${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements ${CMAKE_CURRENT_BINARY_DIR}/keepassxc.entitlements)
     install(FILES "${CMAKE_SOURCE_DIR}/share/macosx/embedded.provisionprofile" DESTINATION ${BUNDLE_INSTALL_DIR})
     set(MACOSX_BUNDLE_RESOURCE_FILES
             "${CMAKE_SOURCE_DIR}/share/macosx/Assets.car"

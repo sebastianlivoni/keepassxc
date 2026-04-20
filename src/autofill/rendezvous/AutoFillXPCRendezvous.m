@@ -5,55 +5,35 @@
 @implementation AutoFillXPCRendezvous
 
 - (instancetype)init {
-  self = [super init];
-  if (self) {
-    _dispatchQueue =
-        dispatch_queue_create("me.livoni.KeePassXC.AutoFillXPCRendezvous.Queue",
-                              DISPATCH_QUEUE_SERIAL);
+  if (self = [super init]) {
+    NSString *queueName = [NSString stringWithFormat:@"%s.Queue", RENDEZVOUS_APP_IDENTIFIER];
+    _dispatchQueue = dispatch_queue_create([queueName UTF8String], DISPATCH_QUEUE_SERIAL);
   }
-  os_log(OS_LOG_DEFAULT, "Initialized AutoFillXPCRendezvous.");
   return self;
 }
 
-- (BOOL)listener:(NSXPCListener *)listener
-    shouldAcceptNewConnection:(NSXPCConnection *)newConnection {
-  newConnection.exportedInterface = [NSXPCInterface
-      interfaceWithProtocol:@protocol(AutoFillXPCRendezvousProtocol)];
+- (BOOL)listener:(NSXPCListener *)listener shouldAcceptNewConnection:(NSXPCConnection *)newConnection {
+  newConnection.exportedInterface = [NSXPCInterface interfaceWithProtocol:@protocol(AutoFillXPCRendezvousProtocol)];
   newConnection.exportedObject = self;
   [newConnection resume];
-  os_log(OS_LOG_DEFAULT, "New connection");
   return YES;
 }
 
-- (void)register:(NSXPCListenerEndpoint *)endpoint
-       withReply:(void (^)(NSError *error))reply {
-  void (^replyCopy)(NSError *error) = [reply copy];
-  dispatch_async(self.dispatchQueue, ^{
-    self.providerEndpoint = endpoint;
-    os_log(OS_LOG_DEFAULT, "Provider registered.");
-    if (replyCopy) {
-      replyCopy(nil);
-    }
-  });
+- (void)registerEndpoint:(NSXPCListenerEndpoint *)endpoint withReply:(void (^)(NSError *))reply {
+    dispatch_async(self.dispatchQueue, ^{
+        self.providerEndpoint = endpoint;
+        if (reply) reply(nil);
+    });
 }
 
-- (void)getEndpointWithReply:(void (^)(NSXPCListenerEndpoint *endpoint,
-                                       NSError *error))reply {
-  void (^replyCopy)(NSXPCListenerEndpoint *, NSError *) = [reply copy];
-
-  dispatch_async(self.dispatchQueue, ^{
-    if (!self.providerEndpoint) {
-      os_log_error(OS_LOG_DEFAULT, "No provider endpoint available");
-
-      NSError *error = [NSError errorWithDomain:@"AutoFillXPCRendezvous"
-                                           code:1
-                                       userInfo:nil];
-      replyCopy(nil, error);
-      return;
-    }
-
-    replyCopy(self.providerEndpoint, nil);
-  });
+- (void)getEndpoint:(void (^)(NSXPCListenerEndpoint *, NSError *))reply {
+    dispatch_async(self.dispatchQueue, ^{
+        if (!self.providerEndpoint) {
+            reply(nil, [NSError errorWithDomain:@"AutoFillXPCRendezvous" code:1 userInfo:nil]);
+            return;
+        }
+        reply(self.providerEndpoint, nil);
+    });
 }
 
 @end

@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>me.livoni.KeePassXC.AutoFillXPCRendezvous</string>
+    <string>${RENDEZVOUS_APP_IDENTIFIER}</string>
     <key>CFBundleName</key>
     <string>KeePassXCAutoFillXPCRendezvous</string>
     <key>CFBundleExecutable</key>
