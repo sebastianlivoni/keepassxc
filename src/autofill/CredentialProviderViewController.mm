@@ -34,52 +34,61 @@
 
 @implementation CredentialProviderViewController
 
+- (instancetype)initWithNibName:(NSNibName)nibNameOrNil
+                         bundle:(NSBundle *)nibBundleOrNil {
+  self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+  if (self) {
+    /*int argc = 0;
+    char *argv[] = {nullptr};
+    QApplication *qtApp = new QApplication(argc, argv);*/
+
+    self.xpcService = [[AutoFillXPCServiceClient alloc] init];
+    [self.xpcService start];
+    os_log(OS_LOG_DEFAULT, "[AutoFill] Starting XPC rendezvous connection");
+
+    id proxy = [self.xpcService.rendezvousConnection
+        remoteObjectProxyWithErrorHandler:^(NSError *error) {
+          os_log_error(OS_LOG_DEFAULT,
+                       "[AutoFill] Rendezvous connection error: %{public}@",
+                       error);
+        }];
+
+    [proxy getEndpointWithReply:^(NSXPCListenerEndpoint *endpoint,
+                                  NSError *error) {
+      if (error) {
+        os_log_error(OS_LOG_DEFAULT,
+                     "[AutoFill] Failed to obtain service endpoint from "
+                     "rendezvous: %{public}@",
+                     error);
+        return;
+      }
+
+      os_log(OS_LOG_DEFAULT, "[AutoFill] Obtained service endpoint, "
+                             "establishing direct connection");
+      self.xpcService.connection =
+          [[NSXPCConnection alloc] initWithListenerEndpoint:endpoint];
+      self.xpcService.connection.remoteObjectInterface = [NSXPCInterface
+          interfaceWithProtocol:@protocol(AutoFillXPCServiceProtocol)];
+      [self.xpcService.connection
+          setCodeSigningRequirement:
+              @"anchor apple generic and identifier \"me.livoni.KeePassXC\""];
+      [self.xpcService.connection resume];
+
+      os_log(OS_LOG_DEFAULT,
+             "[AutoFill] Direct connection to AutoFill service established");
+    }];
+
+    self.context = [[LAContext alloc] init];
+  }
+  return self;
+}
+
 - (void)viewDidLoad {
   [super viewDidLoad];
 }
 
 - (void)loadView {
   [super loadView];
-  int argc = 0;
-  char *argv[] = {nullptr};
-  QApplication *qtApp = new QApplication(argc, argv);
-
-  self.xpcService = [[AutoFillXPCServiceClient alloc] init];
-  [self.xpcService start];
-  os_log(OS_LOG_DEFAULT, "[AutoFill] Starting XPC rendezvous connection");
-
-  id proxy = [self.xpcService.rendezvousConnection
-      remoteObjectProxyWithErrorHandler:^(NSError *error) {
-        os_log_error(OS_LOG_DEFAULT,
-                     "[AutoFill] Rendezvous connection error: %{public}@",
-                     error);
-      }];
-
-  [proxy getEndpointWithReply:^(NSXPCListenerEndpoint *endpoint,
-                                NSError *error) {
-    if (error) {
-      os_log_error(OS_LOG_DEFAULT,
-                   "[AutoFill] Failed to obtain service endpoint from "
-                   "rendezvous: %{public}@",
-                   error);
-      return;
-    }
-
-    os_log(
-        OS_LOG_DEFAULT,
-        "[AutoFill] Obtained service endpoint, establishing direct connection");
-    self.xpcService.connection =
-        [[NSXPCConnection alloc] initWithListenerEndpoint:endpoint];
-    self.xpcService.connection.remoteObjectInterface = [NSXPCInterface
-        interfaceWithProtocol:@protocol(AutoFillXPCServiceProtocol)];
-    //[self.xpcService.connection setCodeSigningRequirement:@"anchor apple generic and identifier \"me.livoni.KeePassXC\""];
-    [self.xpcService.connection resume];
-
-    os_log(OS_LOG_DEFAULT,
-           "[AutoFill] Direct connection to AutoFill service established");
-  }];
-
-  self.context = [[LAContext alloc] init];
 }
 
 - (void)viewDidAppear {
@@ -281,8 +290,6 @@
         static_cast<ASPasswordCredentialIdentity *>(
             credentialRequest.credentialIdentity);
 
-    NSString *recordIdentifier = identity.recordIdentifier;
-
     id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
                                                NSError *_Nonnull error) {
       os_log_error(OS_LOG_DEFAULT,
@@ -314,13 +321,16 @@
                    error);
     }];
 
-    [proxy fetchOneTimeCodeForIdentity:identity withReply:^(ASOneTimeCodeCredential *credential, NSError *error) {
-                                    [self.extensionContext
-                                        completeOneTimeCodeRequestWithSelectedCredential:
-                                            credential
-                                                                       completionHandler:
-                                                                           nil];
-                                  }];
+    [proxy
+        fetchOneTimeCodeForIdentity:identity
+                          withReply:^(ASOneTimeCodeCredential *credential,
+                                      NSError *error) {
+                            [self.extensionContext
+                                completeOneTimeCodeRequestWithSelectedCredential:
+                                    credential
+                                                               completionHandler:
+                                                                   nil];
+                          }];
     break;
   }
   case ASCredentialRequestTypePasskeyAssertion: {

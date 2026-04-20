@@ -11,6 +11,7 @@
   if (self) {
     _listener = [NSXPCListener anonymousListener];
     _listener.delegate = self;
+    [_listener setConnectionCodeSigningRequirement:@"anchor apple generic and identifier \"me.livoni.KeePassXC.AutoFillExtension\""];
   }
   return self;
 }
@@ -27,9 +28,7 @@
       interfaceWithProtocol:@protocol(AutoFillXPCRendezvousProtocol)];
 
   self.rendezvousConnection.remoteObjectInterface = interface;
-  //[self.rendezvousConnection setCodeSigningRequirement:@"anchor apple generic and identifier \"me.livoni.KeePassXC.AutoFillXPCRendezvous\""];
   [self.rendezvousConnection resume];
-
   //__weak typeof(self) weakSelf = self;
 
   id proxy = [self.rendezvousConnection
@@ -39,20 +38,19 @@
 
   NSXPCListenerEndpoint *endpoint = self.listener.endpoint;
 
-  [proxy
-      registerProvider:endpoint
-             withReply:^(NSError *error) {
-               /*__strong typeof(self) strongSelf = weakSelf;
-                 if (!strongSelf)
-                   return;*/
+  [proxy register:endpoint
+        withReply:^(NSError *error) {
+          /*__strong typeof(self) strongSelf = weakSelf;
+            if (!strongSelf)
+              return;*/
 
-               if (error) {
-                 os_log_error(OS_LOG_DEFAULT,
-                              "Failed to register provider: %{public}@", error);
-               } else {
-                 os_log(OS_LOG_DEFAULT, "Provider registered successfully");
-               }
-             }];
+          if (error) {
+            os_log_error(OS_LOG_DEFAULT,
+                         "Failed to register provider: %{public}@", error);
+          } else {
+            os_log(OS_LOG_DEFAULT, "Provider registered successfully");
+          }
+        }];
 
   [self.listener resume];
 }
@@ -65,7 +63,6 @@
   os_log(
       OS_LOG_DEFAULT,
       "New connection to AutoFillXPCService from hopefully autofill extension");
-  //[newConnection setCodeSigningRequirement:@"anchor apple generic and identifier \"me.livoni.KeePassXC.AutoFillExtension\""];
   [newConnection resume];
   _connection = newConnection;
   return newConnection;

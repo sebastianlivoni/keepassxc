@@ -10,6 +10,7 @@ int main(void) {
         initWithMachServiceName:@"6HH7K3R53J.me.livoni.KeePassXC.AutoFillXPCRendezvous"];
     AutoFillXPCRendezvous *service = [[AutoFillXPCRendezvous alloc] init];
     listener.delegate = service;
+    [listener setConnectionCodeSigningRequirement:@"anchor apple generic and (identifier \"me.livoni.KeePassXC\" or identifier \"me.livoni.KeePassXC.AutoFillExtension\")"];
     [listener resume];
     [[NSRunLoop currentRunLoop] run];
   }

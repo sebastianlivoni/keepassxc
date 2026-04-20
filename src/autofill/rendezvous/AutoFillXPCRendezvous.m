@@ -20,14 +20,13 @@
   newConnection.exportedInterface = [NSXPCInterface
       interfaceWithProtocol:@protocol(AutoFillXPCRendezvousProtocol)];
   newConnection.exportedObject = self;
-  //[newConnection setCodeSigningRequirement:@"anchor apple generic and (identifier \"me.livoni.KeePassXC\" or identifier \"me.livoni.KeePassXC.AutoFillExtension\")"];
   [newConnection resume];
   os_log(OS_LOG_DEFAULT, "New connection");
   return YES;
 }
 
-- (void)registerProvider:(NSXPCListenerEndpoint *)endpoint
-               withReply:(void (^)(NSError *error))reply {
+- (void)register:(NSXPCListenerEndpoint *)endpoint
+       withReply:(void (^)(NSError *error))reply {
   void (^replyCopy)(NSError *error) = [reply copy];
   dispatch_async(self.dispatchQueue, ^{
     self.providerEndpoint = endpoint;

@@ -19,7 +19,7 @@
       interfaceWithProtocol:@protocol(AutoFillXPCRendezvousProtocol)];
 
   self.rendezvousConnection.remoteObjectInterface = interface;
-  //[self.rendezvousConnection setCodeSigningRequirement:@"anchor apple generic and identifier \"me.livoni.KeePassXC.AutoFillXPCRendezvous\""];
+  [self.rendezvousConnection setCodeSigningRequirement:@"anchor apple generic and identifier \"me.livoni.KeePassXC.AutoFillXPCRendezvous\""];
   [self.rendezvousConnection resume];
 }
 

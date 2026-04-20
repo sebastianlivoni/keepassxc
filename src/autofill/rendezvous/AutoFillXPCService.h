@@ -4,9 +4,7 @@
 #include "AutoFillXPCServiceProtocol.h"
 #include <Foundation/Foundation.h>
 
-@interface AutoFillXPCService
-    : NSObject <NSXPCListenerDelegate, AutoFillXPCServiceProtocol> {
-}
+@interface AutoFillXPCService : NSObject <NSXPCListenerDelegate, AutoFillXPCServiceProtocol>
 
 @property(nonatomic, strong) NSXPCConnection *rendezvousConnection;
 @property(nonatomic, strong) NSXPCConnection *connection;
