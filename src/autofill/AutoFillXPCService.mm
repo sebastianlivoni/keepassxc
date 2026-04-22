@@ -4,6 +4,8 @@
 #include <AuthenticationServices/AuthenticationServices.h>
 #include <OSLog/OSLog.h>
 
+#include "AutoFillCodeSigning.h"
+
 @implementation AutoFillXPCService
 
 - (instancetype)init {
@@ -11,7 +13,7 @@
   if (self) {
     _listener = [NSXPCListener anonymousListener];
     _listener.delegate = self;
-    [_listener setConnectionCodeSigningRequirement:@"anchor apple generic and identifier \"" @AUTOFILL_EXTENSION_IDENTIFIER "\""];
+    [_listener setConnectionCodeSigningRequirement:CodeSigningRequirement(@AUTOFILL_EXTENSION_IDENTIFIER)];
   }
   return self;
 }

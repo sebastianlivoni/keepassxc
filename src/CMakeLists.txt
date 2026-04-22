@@ -233,6 +233,20 @@ if(APPLE)
     set(RENDEZVOUS_XPC_SERVICE_NAME "${APPLE_TEAM_ID}.${RENDEZVOUS_APP_IDENTIFIER}")
     set(AUTOFILL_EXTENSION_IDENTIFIER "${APPLE_APP_IDENTIFIER}.AutoFillExtension")
 
+    if (AF_CODE_SIGNING_DR)
+      set(DESIGNATED_REQUIREMENT
+          " and ( "
+          "  certificate leaf[field.1.2.840.113635.100.6.1.9] /* exists */"
+          "  or certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */"
+          "    and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */"
+          "    and certificate leaf[subject.OU] = \\\"${APPLE_TEAM_ID}\\\""
+          ")"
+      )
+      list(JOIN DESIGNATED_REQUIREMENT " " DESIGNATED_REQUIREMENT)
+    else()
+      set(DESIGNATED_REQUIREMENT [[and certificate leaf[subject.CN] = \"Apple Development: Sebastian Livoni (P535BWFUAW)\" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */]])
+    endif()
+
     # TODO: Remove -Wno-error once deprecation warnings have been resolved.
     set_source_files_properties(quickunlock/TouchID.mm PROPERTY COMPILE_FLAGS "-Wno-old-style-cast")
 endif()
@@ -374,6 +388,7 @@ if(APPLE)
     RENDEZVOUS_XPC_SERVICE_NAME="${RENDEZVOUS_XPC_SERVICE_NAME}"
     RENDEZVOUS_APP_IDENTIFIER="${RENDEZVOUS_APP_IDENTIFIER}"
     AUTOFILL_EXTENSION_IDENTIFIER="${AUTOFILL_EXTENSION_IDENTIFIER}"
+    DESIGNATED_REQUIREMENT="${DESIGNATED_REQUIREMENT}"
   )
 
     if(Qt5MacExtras_FOUND)

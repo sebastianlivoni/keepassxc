@@ -2,6 +2,7 @@
 #include "rendezvous/AutoFillXPCRendezvousProtocol.h"
 #include <Foundation/Foundation.h>
 #include <OSLog/OSLog.h>
+#include "AutoFillCodeSigning.h"
 
 @implementation AutoFillXPCServiceClient
 
@@ -17,7 +18,7 @@
       interfaceWithProtocol:@protocol(AutoFillXPCRendezvousProtocol)];
 
   self.rendezvousConnection.remoteObjectInterface = interface;
-  [self.rendezvousConnection setCodeSigningRequirement:@"anchor apple generic and identifier \"" @RENDEZVOUS_APP_IDENTIFIER "\""];
+  [self.rendezvousConnection setCodeSigningRequirement:CodeSigningRequirement(@RENDEZVOUS_APP_IDENTIFIER)];
 
   [self.rendezvousConnection resume];
 }

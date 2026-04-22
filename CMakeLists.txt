@@ -56,6 +56,8 @@ option(KPXC_FEATURE_BROWSER "Browser integration and passkeys support" ON)
 option(KPXC_FEATURE_SSHAGENT "SSH Agent integration" ON)
 option(KPXC_FEATURE_FDOSECRETS "freedesktop.org Secret Service integration; replace system keyring" ON)
 
+option(AF_CODE_SIGNING_DR ON "Whether to use production designated requirements")
+
 if(KPXC_MINIMAL)
     # Disable advanced features in minimal mode
     set(KPXC_FEATURE_BROWSER OFF)
@@ -323,7 +325,7 @@ endif()
 if(WIN32)
     # Determine if we can link against the Windows SDK, used for Windows Hello support
     find_library(WINSDK WindowsApp.lib)
-    
+
     # MSVC specific options
     if(MSVC OR CMAKE_COMPILER_IS_CLANG_MSVC)
         if(MSVC_TOOLSET_VERSION LESS 142)
@@ -475,7 +477,7 @@ if(BOTAN_VERSION VERSION_GREATER_EQUAL "3.0.0")
     set(WITH_BOTAN3 TRUE)
 elseif(BOTAN_VERSION VERSION_LESS "2.12.0")
     # Check for minimum Botan version
-    message(FATAL_ERROR "Botan 2.12.0 or higher is required")   
+    message(FATAL_ERROR "Botan 2.12.0 or higher is required")
 endif()
 include_directories(SYSTEM ${BOTAN_INCLUDE_DIR})
 

@@ -22,6 +22,7 @@
 #include <os/log.h>
 
 #include "rendezvous/AutoFillXPCRendezvousProtocol.h"
+#include "AutoFillCodeSigning.h"
 
 @interface CredentialProviderViewController ()
 
@@ -69,9 +70,7 @@
           [[NSXPCConnection alloc] initWithListenerEndpoint:endpoint];
       self.xpcService.connection.remoteObjectInterface = [NSXPCInterface
           interfaceWithProtocol:@protocol(AutoFillXPCServiceProtocol)];
-      [self.xpcService.connection
-          setCodeSigningRequirement:
-              @"anchor apple generic and identifier \"" @APPLE_APP_IDENTIFIER "\""];
+      [self.xpcService.connection setCodeSigningRequirement:CodeSigningRequirement(@APPLE_APP_IDENTIFIER)];
       [self.xpcService.connection resume];
 
       os_log(OS_LOG_DEFAULT,
