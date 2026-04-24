@@ -63,7 +63,7 @@
       "New connection to AutoFillXPCService from hopefully autofill extension");
   [newConnection resume];
   _connection = newConnection;
-  return newConnection;
+  return YES;
 }
 
 - (void)fetchPasswordCredentialForIdentiity:(ASPasswordCredentialIdentity *)identity withReply:(void (^)(ASPasswordCredential *, NSError *))reply {
@@ -76,6 +76,10 @@
 
 - (void)fetchPasskeyCredentialFromPasskeyRequest: (ASPasskeyCredentialRequest *)request withReply: (void (^)(ASPasskeyAssertionCredential *, NSError *))reply {
   autoFillServiceV2()->fetchPasskeyCredentialFromPasskeyRequest(request, reply);
+}
+
+- (void)createPasskeyRegistrationCredential:(ASPasskeyCredentialRequest *)request withReply:(void (^)(ASPasskeyRegistrationCredential *, NSError *))reply {
+  autoFillServiceV2()->createPasskeyRegistrationCredentialRequest(request, reply);
 }
 
 @end

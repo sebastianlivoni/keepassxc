@@ -79,6 +79,29 @@ void AutoFillServiceV2::fetchOneTimeCodeForIdentity(
   }
 }
 
+void AutoFillServiceV2::createPasskeyRegistrationCredentialRequest(
+    ASPasskeyCredentialRequest *request,
+    void (^reply)(ASPasskeyRegistrationCredential *__strong credential,
+                  NSError *__strong error)) {
+  if (auto *window = getMainWindow()) {
+    for (auto *widget : window->getOpenDatabases()) {
+      if (!widget || widget->isLocked()) {
+        continue;
+      }
+
+      auto database = widget->database();
+      if (database.isNull()) {
+        continue;
+      }
+
+      ASPasskeyRegistrationCredential *credential = createPasskeyRegistrationCredential(request, database);
+
+      reply(credential, nil);
+      return;
+    }
+  }
+}
+
 void AutoFillServiceV2::fetchPasskeyCredentialFromPasskeyRequest(
     ASPasskeyCredentialRequest *request,
     void (^reply)(ASPasskeyAssertionCredential *__strong credential,

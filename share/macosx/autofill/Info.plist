@@ -31,8 +31,8 @@
 				<true />
 				<key>ShowsConfigurationUI</key>
 				<false />
-				<!--<key>SupportsConditionalPasskeyRegistration</key>
-				<true/>-->
+				<key>SupportsConditionalPasskeyRegistration</key>
+				<true/>
 			</dict>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>

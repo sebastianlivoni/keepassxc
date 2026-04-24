@@ -1,23 +1,19 @@
 set(SOURCES
+    AutoFillExtensionApplication.cpp
     CredentialProviderViewController.mm
     ExtensionConfigurationWidget.mm
     ConfirmationWidget.mm
     PasskeyConfirmationWidget.mm
     PasskeyRegistrationWidget.mm
     CredentialListWidget.mm
-    ../browser/BrowserMessageBuilder.cpp
-    ../browser/BrowserPasskeysClient.cpp
-    ../browser/BrowserPasskeys.cpp
-    ../browser/BrowserCbor.cpp
-    ../browser/PasskeyUtils.cpp
-    ../gui/UrlTools.cpp
+    BrowserPasskeysConfirmationDialogV2.mm
     AutoFillXPCServiceClient.m
     AutoFillService.mm
 )
 
 add_executable(KeePassXCAutoFillExtension ${SOURCES})
 
-target_link_libraries(KeePassXCAutoFillExtension Qt5::Core Qt5::Network Qt5::Widgets keepassxc_core "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security -framework LocalAuthenticationEmbeddedUI -framework ServiceManagement")
+target_link_libraries(KeePassXCAutoFillExtension Qt5::Core Qt5::Network Qt5::Widgets keepassxc_gui "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security -framework LocalAuthenticationEmbeddedUI -framework ServiceManagement -framework AppKit -framework Carbon -framework ScreenCaptureKit")
 
 target_compile_definitions(KeePassXCAutoFillExtension PRIVATE
   APPLE_APP_IDENTIFIER="${APPLE_APP_IDENTIFIER}"

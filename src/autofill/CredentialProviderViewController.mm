@@ -9,6 +9,7 @@
 #include <QVBoxLayout>
 
 #include "AutoFillService.h"
+#include "BrowserPasskeysConfirmationDialogV2.h"
 #include "CredentialListWidget.h"
 #include "ExtensionConfigurationWidget.h"
 #include "PasskeyConfirmationWidget.h"
@@ -23,6 +24,7 @@
 
 #include "rendezvous/AutoFillXPCRendezvousProtocol.h"
 #include "AutoFillCodeSigning.h"
+#include "AutoFillExtensionApplication.h"
 
 @interface CredentialProviderViewController ()
 
@@ -39,9 +41,9 @@
                          bundle:(NSBundle *)nibBundleOrNil {
   self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
   if (self) {
-    /*int argc = 0;
+    int argc = 0;
     char *argv[] = {nullptr};
-    QApplication *qtApp = new QApplication(argc, argv);*/
+    AutoFillExtensionApplication *qtApp = new AutoFillExtensionApplication(argc, argv);
 
     self.xpcService = [[AutoFillXPCServiceClient alloc] init];
     [self.xpcService start];
@@ -139,12 +141,8 @@
     break;
   }
   case ASCredentialRequestTypePassword: {
-    ASPasswordCredentialIdentity *credentialIdentity =
-        (ASPasswordCredentialIdentity *)
-            self.credentialRequest.credentialIdentity;
-    auto *passwordCredential =
-        autoFillService()->getPasswordCredentialFromIdentity(credentialIdentity,
-                                                             db);
+    ASPasswordCredentialIdentity *credentialIdentity = static_cast<ASPasswordCredentialIdentity *>(self.credentialRequest.credentialIdentity);
+    auto *passwordCredential = autoFillService()->getPasswordCredentialFromIdentity(credentialIdentity, db);
 
     if (!passwordCredential) {
       [self exitCancelRequest];
@@ -158,11 +156,8 @@
   }
   case ASCredentialRequestTypeOneTimeCode: {
     ASOneTimeCodeCredentialIdentity *credentialIdentity =
-        (ASOneTimeCodeCredentialIdentity *)
-            self.credentialRequest.credentialIdentity;
-    ASOneTimeCodeCredential *oneTimeCodeCredential =
-        autoFillService()->getOneTimeCodeCredentialFromIdentity(
-            credentialIdentity, db);
+        static_cast<ASOneTimeCodeCredentialIdentity *>(self.credentialRequest.credentialIdentity);
+    ASOneTimeCodeCredential *oneTimeCodeCredential = autoFillService()->getOneTimeCodeCredentialFromIdentity(credentialIdentity, db);
 
     if (!oneTimeCodeCredential) {
       [self exitCancelRequest];
@@ -244,7 +239,32 @@
 
 - (void)prepareInterfaceForPasskeyRegistration:
     (id<ASCredentialRequest>)registrationRequest {
-  LAAuthenticationView *laView =
+        /*id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
+                                                   NSError *_Nonnull error) {
+
+        }];
+
+        [proxy createPasskeyRegistrationCredential:registrationRequest withReply:^(ASPasskeyRegistrationCredential *credential, NSError *error) {
+            [self.extensionContext completeRegistrationRequestWithSelectedPasskeyCredential:credential completionHandler:nil];
+        }];
+
+        return;*/
+
+    ASPasskeyCredentialRequest *passkeyRequest =
+            static_cast<ASPasskeyCredentialRequest *>(registrationRequest);
+
+    auto *widget = new BrowserPasskeysConfirmationDialogV2(self.extensionContext, passkeyRequest, self.xpcService);
+
+    ASPasskeyCredentialIdentity *identity = static_cast<ASPasskeyCredentialIdentity*>(passkeyRequest.credentialIdentity);
+
+    QString relyingParty = QString::fromNSString(identity.relyingPartyIdentifier);
+    QString username = QString::fromNSString(identity.userName);
+
+    widget->registerCredential(username, relyingParty, {}, 60000);
+
+    [self embedQWidget:widget hideRootView:NO];
+
+    /*LAAuthenticationView *laView =
       [[LAAuthenticationView alloc] initWithContext:self.context];
   laView.translatesAutoresizingMaskIntoConstraints = NO;
 
@@ -252,7 +272,7 @@
       self.extensionContext, registrationRequest, laView, self.context);
   [self embedQWidget:widget hideRootView:NO];
   NSView *rootView = (__bridge NSView *)(void *)widget->winId();
-  [rootView addSubview:laView];
+  [rootView addSubview:laView];*/
 
   // self.credentialRequest = registrationRequest;
 }
@@ -363,11 +383,24 @@
   }
 }
 
-// -
-// (void)performPasskeyRegistrationWithoutUserInteractionIfPossible:(ASPasskeyCredentialRequest
-// *) registrationRequest {}
+- (void)performPasskeyRegistrationWithoutUserInteractionIfPossible:(ASPasskeyCredentialRequest*) registrationRequest {
+    NSLog(@"[AutoFill] performPasskeyRegistrationWithoutUserInteractionIfPossible");
+
+    id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
+                                               NSError *_Nonnull error) {
+      os_log_error(OS_LOG_DEFAULT,
+                   "[AutoFill] AutoFill service connection error: %{public}@",
+                   error);
+    }];
+
+    [proxy createPasskeyRegistrationCredential:registrationRequest withReply:^(ASPasskeyRegistrationCredential *credential, NSError *error) {
+        [self.extensionContext completeRegistrationRequestWithSelectedPasskeyCredential:credential completionHandler:nil];
+    }];
+}
 
 - (void)embedQWidget:(QWidget *)widget hideRootView:(BOOL)hide {
+  widget->show();
+
   NSView *rootView = (__bridge NSView *)(void *)widget->winId();
   if (hide) {
     rootView.frame = NSMakeRect(0, 0, 0, 0);

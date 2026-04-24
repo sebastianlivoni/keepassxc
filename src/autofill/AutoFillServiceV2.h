@@ -23,6 +23,10 @@ public:
       ASPasskeyCredentialRequest *request,
       void (^reply)(ASPasskeyAssertionCredential *__strong credential,
                     NSError *__strong error));
+  void createPasskeyRegistrationCredentialRequest(
+      ASPasskeyCredentialRequest *request,
+      void (^reply)(ASPasskeyRegistrationCredential *__strong credential,
+                    NSError *__strong error));
 
 private:
 #ifdef __OBJC__

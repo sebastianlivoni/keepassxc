@@ -10,11 +10,14 @@
                                          withReply:
                                              (void (^)(ASPasswordCredential *credential,
                                                        NSError *error))reply;
+
 - (void)fetchOneTimeCodeForIdentity:(ASOneTimeCodeCredentialIdentity *)identity
                                   withReply:(void (^)(ASOneTimeCodeCredential *credential,
                                                       NSError *error))reply;
 
 - (void)fetchPasskeyCredentialFromPasskeyRequest:(ASPasskeyCredentialRequest *)request withReply:(void (^)(ASPasskeyAssertionCredential *credential, NSError *error))reply;
+
+- (void)createPasskeyRegistrationCredential:(ASPasskeyCredentialRequest *)request withReply:(void (^)(ASPasskeyRegistrationCredential *credential, NSError *error))reply;
 
 @end
 

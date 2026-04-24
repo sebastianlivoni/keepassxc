@@ -118,11 +118,8 @@ ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
 }
 
 ASPasskeyRegistrationCredential *
-AutoFillService::createPasskeyRegistrationCredential(
-    const ASPasskeyCredentialRequest *request,
-    const QSharedPointer<Database> &db) {
-  ASPasskeyCredentialIdentity *identity =
-      (ASPasskeyCredentialIdentity *)request.credentialIdentity;
+AutoFillService::createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request, const QSharedPointer<Database> &db) {
+  ASPasskeyCredentialIdentity *identity = static_cast<ASPasskeyCredentialIdentity *>(request.credentialIdentity);
 
   QByteArray clientDataHash = QByteArray::fromNSData(request.clientDataHash);
 

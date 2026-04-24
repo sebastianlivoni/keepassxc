@@ -1,3 +1,4 @@
+#pragma once
 
 #include "AutoFillXPCServiceProtocol.h"
 #include <Foundation/Foundation.h>
