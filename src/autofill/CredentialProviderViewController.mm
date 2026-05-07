@@ -260,7 +260,7 @@
     QString relyingParty = QString::fromNSString(identity.relyingPartyIdentifier);
     QString username = QString::fromNSString(identity.userName);
 
-    widget->registerCredential(username, relyingParty, {}, 60000);
+    widget->registerCredential(username, relyingParty, {});
 
     [self embedQWidget:widget hideRootView:NO];
 

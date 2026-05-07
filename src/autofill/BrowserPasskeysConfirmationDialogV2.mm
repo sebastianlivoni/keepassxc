@@ -31,12 +31,11 @@ BrowserPasskeysConfirmationDialogV2::BrowserPasskeysConfirmationDialogV2(
     ASPasskeyCredentialRequest *credentialRequest,
     AutoFillXPCServiceClient *xpcService, QWidget *parent)
     : QWidget(parent), m_extensionContext(extensionContext),
-      m_credentialRequest(static_cast<ASPasskeyCredentialRequest *>(credentialRequest)),
+      m_credentialRequest(
+          static_cast<ASPasskeyCredentialRequest *>(credentialRequest)),
       m_xpcService(xpcService),
       m_ui(new Ui::BrowserPasskeysConfirmationDialogV2()),
       m_passkeyUpdated(false) {
-  m_xpcService = xpcService;
-
   setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
 
   m_ui->setupUi(this);
@@ -56,7 +55,7 @@ BrowserPasskeysConfirmationDialogV2::~BrowserPasskeysConfirmationDialogV2() {}
 
 void BrowserPasskeysConfirmationDialogV2::registerCredential(
     const QString &username, const QString &relyingParty,
-    const QList<Entry *> &existingEntries, int timeout) {
+    const QList<Entry *> &existingEntries) {
   m_ui->firstLabel->setText(tr("Do you want to register a passkey for:"));
   m_ui->relyingPartyLabel->setText(tr("Relying Party: %1").arg(relyingParty));
   m_ui->usernameLabel->setText(tr("Username: %1").arg(username));
@@ -77,19 +76,16 @@ void BrowserPasskeysConfirmationDialogV2::registerCredential(
     m_ui->updateButton->setText(tr("Add to existing entry"));
     m_ui->credentialsTable->setVisible(false);
   }
-
-  startCounter(timeout);
 }
 
 void BrowserPasskeysConfirmationDialogV2::authenticateCredential(
-    const QList<Entry *> &entries, const QString &relyingParty, int timeout) {
+    const QList<Entry *> &entries, const QString &relyingParty) {
   m_ui->firstLabel->setText(tr("Authenticate passkey credentials for:"));
   m_ui->relyingPartyLabel->setText(tr("Relying Party: %1").arg(relyingParty));
   m_ui->usernameLabel->setVisible(false);
   m_ui->updateButton->setVisible(false);
   m_ui->secondLabel->setText("");
   updateEntriesToTable(entries);
-  startCounter(timeout);
 }
 
 Entry *BrowserPasskeysConfirmationDialogV2::getSelectedEntry() const {
@@ -99,38 +95,6 @@ Entry *BrowserPasskeysConfirmationDialogV2::getSelectedEntry() const {
 
 bool BrowserPasskeysConfirmationDialogV2::isPasskeyUpdated() const {
   return m_passkeyUpdated;
-}
-
-void BrowserPasskeysConfirmationDialogV2::updatePasskey() {
-  m_passkeyUpdated = true;
-  // emit accept();
-}
-
-void BrowserPasskeysConfirmationDialogV2::updateProgressBar() {
-  if (m_counter < m_ui->progressBar->maximum()) {
-    m_ui->progressBar->setValue(m_ui->progressBar->maximum() - m_counter);
-    m_ui->progressBar->update();
-  } else {
-    // emit reject();
-  }
-}
-
-void BrowserPasskeysConfirmationDialogV2::updateSeconds() {
-  ++m_counter;
-  updateTimeoutLabel();
-}
-
-void BrowserPasskeysConfirmationDialogV2::startCounter(int timeout) {
-  m_counter = 0;
-  m_ui->progressBar->setMaximum(timeout / STEP);
-  updateProgressBar();
-  updateTimeoutLabel();
-  m_timer.start(STEP);
-}
-
-void BrowserPasskeysConfirmationDialogV2::updateTimeoutLabel() {
-  m_ui->timeoutLabel->setText(tr("Timeout in <b>%n</b> seconds...", "",
-                                 m_ui->progressBar->maximum() - m_counter));
 }
 
 void BrowserPasskeysConfirmationDialogV2::updateEntriesToTable(
@@ -157,17 +121,22 @@ void BrowserPasskeysConfirmationDialogV2::updateEntriesToTable(
 }
 
 void BrowserPasskeysConfirmationDialogV2::accept() {
-    NSLog(@"[accept] xpcService: %{public}@", m_xpcService);
-        NSLog(@"[accept] connection: %{public}@", m_xpcService.connection);
+  id proxy = [m_xpcService.connection
+      remoteObjectProxyWithErrorHandler:^(NSError *_Nonnull error) {
+        NSLog(@"XPC error: %@", error);
+      }];
 
-  id proxy = [m_xpcService.connection remoteObjectProxyWithErrorHandler:^(
-                                             NSError *_Nonnull error) {
-                                             NSLog(@"XPC error: %@", error);
-  }];
-
-  [proxy createPasskeyRegistrationCredential:m_credentialRequest withReply:^(ASPasskeyRegistrationCredential *credential, NSError *error) {
-      [m_extensionContext completeRegistrationRequestWithSelectedPasskeyCredential:credential completionHandler:nil];
-  }];
+  [proxy
+      createPasskeyRegistrationCredential:m_credentialRequest
+                                withReply:^(
+                                    ASPasskeyRegistrationCredential *credential,
+                                    NSError *error) {
+                                  [m_extensionContext
+                                      completeRegistrationRequestWithSelectedPasskeyCredential:
+                                          credential
+                                                                             completionHandler:
+                                                                                 nil];
+                                }];
 }
 
 void BrowserPasskeysConfirmationDialogV2::reject() {

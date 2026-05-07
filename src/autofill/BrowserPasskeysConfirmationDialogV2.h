@@ -44,20 +44,12 @@ public:
 
     void registerCredential(const QString& username,
                             const QString& relyingParty,
-                            const QList<Entry*>& existingEntries,
-                            int timeout);
-    void authenticateCredential(const QList<Entry*>& entries, const QString& relyingParty, int timeout);
+                            const QList<Entry*>& existingEntries);
+    void authenticateCredential(const QList<Entry*>& entries, const QString& relyingParty);
     Entry* getSelectedEntry() const;
     bool isPasskeyUpdated() const;
 
-private slots:
-    void updatePasskey();
-    void updateProgressBar();
-    void updateSeconds();
-
 private:
-    void startCounter(int timeout);
-    void updateTimeoutLabel();
     void updateEntriesToTable(const QList<Entry*>& entries);
     void accept();
     void reject();
