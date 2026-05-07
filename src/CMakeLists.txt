@@ -112,6 +112,7 @@ set(gui_SOURCES
         gui/styles/dark/DarkStyle.cpp
         gui/styles/light/LightStyle.cpp
         gui/AboutDialog.cpp
+        gui/OTPAuthDialog.cpp
         gui/ActionCollection.cpp
         gui/Application.cpp
         gui/CategoryListWidget.cpp

@@ -37,6 +37,7 @@ public:
     explicit TotpSetupDialog(QWidget* parent = nullptr, Entry* entry = nullptr);
     ~TotpSetupDialog() override;
     void init();
+    void prefill(const QSharedPointer<Totp::Settings>& totp);
 
 signals:
     void totpUpdated();

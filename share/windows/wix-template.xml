@@ -55,6 +55,20 @@
                     Type="string" />
             <Condition>AUTOSTARTPROGRAM</Condition>
         </Component>
+        
+        <DirectoryRef Id="INSTALL_ROOT">
+          <Component Id="ProtocolHandler_otpauth" Guid="4a4d4886-8e44-48fc-8904-0aa5bcbb999a" Directory="INSTALL_ROOT">
+            <RegistryKey Root="HKCR" Key="otpauth" Action="createAndRemoveOnUninstall">
+              <RegistryValue Name="" Value="URL:otpauth Protocol" Type="string" KeyPath="yes"/>
+              <RegistryValue Name="URL Protocol" Value="" Type="string" />
+              <RegistryKey Key="shell\open\command">
+                <RegistryValue Name="" 
+                  Value="&quot;[INSTALL_ROOT]KeePassXC.exe&quot; &quot;%1&quot;" 
+                  Type="string" />
+              </RegistryKey>
+            </RegistryKey>
+          </Component>
+        </DirectoryRef>
 
         <DirectoryRef Id="TARGETDIR">
             <!-- Startmenu shortcuts -->
@@ -113,6 +127,7 @@
             <ComponentRef Id="ApplicationShortcuts" />
             <ComponentRef Id="Autostart" />
             <ComponentRef Id="DesktopShortcut" />
+            <ComponentRef Id="ProtocolHandler_otpauth" />
         </FeatureRef>
 
         <!-- Detect VCRedist Version -->

@@ -19,6 +19,7 @@
 
 #include <QFileInfo>
 #include <QTabBar>
+#include <QApplication>
 
 #include "autotype/AutoType.h"
 #include "core/Merger.h"
@@ -36,6 +37,7 @@
 #include "gui/osutils/macutils/MacUtils.h"
 #endif
 #include "gui/wizard/NewDatabaseWizard.h"
+#include "gui/OTPAuthDialog.h"
 
 DatabaseTabWidget::DatabaseTabWidget(QWidget* parent)
     : QTabWidget(parent)
@@ -43,7 +45,9 @@ DatabaseTabWidget::DatabaseTabWidget(QWidget* parent)
     , m_dbWidgetPendingLock(nullptr)
     , m_databaseOpenDialog(new DatabaseOpenDialog(this))
     , m_importWizard(nullptr)
+    , m_otpAuthDialog(new OTPAuthDialog(this))
     , m_databaseOpenInProgress(false)
+    , m_shouldShowOTPAuthOnUnlock(false)
 {
     auto* tabBar = new QTabBar(this);
     tabBar->setAcceptDrops(true);
@@ -62,6 +66,8 @@ DatabaseTabWidget::DatabaseTabWidget(QWidget* parent)
     connect(m_databaseOpenDialog.data(), &DatabaseOpenDialog::dialogFinished,
             this, &DatabaseTabWidget::handleDatabaseUnlockDialogFinished);
     // clang-format on
+
+    connect(qApp, SIGNAL(otpAuth(QUrl)), this, SLOT(handleOTPAuth(QUrl)));
 
 #ifdef Q_OS_MACOS
     connect(macUtils(), SIGNAL(userSwitched()), SLOT(lockDatabasesOnUserSwitch()));
@@ -186,6 +192,10 @@ void DatabaseTabWidget::addDatabaseTab(const QString& filePath,
     addDatabaseTab(dbWidget, inBackground);
     dbWidget->performUnlockDatabase(password, keyfile);
     updateLastDatabases(dbWidget->database());
+
+    connect(dbWidget, &DatabaseWidget::otpUpdatedFromAuth, this, [this] {
+        m_otpAuthDialog->hide();
+    });
 }
 
 /**
@@ -235,6 +245,17 @@ void DatabaseTabWidget::addDatabaseTab(DatabaseWidget* dbWidget, bool inBackgrou
         setCurrentIndex(index);
     }
 
+    connect(m_otpAuthDialog.data(), &OTPAuthDialog::entrySelected, this, [this](Entry* entry, QSharedPointer<Totp::Settings> totp) {
+        for (int i = 0; i < count(); ++i) {
+            auto* dbWidget = databaseWidgetFromIndex(i);
+            if (!dbWidget->isLocked() && entry->database() == dbWidget->database().data()) {
+                setCurrentIndex(i);
+                dbWidget->setupTotp(entry, totp);
+                break;
+            }
+        }
+    });
+
     connect(dbWidget,
             SIGNAL(requestOpenDatabase(QString, bool, QString, QString)),
             SLOT(addDatabaseTab(QString, bool, QString, QString)));
@@ -254,6 +275,8 @@ void DatabaseTabWidget::addDatabaseTab(DatabaseWidget* dbWidget, bool inBackgrou
             &DatabaseWidget::unlockDatabaseInDialogForSync,
             this,
             &DatabaseTabWidget::unlockDatabaseInDialogForSync);
+
+    connect(dbWidget, SIGNAL(databaseUnlocked()), SLOT(test()));
 }
 
 void DatabaseTabWidget::importFile()
@@ -891,6 +914,13 @@ void DatabaseTabWidget::emitActiveDatabaseChanged()
     emit activeDatabaseChanged(currentDatabaseWidget());
 }
 
+void DatabaseTabWidget::test() {
+    if (m_shouldShowOTPAuthOnUnlock) {
+        m_shouldShowOTPAuthOnUnlock = false;
+        handleOTPAuth(m_otpAuthURL);
+    }
+}
+
 void DatabaseTabWidget::emitDatabaseLockChanged()
 {
     auto* dbWidget = qobject_cast<DatabaseWidget*>(sender());
@@ -944,5 +974,40 @@ void DatabaseTabWidget::performBrowserUnlock()
     auto dbWidget = currentDatabaseWidget();
     if (dbWidget && dbWidget->isLocked()) {
         unlockAnyDatabaseInDialog(DatabaseOpenDialog::Intent::Browser);
+    }
+}
+
+void DatabaseTabWidget::handleOTPAuth(const QUrl& url)
+{
+    if (url.isValid() && url.scheme() == "otpauth") {
+        QString otpString = url.toString();
+
+        if (!otpString.isEmpty()) {
+            auto totp = Totp::parseSettings(otpString);
+            if (!totp || totp->key.isEmpty()) {
+                // Bare secret, use default TOTP settings
+                totp = Totp::parseSettings({}, otpString);
+            }
+
+            QList<QSharedPointer<Database>> databases;
+
+            for (int i = 0, c = count(); i < c; ++i) {
+                if (!databaseWidgetFromIndex(i)->isLocked()) {
+                    auto db = databaseWidgetFromIndex(i)->database();
+
+                    databases.append(db);
+                }
+            }
+
+            if (databases.count() == 0) {
+                m_shouldShowOTPAuthOnUnlock = true;
+                m_otpAuthURL = url;
+                return;
+            }
+
+            m_otpAuthDialog->setTotp(totp);
+            m_otpAuthDialog->load(databases);
+            m_otpAuthDialog->open();
+        }
     }
 }

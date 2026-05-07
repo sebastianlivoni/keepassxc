@@ -172,6 +172,7 @@ signals:
     void requestSearch(const QString& search);
     void reloadBegin();
     void reloadEnd();
+    void otpUpdatedFromAuth();
 
 public slots:
     bool lock();
@@ -203,7 +204,7 @@ public slots:
     void showTotpKeyQrCode();
     void copyTotp();
     void copyPasswordTotp();
-    void setupTotp();
+    void setupTotp(Entry* entry = nullptr, QSharedPointer<Totp::Settings> totp = nullptr);
 #ifdef WITH_XC_SSHAGENT
     void addToAgent();
     void removeFromAgent();

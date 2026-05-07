@@ -25,11 +25,13 @@
 
 #include <QTabWidget>
 #include <QTimer>
+#include <QUrl>
 
 class Database;
 class DatabaseWidget;
 class DatabaseWidgetStateSync;
 class DatabaseOpenWidget;
+class OTPAuthDialog;
 
 class DatabaseTabWidget : public QTabWidget
 {
@@ -95,6 +97,8 @@ public slots:
     void performGlobalAutoType(const QString& search);
     void performBrowserUnlock();
 
+    void handleOTPAuth(const QUrl& url);
+
 signals:
     void databaseOpened(DatabaseWidget* dbWidget);
     void databaseClosed(const QString& filePath);
@@ -114,6 +118,7 @@ private slots:
     void handleDatabaseUnlockDialogFinished(bool accepted, DatabaseWidget* dbWidget);
     void handleExportError(const QString& reason);
     void updateLastDatabases();
+    void test();
 
 private:
     QSharedPointer<Database> execNewDatabaseWizard();
@@ -125,8 +130,11 @@ private:
     QPointer<DatabaseWidget> m_dbWidgetPendingLock;
     QPointer<DatabaseOpenDialog> m_databaseOpenDialog;
     QPointer<ImportWizard> m_importWizard;
+    QPointer<OTPAuthDialog> m_otpAuthDialog;
     QTimer m_lockDelayTimer;
     bool m_databaseOpenInProgress;
+    bool m_shouldShowOTPAuthOnUnlock;
+    QUrl m_otpAuthURL;
 };
 
 #endif // KEEPASSX_DATABASETABWIDGET_H

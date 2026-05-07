@@ -129,3 +129,28 @@ void TotpSetupDialog::init()
         }
     }
 }
+
+void TotpSetupDialog::prefill(const QSharedPointer<Totp::Settings>& totp)
+{
+    if (!totp) {
+        return;
+    }
+
+    auto key = totp->key;
+    m_ui->seedEdit->setText(key.remove("="));
+    m_ui->seedEdit->setCursorPosition(0);
+    m_ui->stepSpinBox->setValue(totp->step);
+
+    if (totp->encoder.shortName == Totp::STEAM_SHORTNAME) {
+        m_ui->radioSteam->setChecked(true);
+    } else if (Totp::hasCustomSettings(totp)) {
+        m_ui->radioCustom->setChecked(true);
+        m_ui->digitsSpinBox->setValue(totp->digits);
+        int index = m_ui->algorithmComboBox->findData(totp->algorithm);
+        if (index != -1) {
+            m_ui->algorithmComboBox->setCurrentIndex(index);
+        }
+    } else {
+        m_ui->radioDefault->setChecked(true);
+    }
+}

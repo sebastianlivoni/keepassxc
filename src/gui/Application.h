@@ -60,6 +60,7 @@ signals:
     void anotherInstanceStarted();
     void applicationActivated();
     void quitSignalReceived();
+    void otpAuth(const QUrl& url);
 
 private slots:
 #if defined(Q_OS_UNIX)

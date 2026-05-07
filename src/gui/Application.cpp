@@ -227,7 +227,16 @@ bool Application::event(QEvent* event)
 {
     // Handle Apple QFileOpenEvent from finder (double click on .kdbx file)
     if (event->type() == QEvent::FileOpen) {
-        emit openFile(static_cast<QFileOpenEvent*>(event)->file());
+        QFileOpenEvent *openEvent = static_cast<QFileOpenEvent *>(event);
+
+        QUrl url = openEvent->url();
+
+        if (url.scheme() == "otpauth") {
+            emit otpAuth(url);
+        } else {
+            emit openFile(openEvent->file());
+        }
+
         return true;
     }
 #ifdef Q_OS_MACOS

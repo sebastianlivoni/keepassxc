@@ -557,21 +557,31 @@ void DatabaseWidget::copyTotp()
     setClipboardTextAndMinimize(currentEntry->totp());
 }
 
-void DatabaseWidget::setupTotp()
+void DatabaseWidget::setupTotp(Entry* entry, QSharedPointer<Totp::Settings> totp)
 {
-    auto currentEntry = currentSelectedEntry();
-    Q_ASSERT(currentEntry);
-    if (!currentEntry) {
+    if (!entry) {
+        entry = currentSelectedEntry();
+    }
+    Q_ASSERT(entry);
+    if (!entry) {
         return;
     }
 
-    auto setupTotpDialog = new TotpSetupDialog(this, currentEntry);
+    auto setupTotpDialog = new TotpSetupDialog(this, entry);
+    if (totp) {
+        setupTotpDialog->prefill(totp);
+    }
     connect(setupTotpDialog, SIGNAL(totpUpdated()), SIGNAL(entrySelectionChanged()));
     if (currentWidget() == m_editEntryWidget) {
         // Entry is being edited, tell it when we are finished updating TOTP
         connect(setupTotpDialog, SIGNAL(totpUpdated()), m_editEntryWidget, SLOT(updateTotp()));
     }
     connect(this, &DatabaseWidget::databaseLockRequested, setupTotpDialog, &TotpSetupDialog::close);
+
+    if (totp) {
+        connect(setupTotpDialog, &TotpSetupDialog::totpUpdated, this, &DatabaseWidget::otpUpdatedFromAuth);
+    }
+
     setupTotpDialog->open();
 }
 
