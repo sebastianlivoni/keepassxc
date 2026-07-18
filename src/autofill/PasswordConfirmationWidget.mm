@@ -1,4 +1,4 @@
-#include "PasskeyRegistrationWidget.h"
+#include "PasswordConfirmationWidget.h"
 
 #include <QLabel>
 #include <QMessageBox>
@@ -15,22 +15,21 @@
 #include "quickunlock/QuickUnlockInterface.h"
 #include "quickunlock/TouchID.h"
 
-PasskeyRegistrationWidget::PasskeyRegistrationWidget(
+PasswordConfirmationWidget::PasswordConfirmationWidget(
     ASCredentialProviderExtensionContext *extensionContext,
-    ASPasskeyCredentialRequest *credentialRequest,
+    ASPasswordCredentialRequest *credentialRequest,
     NSView *laView,
     LAContext *laContext,
     QWidget *parent)
     : ConfirmationWidget(extensionContext, credentialRequest, laView, laContext, parent) { }
 
-void PasskeyRegistrationWidget::completeRequest() {
-  auto *passkeyRequest = (ASPasskeyCredentialRequest*)m_credentialRequest;
-  auto *passkeyCredential = autoFillService()->createPasskeyRegistrationCredential(passkeyRequest, m_db);
-
-  if (!passkeyCredential ) {
+void PasswordConfirmationWidget::completeRequest() {
+  auto *passwordRequest = (ASPasswordCredentialRequest*)m_credentialRequest;
+  auto *passwordCredential = autoFillService()->getPasswordCredentialFromPasswordRequest(passwordRequest, m_db);
+  if (!passwordCredential) {
     exitCancelRequest();
     return;
   }
 
-  [m_extensionContext completeRegistrationRequestWithSelectedPasskeyCredential:passkeyCredential completionHandler:nil];
+  [m_extensionContext completeRequestWithSelectedCredential:passwordCredential completionHandler:nil];
 }

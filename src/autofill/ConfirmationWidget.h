@@ -11,13 +11,15 @@
 #ifndef CONFIRMATIONWIDGET_H
 #define CONFIRMATIONWIDGET_H
 
+class ASCredentialRequest;
+
 class ConfirmationWidget : public QWidget {
   public:
     virtual void completeRequest() = 0;
 
   protected:
     explicit ConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
-                                ASPasskeyCredentialRequest* credentialRequest,
+                                id<ASCredentialRequest>,
                                 NSView* laView,
                                 LAContext* laContext,
                                 QWidget* parent = nullptr);

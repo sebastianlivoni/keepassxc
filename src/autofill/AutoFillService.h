@@ -18,6 +18,7 @@ class ASPasskeyAssertionCredential;
 class ASPasskeyRegistrationCredential;
 class ASPasskeyCredentialRequest;
 class ASPasskeyCredentialIdentity;
+class ASPasswordCredentialRequest;
 class ASCredentialServiceIdentifier;
 class NSError;
 #endif
@@ -46,6 +47,9 @@ public:
       const QSharedPointer<Database> &db);
   ASPasskeyAssertionCredential *getPasskeyCredentialFromPasskeyRequest(
       const ASPasskeyCredentialRequest *request,
+      const QSharedPointer<Database> &db);
+  ASPasswordCredential *getPasswordCredentialFromPasswordRequest(
+      const ASPasswordCredentialRequest *request,
       const QSharedPointer<Database> &db);
 
   ASPasswordCredentialIdentity *

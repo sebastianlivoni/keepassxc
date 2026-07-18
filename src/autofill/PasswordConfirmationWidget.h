@@ -11,14 +11,12 @@
 #include "core/Database.h"
 #include "core/Entry.h"
 
-class ASCredentialRequest;
-
-class PasskeyRegistrationWidget : public ConfirmationWidget
+class PasswordConfirmationWidget : public ConfirmationWidget
 {
 
 public:
-    explicit PasskeyRegistrationWidget(ASCredentialProviderExtensionContext* extensionContext,
-                                  ASPasskeyCredentialRequest* credentialRequest,
+    explicit PasswordConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
+                                  ASPasswordCredentialRequest* credentialRequest,
                                   NSView* laView,
                                   LAContext *laContext,
                                   QWidget* parent = nullptr);

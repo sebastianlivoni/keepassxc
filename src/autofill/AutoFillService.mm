@@ -275,6 +275,28 @@ AutoFillService::getPasskeyCredentialFromPasskeyRequest(
   return credential;
 }
 
+ASPasswordCredential *AutoFillService::getPasswordCredentialFromPasswordRequest(
+    const ASPasswordCredentialRequest *request,
+    const QSharedPointer<Database> &db) {
+  ASPasswordCredentialIdentity *identity = static_cast<ASPasswordCredentialIdentity *>(request.credentialIdentity);
+  NSString *recordIdentifier = identity.recordIdentifier;
+  QString uuidHex = QString::fromNSString(recordIdentifier);
+
+  auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
+  if (!entry) {
+    return nullptr;
+  }
+
+  const QString username = entry->attributes()->value(EntryAttributes::UserNameKey);
+  const QString password = entry->attributes()->value(EntryAttributes::PasswordKey);
+
+  ASPasswordCredential *credential = [ASPasswordCredential
+      credentialWithUser:username.toNSString()
+      password:password.toNSString()];
+
+  return credential;
+}
+
 ASOneTimeCodeCredentialIdentity *
 AutoFillService::getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry) {
   if (!entry->hasTotp()) {

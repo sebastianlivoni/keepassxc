@@ -185,58 +185,34 @@ void AutoFillServiceV2::fetchPasskeyCredentialFromPasskeyRequest(
     ASPasskeyCredentialRequest *request,
     void (^reply)(ASPasskeyAssertionCredential *__strong credential,
                   NSError *__strong error)) {
-  if (auto *window = getMainWindow()) {
-    for (auto *widget : window->getOpenDatabases()) {
-      if (!widget || widget->isLocked()) {
-        // TODO: This will toggle window multiple times if multiple opened database
-        //QMetaObject::invokeMethod(window, "bringToFront", Qt::QueuedConnection);
-        // TODO: window->bringToFront() does not work in this thread so I think we need to call it on main thread
-        // Open app if closed maybe this can work within the autofillextension
-        /*#include <AppKit/AppKit.h>
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (!m_currentDatabaseWidget) {
+      NSError *noDbError = [NSError errorWithDomain:@"org.keepassxc.autofill" code:404 userInfo:nil];
+      reply(nil, noDbError);
+      return;
+    };
 
-        /*QTimer::singleShot(0, window, [window]() {
-          window->bringToFront();
-        });*/
+    if (m_currentDatabaseWidget->isLocked()) {
+      m_pendingRequest = request;
+      m_pendingReplyBlock = reply;
 
+      bool triggerUnlock = true;
+      openDatabase(triggerUnlock);
 
-        /*QTimer::singleShot(0, window, [widget, window]() {
-          if (widget->m_databaseOpenWidget->canPerformQuickUnlock()) {
-            widget->m_databaseOpenWidget->triggerQuickUnlock();
-          } else {
-            window->bringToFront();
-          }
-        });*/
-
-        m_pendingRequest = request;
-        m_pendingReplyBlock = reply;
-
-        bool triggerUnlock = true;
-        openDatabase(triggerUnlock);
-
-        /*QMetaObject::invokeMethod(window, [window, widget]() {
-            //window->bringToFront();
-            
-            widget->m_databaseOpenWidget->triggerQuickUnlock();
-        }, Qt::QueuedConnection);*/
-
-        return;
-      }
-
-      auto database = widget->database();
-      if (database.isNull()) {
-        continue;
-      }
-
-      ASPasskeyAssertionCredential *credential =
-          getPasskeyCredentialFromPasskeyRequest(request, database);
-
-      reply(credential, nil);
       return;
     }
-  }
 
-  NSError *noDbError = [NSError errorWithDomain:@"org.keepassxc.autofill" code:404 userInfo:nil];
-  reply(nil, noDbError);
+    auto database = m_currentDatabaseWidget->database();
+    if (database.isNull()) {
+      NSError *noDbError = [NSError errorWithDomain:@"org.keepassxc.autofill" code:404 userInfo:nil];
+      reply(nil, noDbError);
+      return;
+    }
+
+    ASPasskeyAssertionCredential *credential = getPasskeyCredentialFromPasskeyRequest(request, database);
+
+    reply(credential, nil);
+  });
 }
 
 void AutoFillServiceV2::connectSignals() {
@@ -259,6 +235,7 @@ void AutoFillServiceV2::connectSignals() {
             [this](DatabaseWidget *) { refreshIdentityStore(); });
   }
 
+  connect(getMainWindow(), &MainWindow::activeDatabaseChanged, this, &AutoFillServiceV2::activeDatabaseChanged);
   connect(getMainWindow(), &MainWindow::databaseUnlocked, this, &AutoFillServiceV2::databaseUnlocked);
 
   m_signalsConnected = true;

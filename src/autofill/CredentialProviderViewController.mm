@@ -14,6 +14,7 @@
 #include "ExtensionConfigurationWidget.h"
 #include "PasskeyConfirmationWidget.h"
 #include "PasskeyRegistrationWidget.h"
+#include "PasswordConfirmationWidget.h"
 
 #include "quickunlock/QuickUnlockInterface.h"
 #include "quickunlock/TouchID.h"
@@ -231,10 +232,24 @@
                                      (ASPasskeyCredentialRequestParameters *)
                                          requestParameters {
   // TODO: This will be called for passkeys
+  QWidget *widget = new CredentialListWidget(self.extensionContext);
+  [self embedQWidget:widget hideRootView:NO];
+
+  LAAuthenticationView *laView =
+      [[LAAuthenticationView alloc] initWithContext:self.context];
+  [self.rootView addSubview:laView];
+  self.rootView.translatesAutoresizingMaskIntoConstraints = NO;
 }
 
 - (void)prepareOneTimeCodeCredentialListForServiceIdentifiers:
     (NSArray<ASCredentialServiceIdentifier *> *)serviceIdentifiers {
+      QWidget *widget = new CredentialListWidget(self.extensionContext);
+  [self embedQWidget:widget hideRootView:NO];
+
+  LAAuthenticationView *laView =
+      [[LAAuthenticationView alloc] initWithContext:self.context];
+  [self.rootView addSubview:laView];
+  self.rootView.translatesAutoresizingMaskIntoConstraints = NO;
 }
 
 - (void)prepareInterfaceForPasskeyRegistration:
@@ -284,6 +299,15 @@
   laView.translatesAutoresizingMaskIntoConstraints = NO;
 
   switch (credentialRequest.type) {
+  case ASCredentialRequestTypePassword: {
+    QWidget *widget = new PasswordConfirmationWidget(
+        self.extensionContext, credentialRequest, laView, self.context);
+    [self embedQWidget:widget hideRootView:NO];
+
+    NSView *rootView = (__bridge NSView *)(void *)widget->winId();
+    [rootView addSubview:laView];
+    break;
+  }
   case ASCredentialRequestTypePasskeyAssertion: {
     QWidget *widget = new PasskeyConfirmationWidget(
         self.extensionContext, credentialRequest, laView, self.context);
@@ -317,7 +341,8 @@
       
       // OPTIMIZATION: The XPC connection failed, meaning the host app isn't active.
       // Launch it now.
-      [self launchMainApplication];
+      //[self launchMainApplication];
+      [self exitWithUserInteractionRequired];
     }];
 
     [proxy
@@ -345,7 +370,8 @@
       
       // OPTIMIZATION: The XPC connection failed, meaning the host app isn't active.
       // Launch it now.
-      [self launchMainApplication];
+      //[self launchMainApplication];
+      [self exitWithUserInteractionRequired];
     }];
 
     [proxy
@@ -372,7 +398,8 @@
       
       // OPTIMIZATION: The XPC connection failed, meaning the host app isn't active.
       // Launch it now.
-      [self launchMainApplication];
+      //[self launchMainApplication];
+      [self exitWithUserInteractionRequired];
     }];
 
     [proxy

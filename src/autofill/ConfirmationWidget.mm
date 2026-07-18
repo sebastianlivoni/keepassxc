@@ -7,12 +7,12 @@
 #include <QLabel>
 
 ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
-    ASPasskeyCredentialRequest* credentialRequest,
+    id<ASCredentialRequest> credentialRequest,
     NSView* laView,
     LAContext* laContext,
     QWidget *parent) : QWidget(parent),
       m_extensionContext(extensionContext),
-      m_credentialRequest(static_cast<ASPasskeyCredentialRequest*>(CFBridgingRelease(CFBridgingRetain(credentialRequest)))),
+      m_credentialRequest(credentialRequest),
       m_laView(laView),
       m_laContext(laContext) {
 
