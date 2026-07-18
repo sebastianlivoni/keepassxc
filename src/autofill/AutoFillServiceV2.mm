@@ -32,8 +32,14 @@ void AutoFillServiceV2::start() {
 }
 
 AutoFillServiceV2 *AutoFillServiceV2::instance() {
-  static AutoFillServiceV2 s_instance;
-  return &s_instance;
+  static AutoFillServiceV2 *s_instance = new AutoFillServiceV2();
+  return s_instance;
+}
+
+AutoFillServiceV2::~AutoFillServiceV2() {
+  m_xpcService = nil;
+  m_pendingRequest = nil;
+  m_pendingReplyBlock = nil;
 }
 
 void AutoFillServiceV2::fetchPasswordCredentialFromIdentity(

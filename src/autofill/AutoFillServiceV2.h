@@ -10,6 +10,7 @@ class AutoFillServiceV2 : public QObject, public AutoFillService {
 
 public:
   static AutoFillServiceV2 *instance();
+  ~AutoFillServiceV2();
 
   void start();
   void fetchPasswordCredentialFromIdentity(
