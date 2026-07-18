@@ -98,6 +98,7 @@ MainWindow::MainWindow()
 #ifdef Q_OS_MACOS
     macUtils()->configureWindowAndHelpMenus(this, m_ui->menuHelp);
     autoFillServiceV2()->start();
+    connect(autoFillServiceV2(), &AutoFillServiceV2::requestUnlock, m_ui->tabWidget, &DatabaseTabWidget::performAutofillUnlock);
 #endif
 
 #if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS) && !defined(QT_NO_DBUS)

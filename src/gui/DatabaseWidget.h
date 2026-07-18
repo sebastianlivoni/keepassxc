@@ -318,7 +318,9 @@ private:
     QPointer<EditEntryWidget> m_historyEditEntryWidget;
     QPointer<ReportsDialog> m_reportsDialog;
     QPointer<DatabaseSettingsDialog> m_databaseSettingDialog;
+public:
     QPointer<DatabaseOpenWidget> m_databaseOpenWidget;
+private:
     QPointer<GroupView> m_groupView;
     QPointer<TagView> m_tagView;
     QPointer<EntryView> m_entryView;

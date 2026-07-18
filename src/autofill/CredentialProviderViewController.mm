@@ -312,8 +312,12 @@
     id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
                                                NSError *_Nonnull error) {
       os_log_error(OS_LOG_DEFAULT,
-                   "[AutoFill] AutoFill service connection error: %{public}@",
+                   "[AutoFill] AutoFill service connection error: %{public}@. Main app likely closed.",
                    error);
+      
+      // OPTIMIZATION: The XPC connection failed, meaning the host app isn't active.
+      // Launch it now.
+      [self launchMainApplication];
     }];
 
     [proxy
@@ -336,8 +340,12 @@
     id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
                                                NSError *_Nonnull error) {
       os_log_error(OS_LOG_DEFAULT,
-                   "[AutoFill] AutoFill service connection error: %{public}@",
+                   "[AutoFill] AutoFill service connection error: %{public}@. Main app likely closed.",
                    error);
+      
+      // OPTIMIZATION: The XPC connection failed, meaning the host app isn't active.
+      // Launch it now.
+      [self launchMainApplication];
     }];
 
     [proxy
@@ -359,8 +367,12 @@
     id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
                                                NSError *_Nonnull error) {
       os_log_error(OS_LOG_DEFAULT,
-                   "[AutoFill] AutoFill service connection error: %{public}@",
+                   "[AutoFill] AutoFill service connection error: %{public}@. Main app likely closed.",
                    error);
+      
+      // OPTIMIZATION: The XPC connection failed, meaning the host app isn't active.
+      // Launch it now.
+      [self launchMainApplication];
     }];
 
     [proxy
@@ -447,6 +459,28 @@
                                        code:ASExtensionErrorCodeFailed
                                    userInfo:nil];
   [self.extensionContext cancelRequestWithError:error];
+}
+
+- (void)launchMainApplication {
+  NSURL *extensionURL = [[NSBundle mainBundle] bundleURL];
+
+  // 2. Go up 3 levels: KeePassXC.app/Contents/KeePassXCAutoFillExtension.appex -> KeePassXC.app
+  NSURL *mainAppURL = [[[extensionURL URLByDeletingLastPathComponent] 
+                                        URLByDeletingLastPathComponent] 
+                                        URLByDeletingLastPathComponent];
+
+  NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
+  configuration.promptsUserIfNeeded = YES;
+
+  [[NSWorkspace sharedWorkspace] openApplicationAtURL:mainAppURL
+                                        configuration:configuration
+                                    completionHandler:^(NSRunningApplication * _Nullable app, NSError * _Nullable error) {
+      if (error) {
+          NSLog(@"Error launching main app: %@", error.localizedDescription);
+      } else {
+          NSLog(@"Main app launched successfully or brought to foreground.");
+      }
+  }];
 }
 
 @end

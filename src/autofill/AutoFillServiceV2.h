@@ -28,12 +28,37 @@ public:
       void (^reply)(ASPasskeyRegistrationCredential *__strong credential,
                     NSError *__strong error));
 
+   bool openDatabase(bool triggerUnlock);
+
+signals:
+    void requestUnlock();
+
+public slots:
+    void databaseUnlocked(DatabaseWidget* dbWidget);
+    void activeDatabaseChanged(DatabaseWidget* dbWidget);
+
 private:
-#ifdef __OBJC__
-  __strong AutoFillXPCService *m_xpcService;
-#endif
+    enum WindowState
+    {
+        Normal,
+        Minimized,
+        Hidden
+    };
+
+    #ifdef __OBJC__
+    __strong AutoFillXPCService *m_xpcService;
+    __strong ASPasskeyCredentialRequest *m_pendingRequest;
+    void (^m_pendingReplyBlock)(ASPasskeyAssertionCredential *__strong, NSError *__strong);
+    #endif
+
+    bool m_bringToFrontRequested;
+    WindowState m_prevWindowState;
 
     QSet<DatabaseWidget*> m_watchedDatabases;
+    QPointer<DatabaseWidget> m_currentDatabaseWidget;
+
+    void updateWindowState();
+    void hideWindow() const;
 
     void saveCredentialStore(const QSharedPointer<Database> &db);
     void replaceCredentialStore();

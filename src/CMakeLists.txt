@@ -222,11 +222,6 @@ if(APPLE)
             gui/osutils/macutils/ScreenLockListenerMac.cpp
             gui/osutils/macutils/AppKitImpl.mm
             gui/osutils/macutils/AppKit.h
-            autofill/AutoFillXPCService.mm
-            autofill/AutoFillService.mm
-            autofill/AutoFillServiceV2.mm
-            autofill/AutoFillCredentialProviderCheckbox.mm
-            autofill/AutoFillLaunchAgentCheckbox.mm
             quickunlock/TouchID.mm)
 
     set(RENDEZVOUS_APP_IDENTIFIER "${APPLE_APP_IDENTIFIER}.AutoFillXPCRendezvous")
@@ -324,6 +319,24 @@ add_subdirectory(thirdparty)
 
 add_subdirectory(autofill/rendezvous)
 add_subdirectory(autofill)
+if(APPLE)
+    set(autofill_LIB autofill)
+
+    list(APPEND gui_SOURCES
+        autofill/AutoFillCredentialProviderCheckbox.mm
+        autofill/AutoFillLaunchAgentCheckbox.mm
+            #gui/dbsettings/DatabaseSettingsWidgetBrowser.cpp
+            #gui/entry/EntryURLModel.cpp
+            #gui/reports/ReportsPageBrowserStatistics.cpp
+            #gui/reports/ReportsPagePasskeys.cpp
+            #gui/reports/ReportsWidgetBrowserStatistics.cpp
+            #gui/reports/ReportsWidgetPasskeys.cpp
+            #gui/passkeys/PasskeyExporter.cpp
+            #gui/passkeys/PasskeyExportDialog.cpp
+            #gui/passkeys/PasskeyImporter.cpp
+            #gui/passkeys/PasskeyImportDialog.cpp
+            )
+endif()
 
 add_subdirectory(autotype)
 set(autotype_LIB autotype)
@@ -374,6 +387,7 @@ target_link_libraries(keepassxc_gui
         Qt5::Widgets
         ${autotype_LIB}
         ${browser_LIB}
+        ${autofill_LIB}
         ${fdosecrets_LIB}
         ${keeshare_LIB}
         ${sshagent_LIB})

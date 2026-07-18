@@ -34,6 +34,7 @@
 #include "gui/export/ExportDialog.h"
 #ifdef Q_OS_MACOS
 #include "gui/osutils/macutils/MacUtils.h"
+#include "gui/DatabaseOpenWidget.h"
 #endif
 #include "gui/wizard/NewDatabaseWizard.h"
 
@@ -944,5 +945,15 @@ void DatabaseTabWidget::performBrowserUnlock()
     auto dbWidget = currentDatabaseWidget();
     if (dbWidget && dbWidget->isLocked()) {
         unlockAnyDatabaseInDialog(DatabaseOpenDialog::Intent::Browser);
+    }
+}
+
+void DatabaseTabWidget::performAutofillUnlock()
+{
+    auto dbWidget = currentDatabaseWidget();
+    if (dbWidget->m_databaseOpenWidget->canPerformQuickUnlock()) {
+        dbWidget->m_databaseOpenWidget->triggerQuickUnlock();
+    } else {
+        
     }
 }

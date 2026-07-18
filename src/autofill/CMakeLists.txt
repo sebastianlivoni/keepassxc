@@ -1,3 +1,23 @@
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
+set(autofill_LIB_SOURCES
+  AutoFillXPCService.mm
+  AutoFillService.mm
+  AutoFillServiceV2.mm
+)
+
+add_library(autofill STATIC ${autofill_LIB_SOURCES})
+
+target_compile_definitions(autofill PRIVATE
+  APPLE_APP_IDENTIFIER="${APPLE_APP_IDENTIFIER}"
+  RENDEZVOUS_XPC_SERVICE_NAME="${RENDEZVOUS_XPC_SERVICE_NAME}"
+  RENDEZVOUS_APP_IDENTIFIER="${RENDEZVOUS_APP_IDENTIFIER}"
+  DESIGNATED_REQUIREMENT="${DESIGNATED_REQUIREMENT}"
+  AUTOFILL_EXTENSION_IDENTIFIER="${AUTOFILL_EXTENSION_IDENTIFIER}"
+)
+
+target_link_libraries(autofill Qt5::Core Qt5::Concurrent Qt5::Widgets Qt5::Network ${BOTAN_LIBRARIES})
+
 set(SOURCES
     AutoFillExtensionApplication.cpp
     CredentialProviderViewController.mm
