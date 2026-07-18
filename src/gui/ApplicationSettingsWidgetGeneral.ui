@@ -1501,7 +1501,7 @@
         </spacer>
        </item>
        <item>
-        <spacer name="verticalSpacer_4">
+        <spacer name="verticalSpacer_5">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -1524,6 +1524,16 @@
    <class>ShortcutWidget</class>
    <extends>QLineEdit</extends>
    <header>gui/widgets/ShortcutWidget.h</header>
+  </customwidget>
+  <customwidget>
+    <class>AutoFillCredentialProviderCheckbox</class>
+    <header>AutoFillCredentialProviderCheckbox.h</header> 
+    <container>1</container>
+  </customwidget>
+  <customwidget>
+    <class>AutoFillLaunchAgentCheckbox</class>
+    <header>AutoFillLaunchAgentCheckbox.h</header>
+    <container>1</container>
   </customwidget>
  </customwidgets>
  <tabstops>
