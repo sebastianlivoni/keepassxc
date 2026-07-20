@@ -21,6 +21,12 @@
 #include "QuickUnlockInterface.h"
 #include <QHash>
 
+#ifdef __OBJC__
+@class LAContext;
+#else
+typedef struct objc_object LAContext;
+#endif
+
 class TouchID : public QuickUnlockInterface
 {
 public:
@@ -28,7 +34,10 @@ public:
     QString errorString() const override;
 
     bool setKey(const QUuid& dbUuid, const QByteArray& passwordKey) override;
-    bool getKey(const QUuid& dbUuid, QByteArray& passwordKey) override;
+    bool getKey(const QUuid& dbUuid, QByteArray& passwordKey) override {
+        return getKey(dbUuid, passwordKey, nullptr);
+    }
+    bool getKey(const QUuid& dbUuid, QByteArray& passwordKey, LAContext* laContext) override;
     bool hasKey(const QUuid& dbUuid) const override;
 
     void reset(const QUuid& dbUuid = "") override;

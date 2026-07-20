@@ -24,6 +24,7 @@
 #include <QFileInfo>
 #include <QLayout>
 #include <QShortcut>
+#include <os/log.h>
 
 #ifdef Q_OS_WIN
 #include <QtPlatformHeaders/QWindowsWindowFunctions>

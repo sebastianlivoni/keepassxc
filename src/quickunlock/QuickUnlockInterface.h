@@ -20,6 +20,12 @@
 
 #include <QUuid>
 
+#ifdef __OBJC__
+@class LAContext;
+#else
+typedef struct objc_object LAContext;
+#endif
+
 class QuickUnlockInterface
 {
     Q_DISABLE_COPY(QuickUnlockInterface)
@@ -33,6 +39,10 @@ public:
 
     virtual bool setKey(const QUuid& dbUuid, const QByteArray& key) = 0;
     virtual bool getKey(const QUuid& dbUuid, QByteArray& key) = 0;
+    virtual bool getKey(const QUuid& dbUuid, QByteArray& key, LAContext* laContext) {
+        Q_UNUSED(laContext);
+        return getKey(dbUuid, key);
+    }
     virtual bool hasKey(const QUuid& dbUuid) const = 0;
 
     virtual void reset(const QUuid& dbUuid) = 0;

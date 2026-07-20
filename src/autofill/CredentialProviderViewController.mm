@@ -190,8 +190,7 @@
 
   database->setFilePath(dbPath);
 
-  /*auto quickUnlockInterface =
-      qSharedPointerCast<TouchID>(getQuickUnlock()->interface());
+  auto quickUnlockInterface = getQuickUnlock();
   const auto dbUuid = database->publicUuid();
 
   if (quickUnlockInterface->hasKey(dbUuid)) {
@@ -210,7 +209,7 @@
   if (!database->open(compositeKey, &error)) {
     NSLog(@"Failed to open database: %@", error.toNSString());
     return nil;
-  }*/
+  }
 
   return database;
 }

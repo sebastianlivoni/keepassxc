@@ -2,23 +2,25 @@
 
 #include "LocalAuthentication/LocalAuthentication.h"
 
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QWindow>
-#include <QLabel>
+#include <cstddef>
 
-ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
-    id<ASCredentialRequest> credentialRequest,
-    NSView* laView,
-    LAContext* laContext,
-    QWidget *parent) : QWidget(parent),
-      m_extensionContext(extensionContext),
-      m_credentialRequest(credentialRequest),
-      m_laView(laView),
+#include "quickunlock/QuickUnlockInterface.h"
+
+ConfirmationWidget::ConfirmationWidget(
+    ASCredentialProviderExtensionContext *extensionContext,
+    id<ASCredentialRequest> credentialRequest, NSView *laView,
+    LAContext *laContext, QWidget *parent)
+    : QWidget(parent), m_extensionContext(extensionContext),
+      m_credentialRequest(credentialRequest), m_laView(laView),
       m_laContext(laContext) {
 
-  m_db = QSharedPointer<Database>::create();
-  const QString dbPath = "/Users/seb/Developer/Adgangskoder.kdbx"; // TODO: Make dynamic
-  m_db->setFilePath(dbPath);
+  m_db = QSharedPointer<Database>::create("/Users/seb/Developer/Adgangskoder.kdbx"); // TODO: Make dynamic
+
+  QString error;  
+  m_db->open(nullptr, &error);
 
   // Overall layout
   auto *mainLayout = new QVBoxLayout(this);
@@ -27,14 +29,30 @@ ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* ext
   mainLayout->setSpacing(20);
 
   // Title
-  QLabel *titleLabel = new QLabel(tr("Unlock KeePassXC Database"), this);
-  QFont titleFont = titleLabel->font();
-  titleFont.setPointSize(16);
-  titleFont.setBold(true);
-  titleLabel->setFont(titleFont);
-  titleLabel->setAlignment(Qt::AlignCenter);
+  auto quickUnlock = getQuickUnlock();
+  const auto dbUuid = m_db->publicUuid();
 
-  mainLayout->addWidget(titleLabel);
+  QByteArray keyData;
+  if (!quickUnlock->hasKey(dbUuid)) {
+    QLabel *titleLabel = new QLabel(tr("fedt2"), this);
+    QFont titleFont = titleLabel->font();
+    titleFont.setPointSize(16);
+    titleFont.setBold(true);
+    titleLabel->setFont(titleFont);
+    titleLabel->setAlignment(Qt::AlignCenter);
+
+    mainLayout->addWidget(titleLabel);
+
+  } else {
+    QLabel *titleLabel = new QLabel(tr("hej2"), this);
+    QFont titleFont = titleLabel->font();
+    titleFont.setPointSize(16);
+    titleFont.setBold(true);
+    titleLabel->setFont(titleFont);
+    titleLabel->setAlignment(Qt::AlignCenter);
+
+    mainLayout->addWidget(titleLabel);
+  }
 
   // Password input
   m_passwordInput = new QLineEdit(this);
@@ -59,8 +77,10 @@ ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* ext
   mainLayout->addLayout(buttonLayout);
 
   // Connect signals
-  connect(m_cancel, &QPushButton::clicked, this, &ConfirmationWidget::exitCancelRequest);
-  connect(m_submitButton, &QPushButton::clicked, this, &ConfirmationWidget::authenticateWithKey);
+  connect(m_cancel, &QPushButton::clicked, this,
+          &ConfirmationWidget::exitCancelRequest);
+  connect(m_submitButton, &QPushButton::clicked, this,
+          &ConfirmationWidget::authenticateWithKey);
 
   // Initialize unlock logic
   QTimer::singleShot(0, this, &ConfirmationWidget::setupQuickUnlock);
@@ -71,39 +91,41 @@ ConfirmationWidget::ConfirmationWidget(ASCredentialProviderExtensionContext* ext
   show();
 }
 
-
 void ConfirmationWidget::setupQuickUnlock() {
-    [m_laContext evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
-            localizedReason:@"Authenticate to unlock keychain item"
-                    reply:^(BOOL success, NSError * _Nullable error) {
-        if (!success || error) {
-            return;
-        }
+  [m_laContext
+       evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
+      localizedReason:@"låse din database op"
+                reply:^(BOOL success, NSError *_Nullable error) {
+                  if (!success || error) {
+                    return;
+                  }
 
-        /*auto quickUnlock = new TouchID();
-        const auto dbUuid = m_db->publicUuid();
+                  auto quickUnlock = getQuickUnlock();
+                  const auto dbUuid = m_db->publicUuid();
 
-        QByteArray keyData;
-        if (!quickUnlock->hasKey(dbUuid) || !quickUnlock->getKey(dbUuid, keyData)) {
-            exitCancelRequest();
-            return;
-        }
+                  QByteArray keyData;
+                  if (!quickUnlock->hasKey(dbUuid) ||
+                      !quickUnlock->getKey(dbUuid, keyData, m_laContext)) {
+                    exitCancelRequest();
+                    return;
+                  }
 
-        auto compositeKey = QSharedPointer<CompositeKey>::create();
-        compositeKey->setRawKey(keyData);
+                  auto compositeKey = QSharedPointer<CompositeKey>::create();
+                  compositeKey->setRawKey(keyData);
 
-        if (!unlockDatabase(compositeKey)) {
-            exitCancelRequest();
-            return;
-            }*/
+                  if (!unlockDatabase(compositeKey)) {
+                    exitCancelRequest();
+                    return;
+                  }
 
-        completeRequest();
-    }];
+                  completeRequest();
+                }];
 }
 
 void ConfirmationWidget::authenticateWithKey() {
   QString password = m_passwordInput->text();
-  if (password.isEmpty()) return;
+  if (password.isEmpty())
+    return;
 
   auto compositeKey = QSharedPointer<CompositeKey>::create();
   compositeKey->addKey(QSharedPointer<PasswordKey>::create(password));
@@ -116,7 +138,8 @@ void ConfirmationWidget::authenticateWithKey() {
   completeRequest();
 }
 
-bool ConfirmationWidget::unlockDatabase(QSharedPointer<CompositeKey> compositeKey) {
+bool ConfirmationWidget::unlockDatabase(
+    QSharedPointer<CompositeKey> compositeKey) {
   QString error;
   bool result = m_db->open(compositeKey, &error);
 
@@ -135,7 +158,7 @@ void ConfirmationWidget::exitCancelRequest() {
 }
 
 ConfirmationWidget::~ConfirmationWidget() {
-    if (m_credentialRequest) {
-        m_credentialRequest = nullptr;
-    }
+  if (m_credentialRequest) {
+    m_credentialRequest = nullptr;
+  }
 }

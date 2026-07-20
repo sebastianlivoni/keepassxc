@@ -1,9 +1,9 @@
 #include <AuthenticationServices/AuthenticationServices.h>
 
+#include <QLineEdit>
+#include <QPushButton>
 #include <QSharedPointer>
 #include <QWidget>
-#include <QPushButton>
-#include <QLineEdit>
 
 #include "core/Database.h"
 #include "core/Entry.h"
@@ -13,11 +13,12 @@
 
 class ASCredentialRequest;
 
-class ConfirmationWidget : public QWidget {
-  public:
+class ConfirmationWidget : public QWidget
+{
+public:
     virtual void completeRequest() = 0;
 
-  protected:
+protected:
     explicit ConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
                                 id<ASCredentialRequest>,
                                 NSView* laView,
