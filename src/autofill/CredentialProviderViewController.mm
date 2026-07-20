@@ -15,7 +15,9 @@
 #include "PasskeyConfirmationWidget.h"
 #include "PasskeyRegistrationWidget.h"
 #include "PasswordConfirmationWidget.h"
+#include "OneTimeCodeConfirmationWidget.h"
 
+#include "gui/DatabaseOpenWidget.h"
 #include "quickunlock/QuickUnlockInterface.h"
 #include "quickunlock/TouchID.h"
 
@@ -300,6 +302,16 @@
   switch (credentialRequest.type) {
   case ASCredentialRequestTypePassword: {
     QWidget *widget = new PasswordConfirmationWidget(
+        self.extensionContext, credentialRequest, laView, self.context);
+
+    [self embedQWidget:widget hideRootView:NO];
+
+    NSView *rootView = (__bridge NSView *)(void *)widget->winId();
+    [rootView addSubview:laView];
+    break;
+  }
+  case ASCredentialRequestTypeOneTimeCode: {
+    QWidget *widget = new OneTimeCodeConfirmationWidget(
         self.extensionContext, credentialRequest, laView, self.context);
     [self embedQWidget:widget hideRootView:NO];
 

@@ -34,7 +34,7 @@ ConfirmationWidget::ConfirmationWidget(
 
   QByteArray keyData;
   if (!quickUnlock->hasKey(dbUuid)) {
-    QLabel *titleLabel = new QLabel(tr("fedt2"), this);
+    QLabel *titleLabel = new QLabel(tr("Unlock KeePassXC database (only password)"), this);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(16);
     titleFont.setBold(true);
@@ -44,7 +44,7 @@ ConfirmationWidget::ConfirmationWidget(
     mainLayout->addWidget(titleLabel);
 
   } else {
-    QLabel *titleLabel = new QLabel(tr("hej2"), this);
+    QLabel *titleLabel = new QLabel(tr("Unlock KeePassXC database"), this);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(16);
     titleFont.setBold(true);

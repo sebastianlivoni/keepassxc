@@ -16,7 +16,7 @@
 #include <QString>
 #import <os/log.h>
 
-#define TOUCH_ID_ENABLE_DEBUG_LOGS() 1
+#define TOUCH_ID_ENABLE_DEBUG_LOGS() 0
 #if TOUCH_ID_ENABLE_DEBUG_LOGS()
 #define debug(...) qWarning(__VA_ARGS__)
 #else

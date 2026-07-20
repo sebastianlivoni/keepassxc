@@ -26,6 +26,7 @@ set(SOURCES
     PasskeyConfirmationWidget.mm
     PasskeyRegistrationWidget.mm
     PasswordConfirmationWidget.mm
+    OneTimeCodeConfirmationWidget.mm
     CredentialListWidget.mm
     BrowserPasskeysConfirmationDialogV2.mm
     AutoFillXPCServiceClient.m

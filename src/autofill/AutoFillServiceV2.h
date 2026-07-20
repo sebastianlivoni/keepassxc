@@ -50,6 +50,12 @@ private:
     __strong AutoFillXPCService *m_xpcService;
     __strong ASPasskeyCredentialRequest *m_pendingRequest;
     void (^m_pendingReplyBlock)(ASPasskeyAssertionCredential *__strong, NSError *__strong);
+
+    ASPasswordCredentialIdentity *m_pendingPasswordIdentity = nil;
+    void (^m_pendingPasswordReplyBlock)(ASPasswordCredential *__strong, NSError *__strong) = nil;
+
+    ASOneTimeCodeCredentialIdentity *m_pendingOtpIdentity = nil;
+    void (^m_pendingOtpReplyBlock)(ASOneTimeCodeCredential *__strong, NSError *__strong) = nil;
     #endif
 
     bool m_bringToFrontRequested;
