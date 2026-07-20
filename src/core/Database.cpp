@@ -1127,8 +1127,6 @@ QUuid Database::publicUuid()
 {
     // This feature requires KDBX4
     if (m_data.formatVersion < KeePass2::FILE_VERSION_4) {
-        debug("UUID:: KDBX format < 4; generating deterministic UUID from file path hash: %s", 
-              filePath().toUtf8().constData());
 
         // Return the file path hash as a UUID for KDBX3
         QCryptographicHash hasher(QCryptographicHash::Sha256);
@@ -1138,16 +1136,12 @@ QUuid Database::publicUuid()
 
     if (!publicCustomData().contains("KPXC_PUBLIC_UUID")) {
         QUuid newUuid = QUuid::createUuid();
-        debug("UUID::Generating new public UUID for database: %s", 
-              newUuid.toString().toUtf8().constData());
 
         publicCustomData().insert("KPXC_PUBLIC_UUID", newUuid.toRfc4122());
         markAsModified();
     }
 
     QUuid uuid = QUuid::fromRfc4122(publicCustomData()["KPXC_PUBLIC_UUID"].toByteArray());
-    debug("UUID::Retrieved public UUID: %s", 
-          uuid.toString().toUtf8().constData());
 
     return uuid;
 }

@@ -88,6 +88,7 @@ QString TouchID::errorString() const
 void TouchID::reset()
 {
     // TODO: Clear all credentials associated with KeePassXC
+    debug("reset 2");
     m_encryptedMasterKeys.clear();
 }
 
@@ -393,5 +394,5 @@ bool TouchID::isAvailable() const
  */
 void TouchID::reset(const QUuid& dbUuid)
 {
-    //deleteKeyEntry(databaseKeyName(dbUuid));
+    deleteKeyEntry(databaseKeyName(dbUuid));
 }

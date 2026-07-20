@@ -1964,7 +1964,7 @@ void DatabaseWidget::closeEvent(QCloseEvent* event)
         return;
     }
 
-    m_databaseOpenWidget->resetQuickUnlock();
+    //m_databaseOpenWidget->resetQuickUnlock(); // Removed because we do not want to reset quick unlock on close
     event->accept();
 }
 
