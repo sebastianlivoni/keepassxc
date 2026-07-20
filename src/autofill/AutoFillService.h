@@ -59,7 +59,8 @@ public:
 
   ASPasswordCredentialIdentity *
   getPasswordCredentialIdentityFromEntry(const Entry *entry,
-                                         const QUuid dbUuid);
+                                         const QUuid dbUuid,
+                                         const QString dbName);
   ASOneTimeCodeCredentialIdentity *
   getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry,
                                             const QUuid dbUuid);

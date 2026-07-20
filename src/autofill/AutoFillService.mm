@@ -66,7 +66,8 @@ ASPasswordCredential *AutoFillService::getPasswordCredentialFromIdentity(
 
 ASPasswordCredentialIdentity *
 AutoFillService::getPasswordCredentialIdentityFromEntry(const Entry *entry,
-                                                        const QUuid dbUuid) {
+                                                        const QUuid dbUuid,
+                                                        const QString dbName) {
   QString username = entry->username();
   QString password = entry->password();
 
@@ -84,7 +85,7 @@ AutoFillService::getPasswordCredentialIdentityFromEntry(const Entry *entry,
     return nullptr;
   }
 
-  NSString *userString = title.toNSString();
+  NSString *userString = (title + " (" + dbName + ")").toNSString();
 
   NSString *recordIdentifier = recordIdentifierForEntry(entry, dbUuid);
 
@@ -408,16 +409,16 @@ AutoFillService::getCredentialServiceIdentifierFromEntry(const Entry *entry) {
 
   ASCredentialServiceIdentifier *serviceIdentifier;
 
-  if (@available(macOS 26.2, *)) {
+  /*if (@available(macOS 26.2, *)) {
     serviceIdentifier = [[ASCredentialServiceIdentifier alloc]
         initWithIdentifier:serviceIdentifierString
                       type:ASCredentialServiceIdentifierTypeURL
                displayName:@"KeePassXC Test"];
-  } else {
+  } else {*/
     serviceIdentifier = [[ASCredentialServiceIdentifier alloc]
         initWithIdentifier:serviceIdentifierString
                       type:ASCredentialServiceIdentifierTypeURL];
-  }
+  //}
 
   return serviceIdentifier;
 }

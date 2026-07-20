@@ -336,7 +336,7 @@ void AutoFillServiceV2::replaceCredentialStore() {
             QUuid publicUuid = db->publicUuid();
 
             auto *passwordCredentialIdentity =
-                getPasswordCredentialIdentityFromEntry(entry, publicUuid);
+                getPasswordCredentialIdentityFromEntry(entry, publicUuid, widget->displayName());
 
             if (passwordCredentialIdentity) {
               [credentialIdentities addObject:passwordCredentialIdentity];
@@ -358,7 +358,7 @@ void AutoFillServiceV2::replaceCredentialStore() {
           }
 
           [ASCredentialIdentityStore.sharedStore
-              replaceCredentialIdentityEntries:credentialIdentities
+              saveCredentialIdentityEntries:credentialIdentities // TODO: Make it replaceCredentialIdentityEntries
                                     completion:^(BOOL success, NSError *error) {
                                       if (success) {
                                         NSLog(@"Successfully replaced "
