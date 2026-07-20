@@ -323,19 +323,9 @@ if(APPLE)
     set(autofill_LIB autofill)
 
     list(APPEND gui_SOURCES
+        gui/dbsettings/DatabaseSettingsWidgetAutoFill.cpp
         autofill/AutoFillCredentialProviderCheckbox.mm
-        autofill/AutoFillLaunchAgentCheckbox.mm
-            #gui/dbsettings/DatabaseSettingsWidgetBrowser.cpp
-            #gui/entry/EntryURLModel.cpp
-            #gui/reports/ReportsPageBrowserStatistics.cpp
-            #gui/reports/ReportsPagePasskeys.cpp
-            #gui/reports/ReportsWidgetBrowserStatistics.cpp
-            #gui/reports/ReportsWidgetPasskeys.cpp
-            #gui/passkeys/PasskeyExporter.cpp
-            #gui/passkeys/PasskeyExportDialog.cpp
-            #gui/passkeys/PasskeyImporter.cpp
-            #gui/passkeys/PasskeyImportDialog.cpp
-            )
+        autofill/AutoFillLaunchAgentCheckbox.mm)
 endif()
 
 add_subdirectory(autotype)

@@ -3,6 +3,7 @@
 #include <AuthenticationServices/AuthenticationServices.h>
 #include <ServiceManagement/SMAppService.h>
 
+#include "core/Tools.h"
 #include "gui/DatabaseOpenWidget.h"
 #include "gui/MainWindow.h"
 
@@ -332,22 +333,24 @@ void AutoFillServiceV2::replaceCredentialStore() {
               continue;
             }
 
+            QUuid publicUuid = db->publicUuid();
+
             auto *passwordCredentialIdentity =
-                getPasswordCredentialIdentityFromEntry(entry);
+                getPasswordCredentialIdentityFromEntry(entry, publicUuid);
 
             if (passwordCredentialIdentity) {
               [credentialIdentities addObject:passwordCredentialIdentity];
             }
 
             auto *oneTimeCodeCredentialIdentity =
-                getOneTimeCodeCredentialIdentityFromEntry(entry);
+                getOneTimeCodeCredentialIdentityFromEntry(entry, publicUuid);
 
             if (oneTimeCodeCredentialIdentity) {
               [credentialIdentities addObject:oneTimeCodeCredentialIdentity];
             }
 
             auto *passkeyCredentialIdentity =
-                getPasskeyCredentialIdentityFromEntry(entry);
+                getPasskeyCredentialIdentityFromEntry(entry, publicUuid);
 
             if (passkeyCredentialIdentity) {
               [credentialIdentities addObject:passkeyCredentialIdentity];
@@ -385,60 +388,67 @@ void AutoFillServiceV2::resetCredentialStore() {
       }];
 }
 
-void AutoFillServiceV2::databaseUnlocked(DatabaseWidget* dbWidget)
-{
-  if (!dbWidget) return;
+void AutoFillServiceV2::databaseUnlocked(DatabaseWidget *dbWidget) {
+  if (!dbWidget)
+    return;
 
   auto database = dbWidget->database();
 
   if (m_pendingRequest && m_pendingReplyBlock) {
-      if (!database.isNull()) {
-          ASPasskeyAssertionCredential *credential = getPasskeyCredentialFromPasskeyRequest(m_pendingRequest, database);
+    if (!database.isNull()) {
+      ASPasskeyAssertionCredential *credential =
+          getPasskeyCredentialFromPasskeyRequest(m_pendingRequest, database);
 
-          if (credential) {
-              m_pendingReplyBlock(credential, nil);
-          } else {
-              NSError *failErr = [NSError errorWithDomain:@"org.keepassxc.autofill" code:404 userInfo:nil];
-              m_pendingReplyBlock(nil, failErr);
-          }
+      if (credential) {
+        m_pendingReplyBlock(credential, nil);
+      } else {
+        NSError *failErr = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                               code:404
+                                           userInfo:nil];
+        m_pendingReplyBlock(nil, failErr);
       }
+    }
 
-      m_pendingRequest = nil;
-      m_pendingReplyBlock = nil;
+    m_pendingRequest = nil;
+    m_pendingReplyBlock = nil;
   }
 
   if (m_pendingPasswordIdentity && m_pendingPasswordReplyBlock) {
-      if (!database.isNull()) {
-          ASPasswordCredential *credential =
-              getPasswordCredentialFromIdentity(m_pendingPasswordIdentity, database);
+    if (!database.isNull()) {
+      ASPasswordCredential *credential = getPasswordCredentialFromIdentity(
+          m_pendingPasswordIdentity, database);
 
-          if (credential) {
-              m_pendingPasswordReplyBlock(credential, nil);
-          } else {
-              NSError *failErr = [NSError errorWithDomain:@"org.keepassxc.autofill" code:404 userInfo:nil];
-              m_pendingPasswordReplyBlock(nil, failErr);
-          }
+      if (credential) {
+        m_pendingPasswordReplyBlock(credential, nil);
+      } else {
+        NSError *failErr = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                               code:404
+                                           userInfo:nil];
+        m_pendingPasswordReplyBlock(nil, failErr);
       }
+    }
 
-      m_pendingPasswordIdentity = nil;
-      m_pendingPasswordReplyBlock = nil;
+    m_pendingPasswordIdentity = nil;
+    m_pendingPasswordReplyBlock = nil;
   }
 
   if (m_pendingOtpIdentity && m_pendingOtpReplyBlock) {
-      if (!database.isNull()) {
-          ASOneTimeCodeCredential *credential =
-              getOneTimeCodeCredentialFromIdentity(m_pendingOtpIdentity, database);
+    if (!database.isNull()) {
+      ASOneTimeCodeCredential *credential =
+          getOneTimeCodeCredentialFromIdentity(m_pendingOtpIdentity, database);
 
-          if (credential) {
-              m_pendingOtpReplyBlock(credential, nil);
-          } else {
-              NSError *failErr = [NSError errorWithDomain:@"org.keepassxc.autofill" code:404 userInfo:nil];
-              m_pendingOtpReplyBlock(nil, failErr);
-          }
+      if (credential) {
+        m_pendingOtpReplyBlock(credential, nil);
+      } else {
+        NSError *failErr = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                               code:404
+                                           userInfo:nil];
+        m_pendingOtpReplyBlock(nil, failErr);
       }
+    }
 
-      m_pendingOtpIdentity = nil;
-      m_pendingOtpReplyBlock = nil;
+    m_pendingOtpIdentity = nil;
+    m_pendingOtpReplyBlock = nil;
   }
 
   if (m_bringToFrontRequested) {

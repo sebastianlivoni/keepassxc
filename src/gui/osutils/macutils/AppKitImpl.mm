@@ -17,6 +17,7 @@
  */
 
 #import "AppKitImpl.h"
+#include <AppKit/AppKit.h>
 #import <QWindow>
 #import <QMenu>
 #import <QMenuBar>
@@ -339,4 +340,75 @@ void AppKit::setWindowSecurity(QWindow* window, bool state)
 void AppKit::configureWindowAndHelpMenus(QMainWindow* window, QMenu* helpMenu)
 {
     [static_cast<id>(self) configureWindowAndHelpMenus:window helpMenu:helpMenu];
+}
+
+QIcon AppKit::iconFromSfSymbol(const QString &symbolName, double pointSize = 36.0) {
+    // 1. Convert QString to NSString
+    NSString *nsSymbolName = [NSString stringWithUTF8String:symbolName.toUtf8().constData()];
+    if (!nsSymbolName) return QIcon();
+
+    // 2. Load SF Symbol
+    NSImage *symbolImage = [NSImage imageWithSystemSymbolName:nsSymbolName 
+                                    accessibilityDescription:nil];
+    if (!symbolImage) {
+        return QIcon();
+    }
+
+    // 3. Configure symbol size and weight
+    NSImageSymbolConfiguration *config = [NSImageSymbolConfiguration 
+        configurationWithPointSize:pointSize 
+                            weight:NSFontWeightBold];
+    symbolImage = [symbolImage imageWithSymbolConfiguration:config];
+
+    // 4. Extract CGImage safely without manual CGBitmapContext allocations
+    NSRect imageRect = NSMakeRect(0, 0, symbolImage.size.width, symbolImage.size.height);
+    CGImageRef cgImage = [symbolImage CGImageForProposedRect:&imageRect 
+                                                     context:nil 
+                                                    hints:nil];
+    if (!cgImage) {
+        return QIcon();
+    }
+
+    // 5. Query dimensions while respecting natural aspect ratio
+    size_t width = CGImageGetWidth(cgImage);
+    size_t height = CGImageGetHeight(cgImage);
+
+    if (width == 0 || height == 0) return QIcon();
+
+    // 6. Draw CGImage into standard QImage
+    // We render into standard ARGB32 format to eliminate segfault risks
+    QImage image(static_cast<int>(width), static_cast<int>(height), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+
+    // Render using CGContext directly inside a temporary block to avoid memory leaks
+    {
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+        CGContextRef context = CGBitmapContextCreate(
+            image.bits(),
+            width,
+            height,
+            8,
+            image.bytesPerLine(), // Use Qt's safe byte stride line alignment
+            colorSpace,
+            kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big
+        );
+
+        if (context) {
+            // Draw without stretching aspect ratio
+            CGContextDrawImage(context, CGRectMake(0, 0, width, height), cgImage);
+            CGContextRelease(context);
+        }
+        CGColorSpaceRelease(colorSpace);
+    }
+
+    // 7. Convert to HiDPI QPixmap
+    QPixmap pixmap = QPixmap::fromImage(image);
+    
+    // Calculate device pixel ratio based on point size vs actual rendered pixel height
+    double scaleFactor = static_cast<double>(height) / pointSize;
+    if (scaleFactor > 0) {
+        pixmap.setDevicePixelRatio(scaleFactor);
+    }
+
+    return QIcon(pixmap);
 }

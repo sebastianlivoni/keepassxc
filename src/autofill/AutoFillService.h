@@ -43,6 +43,7 @@ public:
   ASOneTimeCodeCredential *
   getOneTimeCodeCredentialFromIdentity(const NSString *recordIdentifier,
                                        const QSharedPointer<Database> &db);
+
   ASOneTimeCodeCredential *getOneTimeCodeCredentialFromIdentity(
       const ASOneTimeCodeCredentialIdentity *identity,
       const QSharedPointer<Database> &db);
@@ -57,11 +58,13 @@ public:
       const QSharedPointer<Database> &db);
 
   ASPasswordCredentialIdentity *
-  getPasswordCredentialIdentityFromEntry(const Entry *entry);
+  getPasswordCredentialIdentityFromEntry(const Entry *entry,
+                                         const QUuid dbUuid);
   ASOneTimeCodeCredentialIdentity *
-  getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry);
+  getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry,
+                                            const QUuid dbUuid);
   ASPasskeyCredentialIdentity *
-  getPasskeyCredentialIdentityFromEntry(const Entry *entry);
+  getPasskeyCredentialIdentityFromEntry(const Entry *entry, const QUuid dbUuid);
 
   ASPasskeyRegistrationCredential *
   createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request,
@@ -71,7 +74,11 @@ private:
   ASCredentialServiceIdentifier *
   getCredentialServiceIdentifierFromEntry(const Entry *entry);
 
-  NSString *uuidStringFromEntry(const Entry *entry);
+  Entry *findEntryByRecordIdentifier(const NSString *recordIdentifier,
+                                     const QSharedPointer<Database> &db);
+  NSString *recordIdentifierForEntry(const Entry *entry, const QUuid dbUuid);
+  bool parseRecordIdentifier(const NSString *recordIdentifier, QUuid &dbUuid,
+                             QUuid &entryUuid);
 };
 
 static inline AutoFillService *autoFillService() {

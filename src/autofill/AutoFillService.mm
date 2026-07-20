@@ -1,6 +1,7 @@
 #include "AutoFillService.h"
 
 #include <Foundation/Foundation.h>
+#include <Foundation/NSObjCRuntime.h>
 #include <QApplication>
 
 #include "browser/BrowserMessageBuilder.h"
@@ -31,9 +32,14 @@ ASPasswordCredential *AutoFillService::getPasswordCredentialFromIdentity(
 
 ASPasswordCredential *AutoFillService::getPasswordCredentialFromIdentity(
     const NSString *recordIdentifier, const QSharedPointer<Database> &db) {
-  QString uuidHex = QString::fromNSString(recordIdentifier);
+  QUuid dbUuid;
+  QUuid entryUuid;
 
-  auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
+  if (!parseRecordIdentifier(recordIdentifier, dbUuid, entryUuid)) {
+    return nullptr;
+  }
+
+  auto entry = db->rootGroup()->findEntryByUuid(entryUuid);
   if (!entry) {
     return nullptr;
   }
@@ -59,15 +65,14 @@ ASPasswordCredential *AutoFillService::getPasswordCredentialFromIdentity(
 }
 
 ASPasswordCredentialIdentity *
-AutoFillService::getPasswordCredentialIdentityFromEntry(const Entry *entry) {
+AutoFillService::getPasswordCredentialIdentityFromEntry(const Entry *entry,
+                                                        const QUuid dbUuid) {
   QString username = entry->username();
   QString password = entry->password();
 
   if (username.isEmpty() || password.isEmpty()) {
     return nullptr;
   }
-
-  NSString *uuidString = uuidStringFromEntry(entry);
 
   auto *serviceIdentifier = getCredentialServiceIdentifierFromEntry(entry);
   if (!serviceIdentifier) {
@@ -81,10 +86,12 @@ AutoFillService::getPasswordCredentialIdentityFromEntry(const Entry *entry) {
 
   NSString *userString = title.toNSString();
 
+  NSString *recordIdentifier = recordIdentifierForEntry(entry, dbUuid);
+
   ASPasswordCredentialIdentity *identity = [[ASPasswordCredentialIdentity alloc]
       initWithServiceIdentifier:serviceIdentifier
                            user:userString
-               recordIdentifier:uuidString];
+               recordIdentifier:recordIdentifier];
 
   return identity;
 }
@@ -99,9 +106,14 @@ ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
 
 ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
     const NSString *recordIdentifier, const QSharedPointer<Database> &db) {
-  QString uuidHex = QString::fromNSString(recordIdentifier);
+  QUuid dbUuid;
+  QUuid entryUuid;
 
-  auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
+  if (!parseRecordIdentifier(recordIdentifier, dbUuid, entryUuid)) {
+    return nullptr;
+  }
+
+  auto entry = db->rootGroup()->findEntryByUuid(entryUuid);
   if (!entry) {
     return nullptr;
   }
@@ -246,10 +258,14 @@ AutoFillService::getPasskeyCredentialFromPasskeyRequest(
     const QSharedPointer<Database> &db) {
   ASPasskeyCredentialIdentity *identity =
       static_cast<ASPasskeyCredentialIdentity *>(request.credentialIdentity);
-  NSString *recordIdentifier = identity.recordIdentifier;
-  QString uuidHex = QString::fromNSString(recordIdentifier);
+  QUuid dbUuid;
+  QUuid entryUuid;
 
-  auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
+  if (!parseRecordIdentifier(identity.recordIdentifier, dbUuid, entryUuid)) {
+    return nullptr;
+  }
+
+  auto entry = db->rootGroup()->findEntryByUuid(entryUuid);
   if (!entry) {
     return nullptr;
   }
@@ -283,10 +299,14 @@ ASPasswordCredential *AutoFillService::getPasswordCredentialFromPasswordRequest(
     const QSharedPointer<Database> &db) {
   ASPasswordCredentialIdentity *identity =
       static_cast<ASPasswordCredentialIdentity *>(request.credentialIdentity);
-  NSString *recordIdentifier = identity.recordIdentifier;
-  QString uuidHex = QString::fromNSString(recordIdentifier);
+  QUuid dbUuid;
+  QUuid entryUuid;
 
-  auto entry = db->rootGroup()->findEntryByUuid(Tools::hexToUuid(uuidHex));
+  if (!parseRecordIdentifier(identity.recordIdentifier, dbUuid, entryUuid)) {
+    return nullptr;
+  }
+
+  auto entry = db->rootGroup()->findEntryByUuid(entryUuid);
   if (!entry) {
     return nullptr;
   }
@@ -304,12 +324,11 @@ ASPasswordCredential *AutoFillService::getPasswordCredentialFromPasswordRequest(
 }
 
 ASOneTimeCodeCredentialIdentity *
-AutoFillService::getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry) {
+AutoFillService::getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry,
+                                                           const QUuid dbUuid) {
   if (!entry->hasTotp()) {
     return nullptr;
   }
-
-  NSString *uuidString = uuidStringFromEntry(entry);
 
   auto *serviceIdentifier = getCredentialServiceIdentifierFromEntry(entry);
   if (!serviceIdentifier) {
@@ -323,17 +342,20 @@ AutoFillService::getOneTimeCodeCredentialIdentityFromEntry(const Entry *entry) {
 
   NSString *userString = title.toNSString();
 
+  NSString *recordIdentifier = recordIdentifierForEntry(entry, dbUuid);
+
   ASOneTimeCodeCredentialIdentity *identity =
       [[ASOneTimeCodeCredentialIdentity alloc]
           initWithServiceIdentifier:serviceIdentifier
                               label:userString
-                   recordIdentifier:uuidString];
+                   recordIdentifier:recordIdentifier];
 
   return identity;
 }
 
 ASPasskeyCredentialIdentity *
-AutoFillService::getPasskeyCredentialIdentityFromEntry(const Entry *entry) {
+AutoFillService::getPasskeyCredentialIdentityFromEntry(const Entry *entry,
+                                                       const QUuid dbUuid) {
   if (!entry->hasPasskey()) {
     return nullptr;
   }
@@ -362,14 +384,14 @@ AutoFillService::getPasskeyCredentialIdentityFromEntry(const Entry *entry) {
   NSData *userHandleData =
       browserMessageBuilder()->getArrayFromBase64(userHandle).toNSData();
 
-  NSString *uuidString = uuidStringFromEntry(entry);
+  NSString *recordIdentifier = recordIdentifierForEntry(entry, dbUuid);
 
   ASPasskeyCredentialIdentity *identity = [ASPasskeyCredentialIdentity
       identityWithRelyingPartyIdentifier:relyingPartyIdentifier
                                 userName:userName
                             credentialID:credentialID
                               userHandle:userHandleData
-                        recordIdentifier:uuidString];
+                        recordIdentifier:recordIdentifier];
 
   return identity;
 }
@@ -384,16 +406,42 @@ AutoFillService::getCredentialServiceIdentifierFromEntry(const Entry *entry) {
 
   NSString *serviceIdentifierString = webUrl.toNSString();
 
-  ASCredentialServiceIdentifier *serviceIdentifier =
-      [[ASCredentialServiceIdentifier alloc]
-          initWithIdentifier:serviceIdentifierString
-                        type:ASCredentialServiceIdentifierTypeURL];
+  ASCredentialServiceIdentifier *serviceIdentifier;
+
+  if (@available(macOS 26.2, *)) {
+    serviceIdentifier = [[ASCredentialServiceIdentifier alloc]
+        initWithIdentifier:serviceIdentifierString
+                      type:ASCredentialServiceIdentifierTypeURL
+               displayName:@"KeePassXC Test"];
+  } else {
+    serviceIdentifier = [[ASCredentialServiceIdentifier alloc]
+        initWithIdentifier:serviceIdentifierString
+                      type:ASCredentialServiceIdentifierTypeURL];
+  }
 
   return serviceIdentifier;
 }
 
-NSString *AutoFillService::uuidStringFromEntry(const Entry *entry) {
-  QString uuidHex = entry->uuidToHex();
-  NSString *nsString = uuidHex.toNSString();
-  return nsString;
+NSString *AutoFillService::recordIdentifierForEntry(const Entry *entry,
+                                                    const QUuid dbUuid) {
+  QString dbUuidHex = Tools::uuidToHex(dbUuid);
+  QString entryUuid = entry->uuidToHex();
+
+  return QString("%1:%2").arg(dbUuidHex, entryUuid).toNSString();
+}
+
+bool AutoFillService::parseRecordIdentifier(const NSString *recordIdentifier,
+                                            QUuid &dbUuid, QUuid &entryUuid) {
+  if (!recordIdentifier)
+    return false;
+
+  QString composite = QString::fromNSString(recordIdentifier);
+
+  int colonIndex = composite.indexOf(':');
+  if (colonIndex == -1)
+    return false;
+
+  dbUuid = Tools::hexToUuid(composite.left(colonIndex));
+  entryUuid = Tools::hexToUuid(composite.mid(colonIndex + 1));
+  return true;
 }

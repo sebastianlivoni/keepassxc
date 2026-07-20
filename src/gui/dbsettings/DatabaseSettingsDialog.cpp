@@ -20,6 +20,7 @@
 #include "DatabaseSettingsWidgetDatabaseKey.h"
 #include "DatabaseSettingsWidgetEncryption.h"
 #include "DatabaseSettingsWidgetGeneral.h"
+#include "gui/dbsettings/DatabaseSettingsWidgetAutoFill.h"
 #ifdef KPXC_FEATURE_BROWSER
 #include "DatabaseSettingsWidgetBrowser.h"
 #endif
@@ -45,6 +46,7 @@ DatabaseSettingsDialog::DatabaseSettingsDialog(QWidget* parent)
 #ifdef KPXC_FEATURE_BROWSER
     , m_browserWidget(new DatabaseSettingsWidgetBrowser(this))
 #endif
+    , m_autoFillWidget(new DatabaseSettingsWidgetAutoFill(this))
     , m_keeShareWidget(new DatabaseSettingsWidgetKeeShare(this))
 #ifdef KPXC_FEATURE_FDOSECRETS
     , m_fdoSecretsWidget(new DatabaseSettingsWidgetFdoSecrets(this))
@@ -78,6 +80,8 @@ DatabaseSettingsDialog::DatabaseSettingsDialog(QWidget* parent)
     addPage(tr("Browser Integration"), icons()->icon("internet-web-browser"), m_browserWidget);
 #endif
 
+    addPage(tr("AutoFill Integration"), icons()->icon("internet-web-browser"), m_autoFillWidget);
+
     addPage(tr("KeeShare"), icons()->icon("preferences-system-network-sharing"), m_keeShareWidget);
 
 #ifdef KPXC_FEATURE_FDOSECRETS
@@ -104,6 +108,7 @@ void DatabaseSettingsDialog::load(const QSharedPointer<Database>& db)
 #ifdef KPXC_FEATURE_BROWSER
     m_browserWidget->loadSettings(db);
 #endif
+    m_autoFillWidget->loadSettings(db);
     m_keeShareWidget->loadSettings(db);
 #ifdef KPXC_FEATURE_FDOSECRETS
     m_fdoSecretsWidget->loadSettings(db);
@@ -170,6 +175,7 @@ void DatabaseSettingsDialog::reject()
 #ifdef KPXC_FEATURE_BROWSER
     m_browserWidget->discard();
 #endif
+    m_autoFillWidget->discard();
 
     emit editFinished(false);
 }

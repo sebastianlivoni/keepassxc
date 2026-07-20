@@ -514,3 +514,8 @@ CGEventFlags MacUtils::qtToNativeModifiers(Qt::KeyboardModifiers modifiers, bool
 
     return nativeModifiers;
 }
+
+QIcon MacUtils::getSfSymbolIcon(const QString& symbolName, double pointSize) {
+    
+    return m_appkit->iconFromSfSymbol(symbolName, pointSize);
+}

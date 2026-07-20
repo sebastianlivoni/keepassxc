@@ -31,6 +31,7 @@ class DatabaseSettingsWidgetDatabaseKey;
 #ifdef KPXC_FEATURE_BROWSER
 class DatabaseSettingsWidgetBrowser;
 #endif
+class DatabaseSettingsWidgetAutoFill;
 class DatabaseSettingsWidgetKeeShare;
 #ifdef KPXC_FEATURE_FDOSECRETS
 class DatabaseSettingsWidgetFdoSecrets;
@@ -68,6 +69,7 @@ private:
 #ifdef KPXC_FEATURE_BROWSER
     QPointer<DatabaseSettingsWidgetBrowser> m_browserWidget;
 #endif
+    QPointer<DatabaseSettingsWidgetAutoFill> m_autoFillWidget;
     QPointer<DatabaseSettingsWidgetKeeShare> m_keeShareWidget;
 #ifdef KPXC_FEATURE_FDOSECRETS
     QPointer<DatabaseSettingsWidgetFdoSecrets> m_fdoSecretsWidget;

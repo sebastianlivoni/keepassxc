@@ -48,6 +48,7 @@ public:
     void toggleForegroundApp(bool foreground);
     void setWindowSecurity(QWindow* window, bool state);
     void configureWindowAndHelpMenus(QMainWindow* mainWindow, QMenu* helpMenu);
+    QIcon iconFromSfSymbol(const QString& symbolName, double pointSize);
 
 signals:
     void userSwitched();

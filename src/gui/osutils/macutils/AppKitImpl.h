@@ -43,5 +43,6 @@
 - (void) toggleForegroundApp:(bool) foreground;
 - (void) setWindowSecurity:(NSWindow*) window state:(bool) state;
 - (void) configureWindowAndHelpMenus:(QMainWindow*) mainWindow helpMenu:(QMenu*) helpMenu;
+- (QIcon) iconFromSfSymbol:(const QString&)symbolName pointSize:(double)pointSize;
 
 @end
