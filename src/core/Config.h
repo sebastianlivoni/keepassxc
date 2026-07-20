@@ -75,6 +75,7 @@ public:
         LastKeyFiles,
         LastChallengeResponse,
         LastActiveDatabase,
+        DatabaseFilePaths,
         LastOpenedDatabases,
         LastDir,
 
@@ -236,6 +237,10 @@ public:
     static void createConfigFromFile(const QString& configFileName, const QString& localConfigFileName = {});
     static bool isPortable();
     static QString portableConfigDir();
+
+    void setDatabaseFilePath(const QString& dbUuid, const QString& filePath);
+    QString getDatabaseFilePath(const QString& dbUuid) const;
+    void removeDatabaseFilePath(const QString& dbUuid);
 
 signals:
     void changed(ConfigKey key);

@@ -1,12 +1,16 @@
 #include "ConfirmationWidget.h"
 
+#include "AutoFillService.h"
 #include "LocalAuthentication/LocalAuthentication.h"
 
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QWindow>
 #include <cstddef>
+#include <os/log.h>
 
+#include "core/Config.h"
+#include "core/Tools.h"
 #include "quickunlock/QuickUnlockInterface.h"
 
 ConfirmationWidget::ConfirmationWidget(
@@ -17,9 +21,32 @@ ConfirmationWidget::ConfirmationWidget(
       m_credentialRequest(credentialRequest), m_laView(laView),
       m_laContext(laContext) {
 
-  m_db = QSharedPointer<Database>::create("/Users/seb/Developer/Adgangskoder.kdbx"); // TODO: Make dynamic
+  NSString *recordIdentifier =
+      m_credentialRequest.credentialIdentity.recordIdentifier;
 
-  QString error;  
+  if (!recordIdentifier || recordIdentifier.length == 0) {
+    NSLog(@"[AutoFill] Record identifier is nil or empty!");
+    return;
+  }
+
+  QUuid dbUuid_;
+  QUuid entryUuid;
+  autoFillService()->parseRecordIdentifier(recordIdentifier, dbUuid_,
+                                           entryUuid);
+
+  QString dbPath = config()->getDatabaseFilePath(Tools::uuidToHex(dbUuid_));
+  os_log(OS_LOG_DEFAULT, "Path: %{public}@", dbPath.toNSString());
+
+  if (dbPath.isEmpty() || !QFile::exists(dbPath)) {
+    os_log(OS_LOG_DEFAULT,
+           "Database path is invalid or file does not exist: %{public}s",
+           [dbPath.toNSString() UTF8String]);
+    return;
+  }
+
+  m_db = QSharedPointer<Database>::create(dbPath);
+
+  QString error;
   m_db->open(nullptr, &error);
 
   // Overall layout
@@ -34,7 +61,8 @@ ConfirmationWidget::ConfirmationWidget(
 
   QByteArray keyData;
   if (!quickUnlock->hasKey(dbUuid)) {
-    QLabel *titleLabel = new QLabel(tr("Unlock KeePassXC database (only password)"), this);
+    QLabel *titleLabel =
+        new QLabel(tr("Unlock KeePassXC database (only password)"), this);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(16);
     titleFont.setBold(true);
@@ -42,7 +70,6 @@ ConfirmationWidget::ConfirmationWidget(
     titleLabel->setAlignment(Qt::AlignCenter);
 
     mainLayout->addWidget(titleLabel);
-
   } else {
     QLabel *titleLabel = new QLabel(tr("Unlock KeePassXC database"), this);
     QFont titleFont = titleLabel->font();

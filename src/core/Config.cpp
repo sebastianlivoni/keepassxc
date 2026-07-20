@@ -27,6 +27,7 @@
 #include <QSize>
 #include <QStandardPaths>
 #include <QTemporaryFile>
+#include "../gui/osutils/macutils/MacCoreUtils.h"
 
 #include <algorithm>
 
@@ -573,8 +574,49 @@ QPair<QString, QString> Config::defaultConfigFiles()
     configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     localConfigPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
 #elif defined(Q_OS_MACOS)
-    configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    localConfigPath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+QString groupContainer = MacCoreUtils::getAppGroupContainerPath(APP_GROUP_IDENTIFIER);
+
+    if (!groupContainer.isEmpty()) {
+        configPath = groupContainer + "/Library/Application Support/KeePassXC";
+        localConfigPath = groupContainer + "/Library/Caches/KeePassXC";
+
+        // Old standard sandbox paths
+        QString oldConfigPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QString oldLocalConfigPath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+
+        QString suffix;
+#ifdef QT_DEBUG
+        suffix = "_debug";
+#endif
+        QString mainFileName = QString("/keepassxc%1.ini").arg(suffix);
+
+        QString oldMainConfigFile = oldConfigPath + mainFileName;
+        QString newMainConfigFile = configPath + mainFileName;
+
+        // --- MIGRATE MAIN CONFIG IF NEEDED ---
+        // If the new config does NOT exist yet, but the old config DOES exist:
+        if (!QFile::exists(newMainConfigFile) && QFile::exists(oldMainConfigFile)) {
+            // Ensure target directory exists
+            QDir().mkpath(configPath);
+            // Copy the existing config over so user settings are preserved
+            QFile::copy(oldMainConfigFile, newMainConfigFile);
+            // Optional: You can keep or remove the old file as a backup
+        }
+
+        // --- MIGRATE LOCAL CONFIG IF NEEDED ---
+        QString oldLocalConfigFile = oldLocalConfigPath + mainFileName;
+        QString newLocalConfigFile = localConfigPath + mainFileName;
+
+        if (!QFile::exists(newLocalConfigFile) && QFile::exists(oldLocalConfigFile)) {
+            QDir().mkpath(localConfigPath);
+            QFile::copy(oldLocalConfigFile, newLocalConfigFile);
+        }
+
+    } else {
+        // Fallback to default Qt paths if App Group container isn't available
+        configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        localConfigPath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    }
 #else
     // On case-sensitive Operating Systems, force use of lowercase app directories
     configPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/keepassxc";
@@ -673,3 +715,45 @@ void Config::setShortcuts(const QList<ShortcutEntry>& shortcuts)
 }
 
 #undef QS
+
+void Config::setDatabaseFilePath(const QString& dbUuid, const QString& filePath)
+{
+    if (dbUuid.isEmpty() || filePath.isEmpty()) {
+        return;
+    }
+
+    // Using m_localSettings since file paths are machine-specific
+    QSettings* settings = m_localSettings ? m_localSettings.data() : m_settings.data();
+    
+    settings->beginGroup("DatabasePaths");
+    settings->setValue(dbUuid, filePath);
+    settings->endGroup();
+    
+    sync();
+}
+
+QString Config::getDatabaseFilePath(const QString& dbUuid) const
+{
+    if (dbUuid.isEmpty()) {
+        return QString();
+    }
+
+    const QSettings* settings = m_localSettings ? m_localSettings.data() : m_settings.data();
+
+    return settings->value(QString("DatabasePaths/%1").arg(dbUuid)).toString();
+}
+
+void Config::removeDatabaseFilePath(const QString& dbUuid)
+{
+    if (dbUuid.isEmpty()) {
+        return;
+    }
+
+    QSettings* settings = m_localSettings ? m_localSettings.data() : m_settings.data();
+
+    settings->beginGroup("DatabasePaths");
+    settings->remove(dbUuid);
+    settings->endGroup();
+
+    sync();
+}

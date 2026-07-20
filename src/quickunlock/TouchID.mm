@@ -1,5 +1,6 @@
 #include "quickunlock/TouchID.h"
 
+#include "core/Tools.h"
 #include "crypto/Random.h"
 #include "crypto/SymmetricCipher.h"
 #include "crypto/CryptoHash.h"
@@ -75,8 +76,7 @@ void TouchID::deleteKeyEntry(const QString& accountName)
 
 QString TouchID::databaseKeyName(const QUuid& dbUuid)
 {
-   static const QString keyPrefix = "KeepassXC_TouchID_Keys_" + dbUuid.toString();
-   return keyPrefix + dbUuid.toString();
+   return QString("KeepassXC_TouchID_Keys_%1").arg(Tools::uuidToHex(dbUuid));
 }
 
 QString TouchID::errorString() const

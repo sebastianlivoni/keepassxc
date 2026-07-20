@@ -69,6 +69,8 @@ public:
   ASPasskeyRegistrationCredential *
   createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request,
                                       const QSharedPointer<Database> &db);
+                                      bool parseRecordIdentifier(const NSString *recordIdentifier, QUuid &dbUuid,
+                                                                 QUuid &entryUuid);
 
 private:
   ASCredentialServiceIdentifier *
@@ -77,8 +79,6 @@ private:
   Entry *findEntryByRecordIdentifier(const NSString *recordIdentifier,
                                      const QSharedPointer<Database> &db);
   NSString *recordIdentifierForEntry(const Entry *entry, const QUuid dbUuid);
-  bool parseRecordIdentifier(const NSString *recordIdentifier, QUuid &dbUuid,
-                             QUuid &entryUuid);
 };
 
 static inline AutoFillService *autoFillService() {

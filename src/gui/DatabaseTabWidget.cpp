@@ -871,6 +871,8 @@ void DatabaseTabWidget::updateLastDatabases(const QSharedPointer<Database>& data
         lastDatabases.prepend(QDir::toNativeSeparators(filename));
         lastDatabases.removeDuplicates();
 
+        config()->setDatabaseFilePath(Tools::uuidToHex(database->publicUuid()), filename);
+
         while (lastDatabases.count() > config()->get(Config::NumberOfRememberedLastDatabases).toInt()) {
             lastDatabases.removeLast();
         }

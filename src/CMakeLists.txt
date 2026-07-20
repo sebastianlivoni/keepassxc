@@ -95,7 +95,8 @@ set(core_SOURCES
         streams/LayeredStream.cpp
         streams/qtiocompressor.cpp
         streams/StoreDataStream.cpp
-        streams/SymmetricCipherStream.cpp)
+        streams/SymmetricCipherStream.cpp
+        gui/osutils/macutils/MacCoreUtils.mm)
 
 set(gui_SOURCES
         gui/styles/styles.qrc
