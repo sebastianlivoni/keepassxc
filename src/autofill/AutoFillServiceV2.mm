@@ -48,13 +48,6 @@ AutoFillServiceV2::~AutoFillServiceV2() {
   m_pendingOtpReplyBlock = nil;
 }
 
-// Identities for the same entry share one recordIdentifier across
-// password/OTP/passkey, so the class is part of the key to tell them apart.
-static NSString *identityDiffKey(id<ASCredentialIdentity> identity) {
-  return [NSString stringWithFormat:@"%@|%@", NSStringFromClass([identity class]),
-                                     identity.recordIdentifier];
-}
-
 void AutoFillServiceV2::fetchPasswordCredentialFromIdentity(
     ASPasswordCredentialIdentity *identity,
     void (^reply)(ASPasswordCredential *__strong credential,
@@ -509,31 +502,28 @@ void AutoFillServiceV2::replaceCredentialStore() {
                 }
 
                 if (state.supportsIncrementalUpdates) {
+                  // A rename (entry title, database display name, username,
+                  // URL...) never changes an identity's recordIdentifier
+                  // (it's derived only from the entry/database UUIDs), so a
+                  // key-based diff would treat the renamed identity as
+                  // "unchanged" and skip removing it — but saving a new
+                  // identity object under the same recordIdentifier isn't
+                  // reliably picked up as an in-place update by the system.
+                  // So for every database being refreshed, unconditionally
+                  // drop whatever it currently has in the store and save
+                  // the fresh set — guaranteeing stale/renamed entries are
+                  // actually gone, not just shadowed by a newer one.
                   [freshIdentitiesByDb
                       enumerateKeysAndObjectsUsingBlock:^(
                           NSString *dbKey, NSArray *freshIdentities, BOOL *) {
                         NSArray *existingForDb = existingByDb[dbKey];
                         if (existingForDb.count > 0) {
-                          NSMutableSet<NSString *> *freshKeys = [NSMutableSet set];
-                          for (id<ASCredentialIdentity> identity in freshIdentities) {
-                            [freshKeys addObject:identityDiffKey(identity)];
-                          }
-
-                          NSMutableArray *staleIdentities = [NSMutableArray array];
-                          for (id<ASCredentialIdentity> identity in existingForDb) {
-                            if (![freshKeys containsObject:identityDiffKey(identity)]) {
-                              [staleIdentities addObject:identity];
-                            }
-                          }
-
-                          if (staleIdentities.count > 0) {
-                            [ASCredentialIdentityStore.sharedStore
-                                removeCredentialIdentityEntries:staleIdentities
-                                                      completion:^(BOOL success, NSError *error) {
-                                                        logIfFailed(success, error,
-                                                                    @"remove stale credential identities");
-                                                      }];
-                          }
+                          [ASCredentialIdentityStore.sharedStore
+                              removeCredentialIdentityEntries:existingForDb
+                                                    completion:^(BOOL success, NSError *error) {
+                                                      logIfFailed(success, error,
+                                                                  @"remove stale credential identities");
+                                                    }];
                         }
 
                         [ASCredentialIdentityStore.sharedStore
