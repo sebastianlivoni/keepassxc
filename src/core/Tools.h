@@ -40,7 +40,9 @@ namespace Tools
     bool isHex(const QByteArray& ba);
     bool isBase64(const QByteArray& ba);
     bool isAsciiString(const QString& str);
-    void sleep(int ms);
+    // Exported (default visibility) so the macOS keepassxc-autotype-cocoa
+    // plugin can call it via -bundle_loader - see gui/osutils/macutils/MacUtils.h.
+    KEEPASSXC_EXPORT void sleep(int ms);
     void wait(int ms);
     QString uuidToHex(const QUuid& uuid);
     QUuid hexToUuid(const QString& uuid);

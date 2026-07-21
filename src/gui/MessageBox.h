@@ -19,6 +19,8 @@
 #ifndef KEEPASSX_MESSAGEBOX_H
 #define KEEPASSX_MESSAGEBOX_H
 
+#include "core/Global.h"
+
 #include <QMap>
 #include <QMessageBox>
 
@@ -73,7 +75,9 @@ public:
 
     typedef uint64_t Buttons;
 
-    static void initializeButtonDefs();
+    // Exported (default visibility) so the macOS keepassxc-autotype-cocoa
+    // plugin can call it via -bundle_loader - see MacUtils.h for why.
+    static KEEPASSXC_EXPORT void initializeButtonDefs();
     static void setNextAnswer(Button button);
 
     static Button critical(QWidget* parent,

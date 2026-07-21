@@ -20,6 +20,7 @@
 #define KEEPASSXC_MACUTILS_H
 
 #include "AppKit.h"
+#include "core/Global.h"
 #include "gui/osutils/OSUtilsBase.h"
 #include <Carbon/Carbon.h>
 
@@ -28,7 +29,13 @@
 #include <QScopedPointer>
 #include <qwindowdefs.h>
 
-class MacUtils : public OSUtilsBase
+// Exported (default visibility, overriding the project-wide -fvisibility=hidden)
+// so the keepassxc-autotype-cocoa plugin - loaded via QPluginLoader into this
+// same process, see AutoType::loadPlugin() - can call into the already-running
+// app's instance via -bundle_loader instead of statically re-linking
+// keepassxc_gui (and everything it pulls in) into the plugin image, which
+// would duplicate Objective-C classes across both and confuse the objc runtime.
+class KEEPASSXC_EXPORT MacUtils : public OSUtilsBase
 {
     Q_OBJECT
 
