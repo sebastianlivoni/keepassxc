@@ -430,10 +430,14 @@ static void logIfFailed(BOOL success, NSError *error, NSString *what) {
   }
 }
 
-// One-time full publish for a database that was just unlocked (or whose
-// underlying Database object was just replaced). Ongoing correctness after
-// this point is maintained entirely by the granular entryAdded/Removed/
-// DataChanged handlers below - this never runs again on its own.
+// Full publish for a database that was just unlocked (or whose underlying
+// Database object was just replaced) - which, via watchDatabase's
+// databaseReplaced connection, can run again for the same database on a
+// later lock/unlock cycle or an auto-save-triggered reload, not just once.
+// Delegates to publishEntryIdentities per entry so a repeat run safely
+// replaces what it previously published instead of accumulating duplicate
+// entries in the OS-level store (see publishEntryIdentities for why that
+// matters).
 void AutoFillServiceV2::saveCredentialStore(DatabaseWidget *widget) {
   if (!widget) {
     return;
@@ -443,65 +447,26 @@ void AutoFillServiceV2::saveCredentialStore(DatabaseWidget *widget) {
     return;
   }
 
-  if (!m_publishedIdentitiesByEntry) {
-    m_publishedIdentitiesByEntry = [NSMutableDictionary dictionary];
-  }
-
   QUuid publicUuid = db->publicUuid();
-  NSMutableArray *allIdentities = [NSMutableArray array];
 
   for (Entry *entry : db->rootGroup()->entriesRecursive()) {
     if (entry->isRecycled()) {
       continue;
     }
-
-    NSMutableArray *entryIdentities = [NSMutableArray array];
-
-    auto *passwordCredentialIdentity =
-        getPasswordCredentialIdentityFromEntry(entry, publicUuid, widget->displayName());
-    if (passwordCredentialIdentity) {
-      [entryIdentities addObject:passwordCredentialIdentity];
-    }
-
-    auto *oneTimeCodeCredentialIdentity =
-        getOneTimeCodeCredentialIdentityFromEntry(entry, publicUuid);
-    if (oneTimeCodeCredentialIdentity) {
-      [entryIdentities addObject:oneTimeCodeCredentialIdentity];
-    }
-
-    auto *passkeyCredentialIdentity =
-        getPasskeyCredentialIdentityFromEntry(entry, publicUuid);
-    if (passkeyCredentialIdentity) {
-      [entryIdentities addObject:passkeyCredentialIdentity];
-    }
-
-    if (entryIdentities.count == 0) {
-      continue;
-    }
-
-    NSString *entryKey = recordIdentifierForEntry(entry, publicUuid);
-    m_publishedIdentitiesByEntry[entryKey] = entryIdentities;
-    [allIdentities addObjectsFromArray:entryIdentities];
+    publishEntryIdentities(entry, publicUuid);
   }
-
-  if (allIdentities.count == 0) {
-    return;
-  }
-
-  [ASCredentialIdentityStore.sharedStore
-      saveCredentialIdentityEntries:allIdentities
-                          completion:^(BOOL success, NSError *error) {
-                            logIfFailed(success, error, @"save credential identities");
-                          }];
 }
 
 // Recomputes and (re)publishes just this one entry's identities - used for
-// both a brand new entry and an existing entry's data changing. Saving with
-// a recordIdentifier that already exists in the store replaces it in place
-// (per ASCredentialIdentityStore's documented behavior), so a rename/update
-// is just a save; only a kind that disappeared (e.g. password cleared)
-// needs an explicit remove, using the identity object cached from the last
-// time this entry was published.
+// a brand new entry, an existing entry's data changing, and (via
+// saveCredentialStore) every entry in a database that was just unlocked or
+// replaced. Always removes whatever this entry last published (tracked in
+// m_publishedIdentitiesByEntry) before saving the fresh set: whether
+// ASCredentialIdentityStore replaces an existing recordIdentifier in place
+// on save is only guaranteed when the store "supports incremental updates"
+// (see ASCredentialIdentityStoreState), so relying on that silently left
+// stale identities behind and showed up as duplicate suggestions in Safari
+// after editing an entry.
 void AutoFillServiceV2::publishEntryIdentities(Entry *entry, const QUuid &dbUuid) {
   if (!entry) {
     return;
@@ -538,28 +503,12 @@ void AutoFillServiceV2::publishEntryIdentities(Entry *entry, const QUuid &dbUuid
   }
 
   if (previousIdentities.count > 0) {
-    NSMutableArray *staleIdentities = [NSMutableArray array];
-    for (id<ASCredentialIdentity> previous in previousIdentities) {
-      BOOL stillPresent = NO;
-      for (id<ASCredentialIdentity> fresh in freshIdentities) {
-        if ([fresh class] == [previous class]) {
-          stillPresent = YES;
-          break;
-        }
-      }
-      if (!stillPresent) {
-        [staleIdentities addObject:previous];
-      }
-    }
-
-    if (staleIdentities.count > 0) {
-      [ASCredentialIdentityStore.sharedStore
-          removeCredentialIdentityEntries:staleIdentities
-                                completion:^(BOOL success, NSError *error) {
-                                  logIfFailed(success, error,
-                                              @"remove outdated credential identities");
-                                }];
-    }
+    [ASCredentialIdentityStore.sharedStore
+        removeCredentialIdentityEntries:previousIdentities
+                              completion:^(BOOL success, NSError *error) {
+                                logIfFailed(success, error,
+                                            @"remove outdated credential identities");
+                              }];
   }
 
   if (freshIdentities.count > 0) {
