@@ -53,25 +53,37 @@ void AutoFillServiceV2::fetchPasswordCredentialFromIdentity(
     void (^reply)(ASPasswordCredential *__strong credential,
                   NSError *__strong error)) {
   dispatch_async(dispatch_get_main_queue(), ^{
-    if (!m_currentDatabaseWidget) {
+    QUuid dbUuid;
+    QUuid entryUuid;
+    if (!parseRecordIdentifier(identity.recordIdentifier, dbUuid, entryUuid)) {
+      NSError *badIdError = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                                 code:400
+                                             userInfo:nil];
+      reply(nil, badIdError);
+      return;
+    }
+
+    DatabaseWidget *targetWidget = findDatabaseWidgetByUuid(dbUuid);
+    if (!targetWidget) {
       NSError *noDbError = [NSError errorWithDomain:@"org.keepassxc.autofill"
                                                code:404
                                            userInfo:nil];
       reply(nil, noDbError);
       return;
-    };
+    }
 
-    if (m_currentDatabaseWidget->isLocked()) {
+    if (targetWidget->isLocked()) {
       m_pendingPasswordIdentity = identity;
       m_pendingPasswordReplyBlock = reply;
+      m_pendingPasswordTargetWidget = targetWidget;
 
       bool triggerUnlock = true;
-      openDatabase(triggerUnlock);
+      openDatabase(triggerUnlock, targetWidget);
 
       return;
     }
 
-    auto database = m_currentDatabaseWidget->database();
+    auto database = targetWidget->database();
     if (database.isNull()) {
       NSError *noDbError = [NSError errorWithDomain:@"org.keepassxc.autofill"
                                                code:404
@@ -82,6 +94,13 @@ void AutoFillServiceV2::fetchPasswordCredentialFromIdentity(
 
     ASPasswordCredential *passwordCredential =
         getPasswordCredentialFromIdentity(identity, database);
+    if (!passwordCredential) {
+      NSError *notFoundError = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                                     code:404
+                                                 userInfo:nil];
+      reply(nil, notFoundError);
+      return;
+    }
 
     reply(passwordCredential, nil);
   });
@@ -92,25 +111,37 @@ void AutoFillServiceV2::fetchOneTimeCodeForIdentity(
     void (^reply)(ASOneTimeCodeCredential *__strong credential,
                   NSError *__strong error)) {
   dispatch_async(dispatch_get_main_queue(), ^{
-    if (!m_currentDatabaseWidget) {
+    QUuid dbUuid;
+    QUuid entryUuid;
+    if (!parseRecordIdentifier(identity.recordIdentifier, dbUuid, entryUuid)) {
+      NSError *badIdError = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                                 code:400
+                                             userInfo:nil];
+      reply(nil, badIdError);
+      return;
+    }
+
+    DatabaseWidget *targetWidget = findDatabaseWidgetByUuid(dbUuid);
+    if (!targetWidget) {
       NSError *noDbError = [NSError errorWithDomain:@"org.keepassxc.autofill"
                                                code:404
                                            userInfo:nil];
       reply(nil, noDbError);
       return;
-    };
+    }
 
-    if (m_currentDatabaseWidget->isLocked()) {
+    if (targetWidget->isLocked()) {
       m_pendingOtpIdentity = identity;
       m_pendingOtpReplyBlock = reply;
+      m_pendingOtpTargetWidget = targetWidget;
 
       bool triggerUnlock = true;
-      openDatabase(triggerUnlock);
+      openDatabase(triggerUnlock, targetWidget);
 
       return;
     }
 
-    auto database = m_currentDatabaseWidget->database();
+    auto database = targetWidget->database();
     if (database.isNull()) {
       NSError *noDbError = [NSError errorWithDomain:@"org.keepassxc.autofill"
                                                code:404
@@ -121,6 +152,13 @@ void AutoFillServiceV2::fetchOneTimeCodeForIdentity(
 
     ASOneTimeCodeCredential *oneTimeCredential =
         getOneTimeCodeCredentialFromIdentity(identity, database);
+    if (!oneTimeCredential) {
+      NSError *notFoundError = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                                     code:404
+                                                 userInfo:nil];
+      reply(nil, notFoundError);
+      return;
+    }
 
     reply(oneTimeCredential, nil);
   });
@@ -150,12 +188,15 @@ void AutoFillServiceV2::createPasskeyRegistrationCredentialRequest(
   }
 }
 
-bool AutoFillServiceV2::openDatabase(bool triggerUnlock) {
+bool AutoFillServiceV2::openDatabase(bool triggerUnlock,
+                                     DatabaseWidget *targetWidget) {
   auto *window = getMainWindow();
   if (!window)
     return false;
 
-  DatabaseWidget *targetWidget = m_currentDatabaseWidget;
+  if (!targetWidget) {
+    targetWidget = m_currentDatabaseWidget;
+  }
   if (!targetWidget) {
     auto openDbs = window->getOpenDatabases();
     if (!openDbs.isEmpty()) {
@@ -170,7 +211,7 @@ bool AutoFillServiceV2::openDatabase(bool triggerUnlock) {
   if (triggerUnlock && !m_bringToFrontRequested) {
     m_bringToFrontRequested = true;
     updateWindowState();
-    emit requestUnlock();
+    emit requestUnlock(targetWidget);
   }
 
   return false;
@@ -221,25 +262,40 @@ void AutoFillServiceV2::fetchPasskeyCredentialFromPasskeyRequest(
     void (^reply)(ASPasskeyAssertionCredential *__strong credential,
                   NSError *__strong error)) {
   dispatch_async(dispatch_get_main_queue(), ^{
-    if (!m_currentDatabaseWidget) {
+    ASPasskeyCredentialIdentity *identity =
+        static_cast<ASPasskeyCredentialIdentity *>(request.credentialIdentity);
+
+    QUuid dbUuid;
+    QUuid entryUuid;
+    if (!parseRecordIdentifier(identity.recordIdentifier, dbUuid, entryUuid)) {
+      NSError *badIdError = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                                 code:400
+                                             userInfo:nil];
+      reply(nil, badIdError);
+      return;
+    }
+
+    DatabaseWidget *targetWidget = findDatabaseWidgetByUuid(dbUuid);
+    if (!targetWidget) {
       NSError *noDbError = [NSError errorWithDomain:@"org.keepassxc.autofill"
                                                code:404
                                            userInfo:nil];
       reply(nil, noDbError);
       return;
-    };
+    }
 
-    if (m_currentDatabaseWidget->isLocked()) {
+    if (targetWidget->isLocked()) {
       m_pendingRequest = request;
       m_pendingReplyBlock = reply;
+      m_pendingPasskeyTargetWidget = targetWidget;
 
       bool triggerUnlock = true;
-      openDatabase(triggerUnlock);
+      openDatabase(triggerUnlock, targetWidget);
 
       return;
     }
 
-    auto database = m_currentDatabaseWidget->database();
+    auto database = targetWidget->database();
     if (database.isNull()) {
       NSError *noDbError = [NSError errorWithDomain:@"org.keepassxc.autofill"
                                                code:404
@@ -250,6 +306,13 @@ void AutoFillServiceV2::fetchPasskeyCredentialFromPasskeyRequest(
 
     ASPasskeyAssertionCredential *credential =
         getPasskeyCredentialFromPasskeyRequest(request, database);
+    if (!credential) {
+      NSError *notFoundError = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                                     code:404
+                                                 userInfo:nil];
+      reply(nil, notFoundError);
+      return;
+    }
 
     reply(credential, nil);
   });
@@ -279,8 +342,26 @@ void AutoFillServiceV2::connectSignals() {
           &AutoFillServiceV2::activeDatabaseChanged);
   connect(getMainWindow(), &MainWindow::databaseUnlocked, this,
           &AutoFillServiceV2::databaseUnlocked);
+  connect(getMainWindow(), &MainWindow::databaseUnlockDialogFinished, this,
+          &AutoFillServiceV2::databaseUnlockDialogFinished);
 
   m_signalsConnected = true;
+}
+
+DatabaseWidget *
+AutoFillServiceV2::findDatabaseWidgetByUuid(const QUuid &dbUuid) const {
+  if (auto *window = getMainWindow()) {
+    for (auto *widget : window->getOpenDatabases()) {
+      if (!widget) {
+        continue;
+      }
+      auto database = widget->database();
+      if (!database.isNull() && database->publicUuid() == dbUuid) {
+        return widget;
+      }
+    }
+  }
+  return nullptr;
 }
 
 void AutoFillServiceV2::watchDatabase(DatabaseWidget *widget) {
@@ -392,9 +473,11 @@ void AutoFillServiceV2::databaseUnlocked(DatabaseWidget *dbWidget) {
   if (!dbWidget)
     return;
 
+  bool resolvedPendingRequest = false;
   auto database = dbWidget->database();
 
-  if (m_pendingRequest && m_pendingReplyBlock) {
+  if (m_pendingRequest && m_pendingReplyBlock &&
+      dbWidget == m_pendingPasskeyTargetWidget) {
     if (!database.isNull()) {
       ASPasskeyAssertionCredential *credential =
           getPasskeyCredentialFromPasskeyRequest(m_pendingRequest, database);
@@ -411,9 +494,12 @@ void AutoFillServiceV2::databaseUnlocked(DatabaseWidget *dbWidget) {
 
     m_pendingRequest = nil;
     m_pendingReplyBlock = nil;
+    m_pendingPasskeyTargetWidget = nullptr;
+    resolvedPendingRequest = true;
   }
 
-  if (m_pendingPasswordIdentity && m_pendingPasswordReplyBlock) {
+  if (m_pendingPasswordIdentity && m_pendingPasswordReplyBlock &&
+      dbWidget == m_pendingPasswordTargetWidget) {
     if (!database.isNull()) {
       ASPasswordCredential *credential = getPasswordCredentialFromIdentity(
           m_pendingPasswordIdentity, database);
@@ -430,9 +516,12 @@ void AutoFillServiceV2::databaseUnlocked(DatabaseWidget *dbWidget) {
 
     m_pendingPasswordIdentity = nil;
     m_pendingPasswordReplyBlock = nil;
+    m_pendingPasswordTargetWidget = nullptr;
+    resolvedPendingRequest = true;
   }
 
-  if (m_pendingOtpIdentity && m_pendingOtpReplyBlock) {
+  if (m_pendingOtpIdentity && m_pendingOtpReplyBlock &&
+      dbWidget == m_pendingOtpTargetWidget) {
     if (!database.isNull()) {
       ASOneTimeCodeCredential *credential =
           getOneTimeCodeCredentialFromIdentity(m_pendingOtpIdentity, database);
@@ -449,9 +538,60 @@ void AutoFillServiceV2::databaseUnlocked(DatabaseWidget *dbWidget) {
 
     m_pendingOtpIdentity = nil;
     m_pendingOtpReplyBlock = nil;
+    m_pendingOtpTargetWidget = nullptr;
+    resolvedPendingRequest = true;
   }
 
-  if (m_bringToFrontRequested) {
+  // A different database than the one we're waiting on may have unlocked
+  // (e.g. the user opened another tab); keep waiting and keep the app in
+  // front until the actual target database unlocks.
+  if (resolvedPendingRequest && m_bringToFrontRequested) {
+    m_bringToFrontRequested = false;
+    hideWindow();
+  }
+}
+
+void AutoFillServiceV2::databaseUnlockDialogFinished(bool accepted,
+                                                     DatabaseWidget *dbWidget) {
+  if (accepted) {
+    // The corresponding databaseUnlocked() signal resolves the pending
+    // request once the widget actually finishes unlocking.
+    return;
+  }
+
+  bool cancelledPendingRequest = false;
+  NSError *cancelledError = [NSError errorWithDomain:@"org.keepassxc.autofill"
+                                                 code:1
+                                             userInfo:nil];
+
+  if (m_pendingRequest && m_pendingReplyBlock &&
+      dbWidget == m_pendingPasskeyTargetWidget) {
+    m_pendingReplyBlock(nil, cancelledError);
+    m_pendingRequest = nil;
+    m_pendingReplyBlock = nil;
+    m_pendingPasskeyTargetWidget = nullptr;
+    cancelledPendingRequest = true;
+  }
+
+  if (m_pendingPasswordIdentity && m_pendingPasswordReplyBlock &&
+      dbWidget == m_pendingPasswordTargetWidget) {
+    m_pendingPasswordReplyBlock(nil, cancelledError);
+    m_pendingPasswordIdentity = nil;
+    m_pendingPasswordReplyBlock = nil;
+    m_pendingPasswordTargetWidget = nullptr;
+    cancelledPendingRequest = true;
+  }
+
+  if (m_pendingOtpIdentity && m_pendingOtpReplyBlock &&
+      dbWidget == m_pendingOtpTargetWidget) {
+    m_pendingOtpReplyBlock(nil, cancelledError);
+    m_pendingOtpIdentity = nil;
+    m_pendingOtpReplyBlock = nil;
+    m_pendingOtpTargetWidget = nullptr;
+    cancelledPendingRequest = true;
+  }
+
+  if (cancelledPendingRequest && m_bringToFrontRequested) {
     m_bringToFrontRequested = false;
     hideWindow();
   }

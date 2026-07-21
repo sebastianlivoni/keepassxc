@@ -30,14 +30,15 @@ public:
       void (^reply)(ASPasskeyRegistrationCredential *__strong credential,
                     NSError *__strong error));
 
-  bool openDatabase(bool triggerUnlock);
+  bool openDatabase(bool triggerUnlock, DatabaseWidget *targetWidget);
 
 signals:
-  void requestUnlock();
+  void requestUnlock(DatabaseWidget *targetWidget);
 
 public slots:
   void databaseUnlocked(DatabaseWidget *dbWidget);
   void activeDatabaseChanged(DatabaseWidget *dbWidget);
+  void databaseUnlockDialogFinished(bool accepted, DatabaseWidget *dbWidget);
 
 private:
   enum WindowState { Normal, Minimized, Hidden };
@@ -57,6 +58,10 @@ private:
                                  NSError *__strong) = nil;
 #endif
 
+  QPointer<DatabaseWidget> m_pendingPasskeyTargetWidget;
+  QPointer<DatabaseWidget> m_pendingPasswordTargetWidget;
+  QPointer<DatabaseWidget> m_pendingOtpTargetWidget;
+
   bool m_bringToFrontRequested;
   WindowState m_prevWindowState;
 
@@ -73,6 +78,7 @@ private:
   void connectSignals();
   void watchDatabase(DatabaseWidget *widget);
   void refreshIdentityStore();
+  DatabaseWidget *findDatabaseWidgetByUuid(const QUuid &dbUuid) const;
 
   bool m_available{false};
   bool m_running{false};

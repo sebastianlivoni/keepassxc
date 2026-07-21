@@ -94,7 +94,7 @@ public slots:
 #endif
     void performGlobalAutoType(const QString& search);
     void performBrowserUnlock();
-    void performAutofillUnlock();
+    void performAutofillUnlock(DatabaseWidget* targetWidget);
 
 signals:
     void databaseOpened(DatabaseWidget* dbWidget);

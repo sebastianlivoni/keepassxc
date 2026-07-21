@@ -950,12 +950,18 @@ void DatabaseTabWidget::performBrowserUnlock()
     }
 }
 
-void DatabaseTabWidget::performAutofillUnlock()
+void DatabaseTabWidget::performAutofillUnlock(DatabaseWidget* targetWidget)
 {
-    auto dbWidget = currentDatabaseWidget();
-    if (dbWidget->m_databaseOpenWidget->canPerformQuickUnlock()) {
-        dbWidget->m_databaseOpenWidget->triggerQuickUnlock();
+    if (!targetWidget) {
+        targetWidget = currentDatabaseWidget();
+    }
+    if (!targetWidget || !targetWidget->isLocked()) {
+        return;
+    }
+
+    if (targetWidget->m_databaseOpenWidget->canPerformQuickUnlock()) {
+        targetWidget->m_databaseOpenWidget->triggerQuickUnlock();
     } else {
-        
+        unlockDatabaseInDialog(targetWidget, DatabaseOpenDialog::Intent::Browser);
     }
 }
