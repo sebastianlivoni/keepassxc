@@ -46,6 +46,7 @@ AutoFillServiceV2::~AutoFillServiceV2() {
   m_pendingPasswordReplyBlock = nil;
   m_pendingOtpIdentity = nil;
   m_pendingOtpReplyBlock = nil;
+  m_publishedIdentitiesByEntry = nil;
 }
 
 void AutoFillServiceV2::fetchPasswordCredentialFromIdentity(
@@ -325,17 +326,11 @@ void AutoFillServiceV2::connectSignals() {
 
   if (auto *window = getMainWindow()) {
     connect(window, &MainWindow::databaseUnlocked, this,
-            [this](DatabaseWidget *widget) {
-              watchDatabase(widget);
-              refreshIdentityStore();
-            });
+            [this](DatabaseWidget *widget) { watchDatabase(widget); });
     connect(window, &MainWindow::databaseLocked, this,
             [this](DatabaseWidget *widget) {
               m_watchedDatabases.remove(widget);
-              refreshIdentityStore();
             });
-    connect(window, &MainWindow::activeDatabaseChanged, this,
-            [this](DatabaseWidget *) { refreshIdentityStore(); });
   }
 
   connect(getMainWindow(), &MainWindow::activeDatabaseChanged, this,
@@ -371,27 +366,63 @@ void AutoFillServiceV2::watchDatabase(DatabaseWidget *widget) {
 
   m_watchedDatabases.insert(widget);
 
-  connect(widget, &DatabaseWidget::databaseModified, this,
-          [this]() { refreshIdentityStore(); });
-  connect(widget, &DatabaseWidget::databaseSaved, this,
-          [this]() { refreshIdentityStore(); });
+  // The database object itself gets swapped (e.g. on unlock, or Save As) -
+  // treat that exactly like a fresh unlock: publish everything once and
+  // re-hook the new tree's groups. The old tree's connections auto-
+  // disconnect when its Group/Entry objects are destroyed.
   connect(widget, &DatabaseWidget::databaseReplaced, this,
-          [this](const QSharedPointer<Database> &,
-                 const QSharedPointer<Database> &) { refreshIdentityStore(); });
+          [this, widget](const QSharedPointer<Database> &,
+                         const QSharedPointer<Database> &) {
+            saveCredentialStore(widget);
+            hookDatabaseGroups(widget);
+          });
   connect(widget, &DatabaseWidget::databaseLocked, this, [this, widget]() {
     m_watchedDatabases.remove(widget);
-    refreshIdentityStore();
   });
-  /*connect(widget, &QObject::destroyed, this, [this, widget]() {
-    m_watchedDatabases.remove(widget);
-    refreshIdentityStore();
-    });*/
+
+  saveCredentialStore(widget);
+  hookDatabaseGroups(widget);
 }
 
-void AutoFillServiceV2::refreshIdentityStore() { replaceCredentialStore(); }
+void AutoFillServiceV2::hookDatabaseGroups(DatabaseWidget *widget) {
+  if (!widget) {
+    return;
+  }
+  auto db = widget->database();
+  if (db.isNull()) {
+    return;
+  }
 
-void AutoFillServiceV2::saveCredentialStore(
-    const QSharedPointer<Database> &db) {}
+  QUuid publicUuid = db->publicUuid();
+
+  for (Group *group : db->rootGroup()->groupsRecursive(/*includeSelf=*/true)) {
+    hookGroup(group, publicUuid);
+  }
+
+  // Fires for a new group created anywhere in the tree (bubbles up via
+  // Group::connectDatabaseSignalsRecursive), so newly created subgroups'
+  // future entries get tracked too, without ever re-walking the tree.
+  connect(db.data(), &Database::groupAboutToAdd, this,
+          [this, publicUuid](Group *group, int) {
+            hookGroup(group, publicUuid);
+          });
+}
+
+void AutoFillServiceV2::hookGroup(Group *group, const QUuid &dbUuid) {
+  if (!group || m_hookedGroups.contains(group)) {
+    return;
+  }
+  m_hookedGroups.insert(group);
+
+  connect(group, &Group::entryAdded, this,
+          [this, dbUuid](Entry *entry) { onEntryAdded(entry, dbUuid); });
+  connect(group, &Group::entryRemoved, this,
+          [this, dbUuid](Entry *entry) { onEntryRemoved(entry, dbUuid); });
+  connect(group, &Group::entryDataChanged, this,
+          [this, dbUuid](Entry *entry) { onEntryDataChanged(entry, dbUuid); });
+  connect(group, &QObject::destroyed, this,
+          [this, group]() { m_hookedGroups.remove(group); });
+}
 
 static void logIfFailed(BOOL success, NSError *error, NSString *what) {
   if (!success) {
@@ -399,172 +430,186 @@ static void logIfFailed(BOOL success, NSError *error, NSString *what) {
   }
 }
 
-void AutoFillServiceV2::replaceCredentialStore() {
-  auto *window = getMainWindow();
-  if (!window) {
+// One-time full publish for a database that was just unlocked (or whose
+// underlying Database object was just replaced). Ongoing correctness after
+// this point is maintained entirely by the granular entryAdded/Removed/
+// DataChanged handlers below - this never runs again on its own.
+void AutoFillServiceV2::saveCredentialStore(DatabaseWidget *widget) {
+  if (!widget) {
+    return;
+  }
+  auto db = widget->database();
+  if (db.isNull()) {
+    return;
+  }
+
+  if (!m_publishedIdentitiesByEntry) {
+    m_publishedIdentitiesByEntry = [NSMutableDictionary dictionary];
+  }
+
+  QUuid publicUuid = db->publicUuid();
+  NSMutableArray *allIdentities = [NSMutableArray array];
+
+  for (Entry *entry : db->rootGroup()->entriesRecursive()) {
+    if (entry->isRecycled()) {
+      continue;
+    }
+
+    NSMutableArray *entryIdentities = [NSMutableArray array];
+
+    auto *passwordCredentialIdentity =
+        getPasswordCredentialIdentityFromEntry(entry, publicUuid, widget->displayName());
+    if (passwordCredentialIdentity) {
+      [entryIdentities addObject:passwordCredentialIdentity];
+    }
+
+    auto *oneTimeCodeCredentialIdentity =
+        getOneTimeCodeCredentialIdentityFromEntry(entry, publicUuid);
+    if (oneTimeCodeCredentialIdentity) {
+      [entryIdentities addObject:oneTimeCodeCredentialIdentity];
+    }
+
+    auto *passkeyCredentialIdentity =
+        getPasskeyCredentialIdentityFromEntry(entry, publicUuid);
+    if (passkeyCredentialIdentity) {
+      [entryIdentities addObject:passkeyCredentialIdentity];
+    }
+
+    if (entryIdentities.count == 0) {
+      continue;
+    }
+
+    NSString *entryKey = recordIdentifierForEntry(entry, publicUuid);
+    m_publishedIdentitiesByEntry[entryKey] = entryIdentities;
+    [allIdentities addObjectsFromArray:entryIdentities];
+  }
+
+  if (allIdentities.count == 0) {
     return;
   }
 
   [ASCredentialIdentityStore.sharedStore
-      getCredentialIdentityStoreStateWithCompletion:^(
-          ASCredentialIdentityStoreState *state) {
-        if (!state.isEnabled) {
-          return;
+      saveCredentialIdentityEntries:allIdentities
+                          completion:^(BOOL success, NSError *error) {
+                            logIfFailed(success, error, @"save credential identities");
+                          }];
+}
+
+// Recomputes and (re)publishes just this one entry's identities - used for
+// both a brand new entry and an existing entry's data changing. Saving with
+// a recordIdentifier that already exists in the store replaces it in place
+// (per ASCredentialIdentityStore's documented behavior), so a rename/update
+// is just a save; only a kind that disappeared (e.g. password cleared)
+// needs an explicit remove, using the identity object cached from the last
+// time this entry was published.
+void AutoFillServiceV2::publishEntryIdentities(Entry *entry, const QUuid &dbUuid) {
+  if (!entry) {
+    return;
+  }
+
+  if (!m_publishedIdentitiesByEntry) {
+    m_publishedIdentitiesByEntry = [NSMutableDictionary dictionary];
+  }
+
+  DatabaseWidget *widget = findDatabaseWidgetByUuid(dbUuid);
+  QString dbName = widget ? widget->displayName() : QString();
+
+  NSString *entryKey = recordIdentifierForEntry(entry, dbUuid);
+  NSArray *previousIdentities = m_publishedIdentitiesByEntry[entryKey];
+
+  NSMutableArray *freshIdentities = [NSMutableArray array];
+
+  auto *passwordCredentialIdentity =
+      getPasswordCredentialIdentityFromEntry(entry, dbUuid, dbName);
+  if (passwordCredentialIdentity) {
+    [freshIdentities addObject:passwordCredentialIdentity];
+  }
+
+  auto *oneTimeCodeCredentialIdentity =
+      getOneTimeCodeCredentialIdentityFromEntry(entry, dbUuid);
+  if (oneTimeCodeCredentialIdentity) {
+    [freshIdentities addObject:oneTimeCodeCredentialIdentity];
+  }
+
+  auto *passkeyCredentialIdentity =
+      getPasskeyCredentialIdentityFromEntry(entry, dbUuid);
+  if (passkeyCredentialIdentity) {
+    [freshIdentities addObject:passkeyCredentialIdentity];
+  }
+
+  if (previousIdentities.count > 0) {
+    NSMutableArray *staleIdentities = [NSMutableArray array];
+    for (id<ASCredentialIdentity> previous in previousIdentities) {
+      BOOL stillPresent = NO;
+      for (id<ASCredentialIdentity> fresh in freshIdentities) {
+        if ([fresh class] == [previous class]) {
+          stillPresent = YES;
+          break;
         }
+      }
+      if (!stillPresent) {
+        [staleIdentities addObject:previous];
+      }
+    }
 
-        // Compute fresh identities for every currently open & unlocked
-        // database up front, keyed by database UUID. Locked or
-        // not-currently-open databases are simply absent here, and are
-        // never touched below, so their previously-published suggestions
-        // keep working until they're opened again.
-        NSMutableDictionary<NSString *, NSArray *> *freshIdentitiesByDb =
-            [NSMutableDictionary dictionary];
+    if (staleIdentities.count > 0) {
+      [ASCredentialIdentityStore.sharedStore
+          removeCredentialIdentityEntries:staleIdentities
+                                completion:^(BOOL success, NSError *error) {
+                                  logIfFailed(success, error,
+                                              @"remove outdated credential identities");
+                                }];
+    }
+  }
 
-        for (auto *widget : window->getOpenDatabases()) {
-          if (!widget || widget->isLocked()) {
-            continue;
-          }
-          auto db = widget->database();
-          if (db.isNull()) {
-            continue;
-          }
+  if (freshIdentities.count > 0) {
+    [ASCredentialIdentityStore.sharedStore
+        saveCredentialIdentityEntries:freshIdentities
+                            completion:^(BOOL success, NSError *error) {
+                              logIfFailed(success, error, @"save credential identities");
+                            }];
+    m_publishedIdentitiesByEntry[entryKey] = freshIdentities;
+  } else {
+    [m_publishedIdentitiesByEntry removeObjectForKey:entryKey];
+  }
+}
 
-          QUuid publicUuid = db->publicUuid();
-          NSString *dbKey = Tools::uuidToHex(publicUuid).toNSString();
+void AutoFillServiceV2::onEntryAdded(Entry *entry, const QUuid &dbUuid) {
+  if (!entry || entry->isRecycled()) {
+    return;
+  }
+  publishEntryIdentities(entry, dbUuid);
+}
 
-          NSMutableArray *credentialIdentities = [NSMutableArray array];
+void AutoFillServiceV2::onEntryDataChanged(Entry *entry, const QUuid &dbUuid) {
+  if (!entry) {
+    return;
+  }
+  if (entry->isRecycled()) {
+    onEntryRemoved(entry, dbUuid);
+    return;
+  }
+  publishEntryIdentities(entry, dbUuid);
+}
 
-          for (Entry *entry : db->rootGroup()->entriesRecursive()) {
-            if (entry->isRecycled()) {
-              continue;
-            }
+void AutoFillServiceV2::onEntryRemoved(Entry *entry, const QUuid &dbUuid) {
+  if (!entry || !m_publishedIdentitiesByEntry) {
+    return;
+  }
 
-            auto *passwordCredentialIdentity =
-                getPasswordCredentialIdentityFromEntry(entry, publicUuid, widget->displayName());
+  NSString *entryKey = recordIdentifierForEntry(entry, dbUuid);
+  NSArray *previousIdentities = m_publishedIdentitiesByEntry[entryKey];
+  if (previousIdentities.count == 0) {
+    return;
+  }
 
-            if (passwordCredentialIdentity) {
-              [credentialIdentities addObject:passwordCredentialIdentity];
-            }
+  [ASCredentialIdentityStore.sharedStore
+      removeCredentialIdentityEntries:previousIdentities
+                            completion:^(BOOL success, NSError *error) {
+                              logIfFailed(success, error, @"remove credential identities");
+                            }];
 
-            auto *oneTimeCodeCredentialIdentity =
-                getOneTimeCodeCredentialIdentityFromEntry(entry, publicUuid);
-
-            if (oneTimeCodeCredentialIdentity) {
-              [credentialIdentities addObject:oneTimeCodeCredentialIdentity];
-            }
-
-            auto *passkeyCredentialIdentity =
-                getPasskeyCredentialIdentityFromEntry(entry, publicUuid);
-
-            if (passkeyCredentialIdentity) {
-              [credentialIdentities addObject:passkeyCredentialIdentity];
-            }
-          }
-
-          freshIdentitiesByDb[dbKey] = credentialIdentities;
-        }
-
-        if (freshIdentitiesByDb.count == 0) {
-          return;
-        }
-
-        if (@available(macOS 14.4, *)) {
-          // Ask the store what it already has, so we know exactly what's
-          // stale for the databases we're refreshing, and exactly what
-          // belongs to other databases that must be left untouched.
-          [ASCredentialIdentityStore.sharedStore
-              getCredentialIdentitiesForService:nil
-                        credentialIdentityTypes:ASCredentialIdentityTypesAll
-                              completionHandler:^(
-                                  NSArray<id<ASCredentialIdentity>> *existingIdentities) {
-                NSMutableDictionary<NSString *, NSMutableArray *> *existingByDb =
-                    [NSMutableDictionary dictionary];
-                NSMutableArray *otherDatabasesIdentities = [NSMutableArray array];
-
-                for (id<ASCredentialIdentity> identity in existingIdentities) {
-                  QUuid dbUuid;
-                  QUuid entryUuid;
-                  NSString *dbKey =
-                      parseRecordIdentifier(identity.recordIdentifier, dbUuid, entryUuid)
-                          ? Tools::uuidToHex(dbUuid).toNSString()
-                          : nil;
-
-                  if (dbKey && freshIdentitiesByDb[dbKey]) {
-                    NSMutableArray *bucket = existingByDb[dbKey];
-                    if (!bucket) {
-                      bucket = [NSMutableArray array];
-                      existingByDb[dbKey] = bucket;
-                    }
-                    [bucket addObject:identity];
-                  } else {
-                    [otherDatabasesIdentities addObject:identity];
-                  }
-                }
-
-                if (state.supportsIncrementalUpdates) {
-                  // A rename (entry title, database display name, username,
-                  // URL...) never changes an identity's recordIdentifier
-                  // (it's derived only from the entry/database UUIDs), so a
-                  // key-based diff would treat the renamed identity as
-                  // "unchanged" and skip removing it — but saving a new
-                  // identity object under the same recordIdentifier isn't
-                  // reliably picked up as an in-place update by the system.
-                  // So for every database being refreshed, unconditionally
-                  // drop whatever it currently has in the store and save
-                  // the fresh set — guaranteeing stale/renamed entries are
-                  // actually gone, not just shadowed by a newer one.
-                  [freshIdentitiesByDb
-                      enumerateKeysAndObjectsUsingBlock:^(
-                          NSString *dbKey, NSArray *freshIdentities, BOOL *) {
-                        NSArray *existingForDb = existingByDb[dbKey];
-                        if (existingForDb.count > 0) {
-                          [ASCredentialIdentityStore.sharedStore
-                              removeCredentialIdentityEntries:existingForDb
-                                                    completion:^(BOOL success, NSError *error) {
-                                                      logIfFailed(success, error,
-                                                                  @"remove stale credential identities");
-                                                    }];
-                        }
-
-                        [ASCredentialIdentityStore.sharedStore
-                            saveCredentialIdentityEntries:freshIdentities
-                                                completion:^(BOOL success, NSError *error) {
-                                                  logIfFailed(success, error,
-                                                              @"save credential identities");
-                                                }];
-                      }];
-                } else {
-                  // No incremental support: the only way to remove anything
-                  // is a full replace, so fold in every other database's
-                  // existing identities untouched to avoid erasing them.
-                  NSMutableArray *combined = [otherDatabasesIdentities mutableCopy];
-                  [freshIdentitiesByDb
-                      enumerateKeysAndObjectsUsingBlock:^(NSString *, NSArray *freshIdentities,
-                                                          BOOL *) {
-                        [combined addObjectsFromArray:freshIdentities];
-                      }];
-
-                  [ASCredentialIdentityStore.sharedStore
-                      replaceCredentialIdentityEntries:combined
-                                             completion:^(BOOL success, NSError *error) {
-                                               logIfFailed(success, error,
-                                                           @"replace credential identities");
-                                             }];
-                }
-              }];
-        } else {
-          // Can't inspect the store's existing contents on this OS version;
-          // upsert-only so we never risk destroying data we can't see.
-          [freshIdentitiesByDb
-              enumerateKeysAndObjectsUsingBlock:^(NSString *, NSArray *freshIdentities, BOOL *) {
-                [ASCredentialIdentityStore.sharedStore
-                    saveCredentialIdentityEntries:freshIdentities
-                                        completion:^(BOOL success, NSError *error) {
-                                          logIfFailed(success, error, @"save credential identities");
-                                        }];
-              }];
-        }
-      }];
+  [m_publishedIdentitiesByEntry removeObjectForKey:entryKey];
 }
 
 void AutoFillServiceV2::resetCredentialStore() {

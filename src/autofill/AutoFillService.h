@@ -73,11 +73,12 @@ public:
                                       bool parseRecordIdentifier(const NSString *recordIdentifier, QUuid &dbUuid,
                                                                  QUuid &entryUuid);
 
+protected:
+  NSString *recordIdentifierForEntry(const Entry *entry, const QUuid dbUuid);
+
 private:
   ASCredentialServiceIdentifier *
   getCredentialServiceIdentifierFromEntry(const Entry *entry);
-
-  NSString *recordIdentifierForEntry(const Entry *entry, const QUuid dbUuid);
 };
 
 static inline AutoFillService *autoFillService() {

@@ -4,6 +4,7 @@
 #include "AutoFillService.h"
 
 class DatabaseWidget;
+class Group;
 
 class AutoFillServiceV2 : public QObject, public AutoFillService {
   Q_OBJECT
@@ -56,6 +57,13 @@ private:
   ASOneTimeCodeCredentialIdentity *m_pendingOtpIdentity = nil;
   void (^m_pendingOtpReplyBlock)(ASOneTimeCodeCredential *__strong,
                                  NSError *__strong) = nil;
+
+  // Last-published identities per entry (keyed by its recordIdentifier),
+  // so a later per-entry update/removal knows exactly what to remove
+  // without needing to reconstruct it from (possibly already-cleared)
+  // current entry fields.
+  NSMutableDictionary<NSString *, NSArray *> *m_publishedIdentitiesByEntry =
+      nil;
 #endif
 
   QPointer<DatabaseWidget> m_pendingPasskeyTargetWidget;
@@ -66,18 +74,23 @@ private:
   WindowState m_prevWindowState;
 
   QSet<DatabaseWidget *> m_watchedDatabases;
+  QSet<Group *> m_hookedGroups;
   QPointer<DatabaseWidget> m_currentDatabaseWidget;
 
   void updateWindowState();
   void hideWindow() const;
 
-  void saveCredentialStore(const QSharedPointer<Database> &db);
-  void replaceCredentialStore();
+  void saveCredentialStore(DatabaseWidget *widget);
   void resetCredentialStore();
 
   void connectSignals();
   void watchDatabase(DatabaseWidget *widget);
-  void refreshIdentityStore();
+  void hookDatabaseGroups(DatabaseWidget *widget);
+  void hookGroup(Group *group, const QUuid &dbUuid);
+  void publishEntryIdentities(Entry *entry, const QUuid &dbUuid);
+  void onEntryAdded(Entry *entry, const QUuid &dbUuid);
+  void onEntryDataChanged(Entry *entry, const QUuid &dbUuid);
+  void onEntryRemoved(Entry *entry, const QUuid &dbUuid);
   DatabaseWidget *findDatabaseWidgetByUuid(const QUuid &dbUuid) const;
 
   bool m_available{false};
