@@ -8,6 +8,8 @@ set(autofill_LIB_SOURCES
 
 add_library(autofill STATIC ${autofill_LIB_SOURCES})
 
+target_compile_options(autofill PRIVATE "-fobjc-arc")
+
 target_compile_definitions(autofill PRIVATE
   APPLE_APP_IDENTIFIER="${APPLE_APP_IDENTIFIER}"
   RENDEZVOUS_XPC_SERVICE_NAME="${RENDEZVOUS_XPC_SERVICE_NAME}"
