@@ -104,7 +104,7 @@
         localizedReason:@"låse din database op"
                   reply:^(BOOL success, NSError * _Nullable error) {
       if (success) {*/
-  auto db = [self unlockDatabase];
+  /*auto db = [self unlockDatabase];
 
   if (!db) {
     [self exitCancelRequest];
@@ -173,47 +173,15 @@
     break;
   }
   default: {
-    /*QWidget* widget = new CredentialListWidget(self.extensionContext);
-    [self embedQWidget:widget hideRootView:YES];*/
+    QWidget* widget = new CredentialListWidget(self.extensionContext);
+    [self embedQWidget:widget hideRootView:YES];
     break;
   }
   }
-  /*} else {
+  } else {
     [self exitCancelRequest];
   }
 }];*/
-}
-
-- (QSharedPointer<Database>)unlockDatabase {
-  auto database = QSharedPointer<Database>::create();
-  auto compositeKey = QSharedPointer<CompositeKey>::create();
-  const QString dbPath =
-      "/Users/seb/Developer/Adgangskoder.kdbx"; // TODO: Get the dbpath somehow
-
-  database->setFilePath(dbPath);
-
-  auto quickUnlockInterface = getQuickUnlock();
-  const auto dbUuid = database->publicUuid();
-
-  if (quickUnlockInterface->hasKey(dbUuid)) {
-    QByteArray keyData;
-    if (!quickUnlockInterface->getKey(dbUuid, keyData)) {
-      return nil;
-    }
-    compositeKey->setRawKey(keyData);
-  } else {
-    // TODO: Prompt the user for a password securely
-    auto passwordKey = QSharedPointer<PasswordKey>::create("a");
-    compositeKey->addKey(passwordKey);
-  }
-
-  QString error;
-  if (!database->open(compositeKey, &error)) {
-    NSLog(@"Failed to open database: %@", error.toNSString());
-    return nil;
-  }
-
-  return database;
 }
 
 - (void)prepareCredentialListForServiceIdentifiers:

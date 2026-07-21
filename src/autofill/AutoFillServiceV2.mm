@@ -48,6 +48,13 @@ AutoFillServiceV2::~AutoFillServiceV2() {
   m_pendingOtpReplyBlock = nil;
 }
 
+// Identities for the same entry share one recordIdentifier across
+// password/OTP/passkey, so the class is part of the key to tell them apart.
+static NSString *identityDiffKey(id<ASCredentialIdentity> identity) {
+  return [NSString stringWithFormat:@"%@|%@", NSStringFromClass([identity class]),
+                                     identity.recordIdentifier];
+}
+
 void AutoFillServiceV2::fetchPasswordCredentialFromIdentity(
     ASPasswordCredentialIdentity *identity,
     void (^reply)(ASPasswordCredential *__strong credential,
@@ -393,28 +400,51 @@ void AutoFillServiceV2::refreshIdentityStore() { replaceCredentialStore(); }
 void AutoFillServiceV2::saveCredentialStore(
     const QSharedPointer<Database> &db) {}
 
+static void logIfFailed(BOOL success, NSError *error, NSString *what) {
+  if (!success) {
+    NSLog(@"AutoFill: failed to %@: %@", what, error.localizedDescription);
+  }
+}
+
 void AutoFillServiceV2::replaceCredentialStore() {
-  if (auto *window = getMainWindow()) {
-    for (auto *widget : window->getOpenDatabases()) {
-      if (!widget || widget->isLocked()) {
-        continue;
-      }
-      auto db = widget->database();
-      if (db.isNull()) {
-        continue;
-      }
-      [ASCredentialIdentityStore
-              .sharedStore getCredentialIdentityStoreStateWithCompletion:^(
-                               ASCredentialIdentityStoreState *state) {
-        if (state.isEnabled) {
+  auto *window = getMainWindow();
+  if (!window) {
+    return;
+  }
+
+  [ASCredentialIdentityStore.sharedStore
+      getCredentialIdentityStoreStateWithCompletion:^(
+          ASCredentialIdentityStoreState *state) {
+        if (!state.isEnabled) {
+          return;
+        }
+
+        // Compute fresh identities for every currently open & unlocked
+        // database up front, keyed by database UUID. Locked or
+        // not-currently-open databases are simply absent here, and are
+        // never touched below, so their previously-published suggestions
+        // keep working until they're opened again.
+        NSMutableDictionary<NSString *, NSArray *> *freshIdentitiesByDb =
+            [NSMutableDictionary dictionary];
+
+        for (auto *widget : window->getOpenDatabases()) {
+          if (!widget || widget->isLocked()) {
+            continue;
+          }
+          auto db = widget->database();
+          if (db.isNull()) {
+            continue;
+          }
+
+          QUuid publicUuid = db->publicUuid();
+          NSString *dbKey = Tools::uuidToHex(publicUuid).toNSString();
+
           NSMutableArray *credentialIdentities = [NSMutableArray array];
 
           for (Entry *entry : db->rootGroup()->entriesRecursive()) {
             if (entry->isRecycled()) {
               continue;
             }
-
-            QUuid publicUuid = db->publicUuid();
 
             auto *passwordCredentialIdentity =
                 getPasswordCredentialIdentityFromEntry(entry, publicUuid, widget->displayName());
@@ -438,24 +468,113 @@ void AutoFillServiceV2::replaceCredentialStore() {
             }
           }
 
+          freshIdentitiesByDb[dbKey] = credentialIdentities;
+        }
+
+        if (freshIdentitiesByDb.count == 0) {
+          return;
+        }
+
+        if (@available(macOS 14.4, *)) {
+          // Ask the store what it already has, so we know exactly what's
+          // stale for the databases we're refreshing, and exactly what
+          // belongs to other databases that must be left untouched.
           [ASCredentialIdentityStore.sharedStore
-              saveCredentialIdentityEntries:credentialIdentities // TODO: Make it replaceCredentialIdentityEntries
-                                    completion:^(BOOL success, NSError *error) {
-                                      if (success) {
-                                        NSLog(@"Successfully replaced "
-                                              @"credential identities. (%lu "
-                                              @"items)",
-                                              credentialIdentities.count);
-                                      } else {
-                                        NSLog(@"Failed to replace credential "
-                                              @"identities: %@",
-                                              error.localizedDescription);
-                                      }
-                                    }];
+              getCredentialIdentitiesForService:nil
+                        credentialIdentityTypes:ASCredentialIdentityTypesAll
+                              completionHandler:^(
+                                  NSArray<id<ASCredentialIdentity>> *existingIdentities) {
+                NSMutableDictionary<NSString *, NSMutableArray *> *existingByDb =
+                    [NSMutableDictionary dictionary];
+                NSMutableArray *otherDatabasesIdentities = [NSMutableArray array];
+
+                for (id<ASCredentialIdentity> identity in existingIdentities) {
+                  QUuid dbUuid;
+                  QUuid entryUuid;
+                  NSString *dbKey =
+                      parseRecordIdentifier(identity.recordIdentifier, dbUuid, entryUuid)
+                          ? Tools::uuidToHex(dbUuid).toNSString()
+                          : nil;
+
+                  if (dbKey && freshIdentitiesByDb[dbKey]) {
+                    NSMutableArray *bucket = existingByDb[dbKey];
+                    if (!bucket) {
+                      bucket = [NSMutableArray array];
+                      existingByDb[dbKey] = bucket;
+                    }
+                    [bucket addObject:identity];
+                  } else {
+                    [otherDatabasesIdentities addObject:identity];
+                  }
+                }
+
+                if (state.supportsIncrementalUpdates) {
+                  [freshIdentitiesByDb
+                      enumerateKeysAndObjectsUsingBlock:^(
+                          NSString *dbKey, NSArray *freshIdentities, BOOL *) {
+                        NSArray *existingForDb = existingByDb[dbKey];
+                        if (existingForDb.count > 0) {
+                          NSMutableSet<NSString *> *freshKeys = [NSMutableSet set];
+                          for (id<ASCredentialIdentity> identity in freshIdentities) {
+                            [freshKeys addObject:identityDiffKey(identity)];
+                          }
+
+                          NSMutableArray *staleIdentities = [NSMutableArray array];
+                          for (id<ASCredentialIdentity> identity in existingForDb) {
+                            if (![freshKeys containsObject:identityDiffKey(identity)]) {
+                              [staleIdentities addObject:identity];
+                            }
+                          }
+
+                          if (staleIdentities.count > 0) {
+                            [ASCredentialIdentityStore.sharedStore
+                                removeCredentialIdentityEntries:staleIdentities
+                                                      completion:^(BOOL success, NSError *error) {
+                                                        logIfFailed(success, error,
+                                                                    @"remove stale credential identities");
+                                                      }];
+                          }
+                        }
+
+                        [ASCredentialIdentityStore.sharedStore
+                            saveCredentialIdentityEntries:freshIdentities
+                                                completion:^(BOOL success, NSError *error) {
+                                                  logIfFailed(success, error,
+                                                              @"save credential identities");
+                                                }];
+                      }];
+                } else {
+                  // No incremental support: the only way to remove anything
+                  // is a full replace, so fold in every other database's
+                  // existing identities untouched to avoid erasing them.
+                  NSMutableArray *combined = [otherDatabasesIdentities mutableCopy];
+                  [freshIdentitiesByDb
+                      enumerateKeysAndObjectsUsingBlock:^(NSString *, NSArray *freshIdentities,
+                                                          BOOL *) {
+                        [combined addObjectsFromArray:freshIdentities];
+                      }];
+
+                  [ASCredentialIdentityStore.sharedStore
+                      replaceCredentialIdentityEntries:combined
+                                             completion:^(BOOL success, NSError *error) {
+                                               logIfFailed(success, error,
+                                                           @"replace credential identities");
+                                             }];
+                }
+              }];
+        } else {
+          // Can't inspect the store's existing contents on this OS version;
+          // upsert-only so we never risk destroying data we can't see.
+          [freshIdentitiesByDb
+              enumerateKeysAndObjectsUsingBlock:^(NSString *, NSArray *freshIdentities, BOOL *) {
+                [ASCredentialIdentityStore.sharedStore
+                    saveCredentialIdentityEntries:freshIdentities
+                                        completion:^(BOOL success, NSError *error) {
+                                          logIfFailed(success, error, @"save credential identities");
+                                        }];
+              }];
         }
       }];
-    }
-  }
 }
 
 void AutoFillServiceV2::resetCredentialStore() {

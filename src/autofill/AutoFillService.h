@@ -77,8 +77,6 @@ private:
   ASCredentialServiceIdentifier *
   getCredentialServiceIdentifierFromEntry(const Entry *entry);
 
-  Entry *findEntryByRecordIdentifier(const NSString *recordIdentifier,
-                                     const QSharedPointer<Database> &db);
   NSString *recordIdentifierForEntry(const Entry *entry, const QUuid dbUuid);
 };
 
