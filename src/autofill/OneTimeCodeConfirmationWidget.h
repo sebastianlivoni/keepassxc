@@ -17,8 +17,6 @@ class OneTimeCodeConfirmationWidget : public ConfirmationWidget
 public:
     explicit OneTimeCodeConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
                                   ASOneTimeCodeCredentialRequest* credentialRequest,
-                                  NSView* laView,
-                                  LAContext *laContext,
                                   QWidget* parent = nullptr);
 
     void completeRequest() override;

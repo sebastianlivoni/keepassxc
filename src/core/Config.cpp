@@ -743,6 +743,21 @@ QString Config::getDatabaseFilePath(const QString& dbUuid) const
     return settings->value(QString("DatabasePaths/%1").arg(dbUuid)).toString();
 }
 
+QHash<QString, QString> Config::getAllDatabaseFilePaths() const
+{
+    QHash<QString, QString> paths;
+
+    QSettings* settings = m_localSettings ? m_localSettings.data() : m_settings.data();
+
+    settings->beginGroup("DatabasePaths");
+    for (const auto& dbUuid : settings->childKeys()) {
+        paths.insert(dbUuid, settings->value(dbUuid).toString());
+    }
+    settings->endGroup();
+
+    return paths;
+}
+
 void Config::removeDatabaseFilePath(const QString& dbUuid)
 {
     if (dbUuid.isEmpty()) {

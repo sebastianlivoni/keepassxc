@@ -18,10 +18,8 @@
 OneTimeCodeConfirmationWidget::OneTimeCodeConfirmationWidget(
     ASCredentialProviderExtensionContext *extensionContext,
     ASOneTimeCodeCredentialRequest *credentialRequest,
-    NSView *laView,
-    LAContext *laContext,
     QWidget *parent)
-    : ConfirmationWidget(extensionContext, credentialRequest, laView, laContext, parent) { }
+    : ConfirmationWidget(extensionContext, credentialRequest, parent) { }
 
 void OneTimeCodeConfirmationWidget::completeRequest() {
   auto *oneTimeCodeCredential = autoFillService()->getOneTimeCodeCredentialFromIdentity(static_cast<ASOneTimeCodeCredentialIdentity *>(m_credentialRequest.credentialIdentity), m_db);

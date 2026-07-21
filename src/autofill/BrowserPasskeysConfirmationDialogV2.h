@@ -19,12 +19,13 @@
 #define KEEPASSXC_BROWSERPASSKEYSCONFIRMATIONDIALOGV2_H
 
 #include <QDialog>
+#include <QSharedPointer>
 #include <QTableWidget>
 #include <QTimer>
 
-#include "AutoFillXPCServiceClient.h"
 #include <AuthenticationServices/AuthenticationServices.h>
 
+class Database;
 class Entry;
 
 namespace Ui
@@ -38,7 +39,7 @@ class BrowserPasskeysConfirmationDialogV2 : public QWidget
 public:
     explicit BrowserPasskeysConfirmationDialogV2(ASCredentialProviderExtensionContext* extensionContext,
                                                  ASPasskeyCredentialRequest* credentialRequest,
-                                                 AutoFillXPCServiceClient* xpcService,
+                                                 QSharedPointer<Database> db,
                                                  QWidget* parent = nullptr);
     ~BrowserPasskeysConfirmationDialogV2() override;
 
@@ -52,11 +53,13 @@ public:
 private:
     void updateEntriesToTable(const QList<Entry*>& entries);
     void accept();
+    void updateExistingPasskey();
+    void completeRegistration(Entry* existingEntry);
     void reject();
 
     ASCredentialProviderExtensionContext* m_extensionContext;
     ASPasskeyCredentialRequest* m_credentialRequest;
-    AutoFillXPCServiceClient* m_xpcService;
+    QSharedPointer<Database> m_db;
 
 private:
     QScopedPointer<Ui::BrowserPasskeysConfirmationDialogV2> m_ui;

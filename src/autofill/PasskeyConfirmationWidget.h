@@ -17,8 +17,6 @@ class PasskeyConfirmationWidget : public ConfirmationWidget
 public:
     explicit PasskeyConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
                                   ASPasskeyCredentialRequest* credentialRequest,
-                                  NSView* laView,
-                                  LAContext *laContext,
                                   QWidget* parent = nullptr);
 
     void completeRequest() override;

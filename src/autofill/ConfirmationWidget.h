@@ -1,17 +1,14 @@
 #include <AuthenticationServices/AuthenticationServices.h>
 
-#include <QLineEdit>
-#include <QPushButton>
 #include <QSharedPointer>
 #include <QWidget>
-
-#include "core/Database.h"
-#include "core/Entry.h"
 
 #ifndef CONFIRMATIONWIDGET_H
 #define CONFIRMATIONWIDGET_H
 
 class ASCredentialRequest;
+class Database;
+class DatabaseUnlockWidget;
 
 class ConfirmationWidget : public QWidget
 {
@@ -21,27 +18,17 @@ public:
 protected:
     explicit ConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
                                 id<ASCredentialRequest>,
-                                NSView* laView,
-                                LAContext* laContext,
                                 QWidget* parent = nullptr);
     virtual ~ConfirmationWidget();
 
-    void setupQuickUnlock();
-    void authenticateWithKey();
-    bool unlockDatabase(QSharedPointer<CompositeKey> compositeKey);
     void exitCancelRequest();
-    void initNativeView();
 
     ASCredentialProviderExtensionContext* m_extensionContext;
     ASPasskeyCredentialRequest* m_credentialRequest;
-    NSView* m_laView;
-    LAContext* m_laContext;
     QSharedPointer<Database> m_db;
 
-    QPushButton* m_cancel;
-    QPushButton* m_submitButton;
-    QLineEdit* m_passwordInput;
-    QWidget* m_nativeWidget;
+private:
+    DatabaseUnlockWidget* m_unlockWidget;
 };
 
 #endif

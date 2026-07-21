@@ -18,10 +18,8 @@
 PasskeyConfirmationWidget::PasskeyConfirmationWidget(
     ASCredentialProviderExtensionContext *extensionContext,
     ASPasskeyCredentialRequest *credentialRequest,
-    NSView *laView,
-    LAContext *laContext,
     QWidget *parent)
-    : ConfirmationWidget(extensionContext, credentialRequest, laView, laContext, parent) { }
+    : ConfirmationWidget(extensionContext, credentialRequest, parent) { }
 
 void PasskeyConfirmationWidget::completeRequest() {
   auto *passkeyCredential = autoFillService()->getPasskeyCredentialFromPasskeyRequest(m_credentialRequest, m_db);

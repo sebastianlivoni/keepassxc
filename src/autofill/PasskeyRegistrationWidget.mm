@@ -18,10 +18,8 @@
 PasskeyRegistrationWidget::PasskeyRegistrationWidget(
     ASCredentialProviderExtensionContext *extensionContext,
     ASPasskeyCredentialRequest *credentialRequest,
-    NSView *laView,
-    LAContext *laContext,
     QWidget *parent)
-    : ConfirmationWidget(extensionContext, credentialRequest, laView, laContext, parent) { }
+    : ConfirmationWidget(extensionContext, credentialRequest, parent) { }
 
 void PasskeyRegistrationWidget::completeRequest() {
   auto *passkeyRequest = (ASPasskeyCredentialRequest*)m_credentialRequest;

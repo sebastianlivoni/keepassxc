@@ -18,10 +18,8 @@
 PasswordConfirmationWidget::PasswordConfirmationWidget(
     ASCredentialProviderExtensionContext *extensionContext,
     ASPasswordCredentialRequest *credentialRequest,
-    NSView *laView,
-    LAContext *laContext,
     QWidget *parent)
-    : ConfirmationWidget(extensionContext, credentialRequest, laView, laContext, parent) { }
+    : ConfirmationWidget(extensionContext, credentialRequest, parent) { }
 
 void PasswordConfirmationWidget::completeRequest() {
   auto *passwordRequest = (ASPasswordCredentialRequest*)m_credentialRequest;

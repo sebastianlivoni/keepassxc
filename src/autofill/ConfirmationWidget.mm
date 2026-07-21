@@ -1,25 +1,20 @@
 #include "ConfirmationWidget.h"
 
 #include "AutoFillService.h"
-#include "LocalAuthentication/LocalAuthentication.h"
+#include "DatabaseUnlockWidget.h"
 
-#include <QLabel>
+#include <QFile>
 #include <QVBoxLayout>
-#include <QWindow>
-#include <cstddef>
 #include <os/log.h>
 
 #include "core/Config.h"
 #include "core/Tools.h"
-#include "quickunlock/QuickUnlockInterface.h"
 
 ConfirmationWidget::ConfirmationWidget(
     ASCredentialProviderExtensionContext *extensionContext,
-    id<ASCredentialRequest> credentialRequest, NSView *laView,
-    LAContext *laContext, QWidget *parent)
+    id<ASCredentialRequest> credentialRequest, QWidget *parent)
     : QWidget(parent), m_extensionContext(extensionContext),
-      m_credentialRequest(credentialRequest), m_laView(laView),
-      m_laContext(laContext) {
+      m_credentialRequest(credentialRequest), m_unlockWidget(nullptr) {
 
   NSString *recordIdentifier =
       m_credentialRequest.credentialIdentity.recordIdentifier;
@@ -29,12 +24,12 @@ ConfirmationWidget::ConfirmationWidget(
     return;
   }
 
-  QUuid dbUuid_;
+  QUuid dbUuid;
   QUuid entryUuid;
-  autoFillService()->parseRecordIdentifier(recordIdentifier, dbUuid_,
+  autoFillService()->parseRecordIdentifier(recordIdentifier, dbUuid,
                                            entryUuid);
 
-  QString dbPath = config()->getDatabaseFilePath(Tools::uuidToHex(dbUuid_));
+  QString dbPath = config()->getDatabaseFilePath(Tools::uuidToHex(dbUuid));
   os_log(OS_LOG_DEFAULT, "Path: %{public}@", dbPath.toNSString());
 
   if (dbPath.isEmpty() || !QFile::exists(dbPath)) {
@@ -44,137 +39,21 @@ ConfirmationWidget::ConfirmationWidget(
     return;
   }
 
-  m_db = QSharedPointer<Database>::create(dbPath);
-
-  QString error;
-  m_db->open(nullptr, &error);
-
-  // Overall layout
   auto *mainLayout = new QVBoxLayout(this);
-  mainLayout->setAlignment(Qt::AlignCenter);
-  mainLayout->setContentsMargins(40, 40, 40, 40);
-  mainLayout->setSpacing(20);
+  mainLayout->setContentsMargins(0, 0, 0, 0);
 
-  // Title
-  auto quickUnlock = getQuickUnlock();
-  const auto dbUuid = m_db->publicUuid();
-
-  QByteArray keyData;
-  if (!quickUnlock->hasKey(dbUuid)) {
-    QLabel *titleLabel =
-        new QLabel(tr("Unlock KeePassXC database (only password)"), this);
-    QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(16);
-    titleFont.setBold(true);
-    titleLabel->setFont(titleFont);
-    titleLabel->setAlignment(Qt::AlignCenter);
-
-    mainLayout->addWidget(titleLabel);
-  } else {
-    QLabel *titleLabel = new QLabel(tr("Unlock KeePassXC database"), this);
-    QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(16);
-    titleFont.setBold(true);
-    titleLabel->setFont(titleFont);
-    titleLabel->setAlignment(Qt::AlignCenter);
-
-    mainLayout->addWidget(titleLabel);
-  }
-
-  // Password input
-  m_passwordInput = new QLineEdit(this);
-  m_passwordInput->setEchoMode(QLineEdit::Password);
-  m_passwordInput->setPlaceholderText(tr("Enter your master password"));
-  m_passwordInput->setMinimumHeight(30);
-  m_passwordInput->setStyleSheet("padding: 6px; font-size: 14px;");
-
-  mainLayout->addWidget(m_passwordInput);
-
-  // Button row
-  auto *buttonLayout = new QHBoxLayout();
-  buttonLayout->setSpacing(15);
-  m_submitButton = new QPushButton(tr("Unlock"), this);
-  m_cancel = new QPushButton(tr("Cancel"), this);
-
-  buttonLayout->addStretch();
-  buttonLayout->addWidget(m_cancel);
-  buttonLayout->addWidget(m_submitButton);
-  buttonLayout->addStretch();
-
-  mainLayout->addLayout(buttonLayout);
-
-  // Connect signals
-  connect(m_cancel, &QPushButton::clicked, this,
-          &ConfirmationWidget::exitCancelRequest);
-  connect(m_submitButton, &QPushButton::clicked, this,
-          &ConfirmationWidget::authenticateWithKey);
-
-  // Initialize unlock logic
-  QTimer::singleShot(0, this, &ConfirmationWidget::setupQuickUnlock);
+  m_unlockWidget = new DatabaseUnlockWidget(dbPath, this);
+  m_unlockWidget->onUnlocked = [this](QSharedPointer<Database> db) {
+    m_db = db;
+    completeRequest();
+  };
+  m_unlockWidget->onCancelled = [this]() { exitCancelRequest(); };
+  mainLayout->addWidget(m_unlockWidget);
 
   setLayout(mainLayout);
-  resize(450, 220);
+  resize(450, 400);
   setWindowTitle(tr("Confirm Access"));
   show();
-}
-
-void ConfirmationWidget::setupQuickUnlock() {
-  [m_laContext
-       evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
-      localizedReason:@"låse din database op"
-                reply:^(BOOL success, NSError *_Nullable error) {
-                  if (!success || error) {
-                    return;
-                  }
-
-                  auto quickUnlock = getQuickUnlock();
-                  const auto dbUuid = m_db->publicUuid();
-
-                  QByteArray keyData;
-                  if (!quickUnlock->hasKey(dbUuid) ||
-                      !quickUnlock->getKey(dbUuid, keyData, m_laContext)) {
-                    exitCancelRequest();
-                    return;
-                  }
-
-                  auto compositeKey = QSharedPointer<CompositeKey>::create();
-                  compositeKey->setRawKey(keyData);
-
-                  if (!unlockDatabase(compositeKey)) {
-                    exitCancelRequest();
-                    return;
-                  }
-
-                  completeRequest();
-                }];
-}
-
-void ConfirmationWidget::authenticateWithKey() {
-  QString password = m_passwordInput->text();
-  if (password.isEmpty())
-    return;
-
-  auto compositeKey = QSharedPointer<CompositeKey>::create();
-  compositeKey->addKey(QSharedPointer<PasswordKey>::create(password));
-
-  if (!unlockDatabase(compositeKey)) {
-    exitCancelRequest();
-    return;
-  }
-
-  completeRequest();
-}
-
-bool ConfirmationWidget::unlockDatabase(
-    QSharedPointer<CompositeKey> compositeKey) {
-  QString error;
-  bool result = m_db->open(compositeKey, &error);
-
-  if (!result) {
-    NSLog(@"Failed to open database: %@", error.toNSString());
-  }
-
-  return result;
 }
 
 void ConfirmationWidget::exitCancelRequest() {

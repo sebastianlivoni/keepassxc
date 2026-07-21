@@ -16,6 +16,7 @@
  */
 
 #include "BrowserPasskeysConfirmationDialogV2.h"
+#include "AutoFillService.h"
 #include "AutoFillServiceV2.h"
 #include "ui_BrowserPasskeysConfirmationDialogV2.h"
 
@@ -29,12 +30,11 @@
 BrowserPasskeysConfirmationDialogV2::BrowserPasskeysConfirmationDialogV2(
     ASCredentialProviderExtensionContext *extensionContext,
     ASPasskeyCredentialRequest *credentialRequest,
-    AutoFillXPCServiceClient *xpcService, QWidget *parent)
+    QSharedPointer<Database> db, QWidget *parent)
     : QWidget(parent), m_extensionContext(extensionContext),
       m_credentialRequest(
           static_cast<ASPasskeyCredentialRequest *>(credentialRequest)),
-      m_xpcService(xpcService),
-      m_ui(new Ui::BrowserPasskeysConfirmationDialogV2()),
+      m_db(db), m_ui(new Ui::BrowserPasskeysConfirmationDialogV2()),
       m_passkeyUpdated(false) {
   setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
 
@@ -43,6 +43,9 @@ BrowserPasskeysConfirmationDialogV2::BrowserPasskeysConfirmationDialogV2(
 
   connect(m_ui->confirmButton, &QPushButton::clicked, this,
           [this]() { accept(); });
+
+  connect(m_ui->updateButton, &QPushButton::clicked, this,
+          [this]() { updateExistingPasskey(); });
 
   connect(m_ui->cancelButton, &QPushButton::clicked, this,
           [this]() { reject(); });
@@ -121,22 +124,33 @@ void BrowserPasskeysConfirmationDialogV2::updateEntriesToTable(
 }
 
 void BrowserPasskeysConfirmationDialogV2::accept() {
-  id proxy = [m_xpcService.connection
-      remoteObjectProxyWithErrorHandler:^(NSError *_Nonnull error) {
-        NSLog(@"XPC error: %@", error);
-      }];
+  completeRegistration(nullptr);
+}
 
-  [proxy
-      createPasskeyRegistrationCredential:m_credentialRequest
-                                withReply:^(
-                                    ASPasskeyRegistrationCredential *credential,
-                                    NSError *error) {
-                                  [m_extensionContext
-                                      completeRegistrationRequestWithSelectedPasskeyCredential:
-                                          credential
-                                                                             completionHandler:
-                                                                                 nil];
-                                }];
+void BrowserPasskeysConfirmationDialogV2::updateExistingPasskey() {
+  Entry *selectedEntry = getSelectedEntry();
+  if (!selectedEntry) {
+    return;
+  }
+
+  m_passkeyUpdated = true;
+  completeRegistration(selectedEntry);
+}
+
+void BrowserPasskeysConfirmationDialogV2::completeRegistration(
+    Entry *existingEntry) {
+  ASPasskeyRegistrationCredential *credential =
+      autoFillService()->createPasskeyRegistrationCredential(
+          m_credentialRequest, m_db, existingEntry);
+
+  if (!credential) {
+    reject();
+    return;
+  }
+
+  [m_extensionContext
+      completeRegistrationRequestWithSelectedPasskeyCredential:credential
+                                             completionHandler:nil];
 }
 
 void BrowserPasskeysConfirmationDialogV2::reject() {

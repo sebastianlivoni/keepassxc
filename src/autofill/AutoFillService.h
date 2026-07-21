@@ -21,6 +21,7 @@ class ASPasskeyCredentialIdentity;
 class ASPasswordCredentialRequest;
 class ASCredentialServiceIdentifier;
 class ASOneTimeCodeCredentialRequest;
+class ASPasskeyCredentialRequestParameters;
 class NSError;
 #endif
 
@@ -69,9 +70,24 @@ public:
 
   ASPasskeyRegistrationCredential *
   createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest *request,
-                                      const QSharedPointer<Database> &db);
+                                      const QSharedPointer<Database> &db,
+                                      Entry *existingEntry = nullptr);
                                       bool parseRecordIdentifier(const NSString *recordIdentifier, QUuid &dbUuid,
                                                                  QUuid &entryUuid);
+
+  QList<Entry *> searchEntries(const QSharedPointer<Database> &db,
+                               const QString &siteUrl, bool passkeyOnly,
+                               bool totpOnly);
+  QList<Entry *> allEntries(const QSharedPointer<Database> &db,
+                            bool passkeyOnly, bool totpOnly);
+
+  ASPasswordCredential *
+  getPasswordCredentialFromEntry(const Entry *entry);
+  ASOneTimeCodeCredential *
+  getOneTimeCodeCredentialFromEntry(const Entry *entry);
+  ASPasskeyAssertionCredential *getPasskeyCredentialFromEntry(
+      const Entry *entry, NSData *clientDataHash,
+      const ASPasskeyCredentialRequestParameters *requestParameters);
 
 protected:
   NSString *recordIdentifierForEntry(const Entry *entry, const QUuid dbUuid);
@@ -79,6 +95,9 @@ protected:
 private:
   ASCredentialServiceIdentifier *
   getCredentialServiceIdentifierFromEntry(const Entry *entry);
+  bool shouldIncludeEntryForUrl(const Entry *entry, const QString &siteUrl);
+  bool handleURL(const QString &entryUrl, const QString &siteUrl,
+                bool allowWildcards = false);
 };
 
 static inline AutoFillService *autoFillService() {

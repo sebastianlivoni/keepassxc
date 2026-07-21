@@ -17,8 +17,6 @@ class PasswordConfirmationWidget : public ConfirmationWidget
 public:
     explicit PasswordConfirmationWidget(ASCredentialProviderExtensionContext* extensionContext,
                                   ASPasswordCredentialRequest* credentialRequest,
-                                  NSView* laView,
-                                  LAContext *laContext,
                                   QWidget* parent = nullptr);
 
     void completeRequest() override;

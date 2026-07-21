@@ -6,17 +6,21 @@
 #include <QApplication>
 #include <QMacNativeWidget>
 #include <QPushButton>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 
 #include "AutoFillService.h"
 #include "BrowserPasskeysConfirmationDialogV2.h"
 #include "CredentialListWidget.h"
+#include "DatabasePickerWidget.h"
+#include "DatabaseUnlockWidget.h"
 #include "ExtensionConfigurationWidget.h"
 #include "PasskeyConfirmationWidget.h"
 #include "PasskeyRegistrationWidget.h"
 #include "PasswordConfirmationWidget.h"
 #include "OneTimeCodeConfirmationWidget.h"
 
+#include "core/Config.h"
 #include "gui/DatabaseOpenWidget.h"
 #include "quickunlock/QuickUnlockInterface.h"
 #include "quickunlock/TouchID.h"
@@ -186,13 +190,10 @@
 
 - (void)prepareCredentialListForServiceIdentifiers:
     (NSArray<ASCredentialServiceIdentifier *> *)serviceIdentifiers {
-  QWidget *widget = new CredentialListWidget(self.extensionContext);
+  QWidget *widget = new CredentialListWidget(
+      self.extensionContext, serviceIdentifiers,
+      CredentialListWidget::Mode::Password);
   [self embedQWidget:widget hideRootView:NO];
-
-  LAAuthenticationView *laView =
-      [[LAAuthenticationView alloc] initWithContext:self.context];
-  [self.rootView addSubview:laView];
-  self.rootView.translatesAutoresizingMaskIntoConstraints = NO;
 }
 
 - (void)prepareCredentialListForServiceIdentifiers:
@@ -200,100 +201,91 @@
                                  requestParameters:
                                      (ASPasskeyCredentialRequestParameters *)
                                          requestParameters {
-  // TODO: This will be called for passkeys
-  QWidget *widget = new CredentialListWidget(self.extensionContext);
+  QWidget *widget = new CredentialListWidget(
+      self.extensionContext, serviceIdentifiers, requestParameters);
   [self embedQWidget:widget hideRootView:NO];
-
-  LAAuthenticationView *laView =
-      [[LAAuthenticationView alloc] initWithContext:self.context];
-  [self.rootView addSubview:laView];
-  self.rootView.translatesAutoresizingMaskIntoConstraints = NO;
 }
 
 - (void)prepareOneTimeCodeCredentialListForServiceIdentifiers:
     (NSArray<ASCredentialServiceIdentifier *> *)serviceIdentifiers {
-      QWidget *widget = new CredentialListWidget(self.extensionContext);
+  QWidget *widget = new CredentialListWidget(
+      self.extensionContext, serviceIdentifiers,
+      CredentialListWidget::Mode::TOTP);
   [self embedQWidget:widget hideRootView:NO];
-
-  LAAuthenticationView *laView =
-      [[LAAuthenticationView alloc] initWithContext:self.context];
-  [self.rootView addSubview:laView];
-  self.rootView.translatesAutoresizingMaskIntoConstraints = NO;
 }
 
 - (void)prepareInterfaceForPasskeyRegistration:
     (id<ASCredentialRequest>)registrationRequest {
-        /*id proxy = [self.xpcService.connection remoteObjectProxyWithErrorHandler:^(
-                                                   NSError *_Nonnull error) {
+  ASPasskeyCredentialRequest *passkeyRequest =
+      static_cast<ASPasskeyCredentialRequest *>(registrationRequest);
+  ASPasskeyCredentialIdentity *identity =
+      static_cast<ASPasskeyCredentialIdentity *>(
+          passkeyRequest.credentialIdentity);
 
-        }];
+  QString relyingParty =
+      QString::fromNSString(identity.relyingPartyIdentifier);
+  QString username = QString::fromNSString(identity.userName);
 
-        [proxy createPasskeyRegistrationCredential:registrationRequest withReply:^(ASPasskeyRegistrationCredential *credential, NSError *error) {
-            [self.extensionContext completeRegistrationRequestWithSelectedPasskeyCredential:credential completionHandler:nil];
-        }];
+  auto *stack = new QStackedWidget();
+  stack->resize(480, 420);
 
-        return;*/
+  auto showRegistrationDialog = [self, stack, passkeyRequest, relyingParty,
+                                 username](QSharedPointer<Database> db) {
+    auto *dialog = new BrowserPasskeysConfirmationDialogV2(
+        self.extensionContext, passkeyRequest, db);
+    QList<Entry *> existingEntries = autoFillService()->searchEntries(
+        db, relyingParty, /*passkeyOnly=*/true, /*totpOnly=*/false);
+    dialog->registerCredential(username, relyingParty, existingEntries);
+    stack->addWidget(dialog);
+    stack->setCurrentWidget(dialog);
+  };
 
-    ASPasskeyCredentialRequest *passkeyRequest =
-            static_cast<ASPasskeyCredentialRequest *>(registrationRequest);
+  auto useDatabasePath = [self, stack, showRegistrationDialog](QString dbPath) {
+    auto *unlockWidget = new DatabaseUnlockWidget(dbPath, stack);
+    unlockWidget->onUnlocked = showRegistrationDialog;
+    unlockWidget->onCancelled = [self]() { [self exitCancelRequest]; };
+    stack->addWidget(unlockWidget);
+    stack->setCurrentWidget(unlockWidget);
+  };
 
-    auto *widget = new BrowserPasskeysConfirmationDialogV2(self.extensionContext, passkeyRequest, self.xpcService);
+  const auto databasePaths = config()->getAllDatabaseFilePaths();
+  if (databasePaths.isEmpty()) {
+    [self exitCancelRequest];
+    return;
+  }
 
-    ASPasskeyCredentialIdentity *identity = static_cast<ASPasskeyCredentialIdentity*>(passkeyRequest.credentialIdentity);
+  if (databasePaths.size() == 1) {
+    useDatabasePath(databasePaths.constBegin().value());
+  } else {
+    auto *picker = new DatabasePickerWidget(stack);
+    picker->onDatabaseChosen = useDatabasePath;
+    picker->onCancelled = [self]() { [self exitCancelRequest]; };
+    stack->addWidget(picker);
+    stack->setCurrentWidget(picker);
+  }
 
-    QString relyingParty = QString::fromNSString(identity.relyingPartyIdentifier);
-    QString username = QString::fromNSString(identity.userName);
-
-    widget->registerCredential(username, relyingParty, {});
-
-    [self embedQWidget:widget hideRootView:NO];
-
-    /*LAAuthenticationView *laView =
-      [[LAAuthenticationView alloc] initWithContext:self.context];
-  laView.translatesAutoresizingMaskIntoConstraints = NO;
-
-  QWidget *widget = new PasskeyRegistrationWidget(
-      self.extensionContext, registrationRequest, laView, self.context);
-  [self embedQWidget:widget hideRootView:NO];
-  NSView *rootView = (__bridge NSView *)(void *)widget->winId();
-  [rootView addSubview:laView];*/
-
-  // self.credentialRequest = registrationRequest;
+  [self embedQWidget:stack hideRootView:NO];
 }
 
 - (void)prepareInterfaceToProvideCredentialForRequest:
     (id<ASCredentialRequest>)credentialRequest {
-  LAAuthenticationView *laView =
-      [[LAAuthenticationView alloc] initWithContext:self.context];
-  laView.translatesAutoresizingMaskIntoConstraints = NO;
-
   switch (credentialRequest.type) {
   case ASCredentialRequestTypePassword: {
-    QWidget *widget = new PasswordConfirmationWidget(
-        self.extensionContext, credentialRequest, laView, self.context);
-
+    QWidget *widget = new PasswordConfirmationWidget(self.extensionContext,
+                                                     credentialRequest);
     [self embedQWidget:widget hideRootView:NO];
-
-    NSView *rootView = (__bridge NSView *)(void *)widget->winId();
-    [rootView addSubview:laView];
     break;
   }
   case ASCredentialRequestTypeOneTimeCode: {
-    QWidget *widget = new OneTimeCodeConfirmationWidget(
-        self.extensionContext, credentialRequest, laView, self.context);
+    QWidget *widget = new OneTimeCodeConfirmationWidget(self.extensionContext,
+                                                        credentialRequest);
     [self embedQWidget:widget hideRootView:NO];
-
-    NSView *rootView = (__bridge NSView *)(void *)widget->winId();
-    [rootView addSubview:laView];
     break;
   }
   case ASCredentialRequestTypePasskeyAssertion: {
-    QWidget *widget = new PasskeyConfirmationWidget(
-        self.extensionContext, credentialRequest, laView, self.context);
+    QWidget *widget = new PasskeyConfirmationWidget(self.extensionContext,
+                                                    credentialRequest);
     [self embedQWidget:widget hideRootView:NO];
-
-    NSView *rootView = (__bridge NSView *)(void *)widget->winId();
-    [rootView addSubview:laView];
     break;
   }
   default: {

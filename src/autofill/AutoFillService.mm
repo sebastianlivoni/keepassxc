@@ -7,7 +7,13 @@
 #include "browser/BrowserMessageBuilder.h"
 #include "browser/BrowserPasskeys.h"
 #include "browser/BrowserPasskeysClient.h"
+#include "browser/BrowserService.h"
+#include "browser/BrowserSettings.h"
+#include "core/Entry.h"
+#include "core/Global.h"
+#include "core/Group.h"
 #include "core/Tools.h"
+#include "gui/UrlTools.h"
 #include "quickunlock/QuickUnlockInterface.h"
 
 #include <AuthenticationServices/AuthenticationServices.h>
@@ -15,7 +21,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QObject>
+#include <QRegularExpression>
 #include <QString>
+#include <QUrl>
 
 AutoFillService *AutoFillService::instance() {
   static AutoFillService instance;
@@ -133,7 +141,7 @@ ASOneTimeCodeCredential *AutoFillService::getOneTimeCodeCredentialFromIdentity(
 ASPasskeyRegistrationCredential *
 AutoFillService::createPasskeyRegistrationCredential(
     const ASPasskeyCredentialRequest *request,
-    const QSharedPointer<Database> &db) {
+    const QSharedPointer<Database> &db, Entry *existingEntry) {
   ASPasskeyCredentialIdentity *identity =
       static_cast<ASPasskeyCredentialIdentity *>(request.credentialIdentity);
 
@@ -191,19 +199,21 @@ AutoFillService::createPasskeyRegistrationCredential(
   QString base64String = cborEncoded.toBase64();
   NSLog(@"Base64 Encoded CBOR: %@", base64String.toNSString());
 
-  // TODO: Save the credentials in a entry
-  // TODO: Add identity to store
-
   Group *rootGroup = db->rootGroup();
-  auto *entry = new Entry();
-  entry->setUuid(QUuid::createUuid());
-  entry->setGroup(rootGroup);
+  Entry *entry = existingEntry;
+  bool isNewEntry = entry == nullptr;
+  if (isNewEntry) {
+    entry = new Entry();
+    entry->setUuid(QUuid::createUuid());
+    entry->setGroup(rootGroup);
+    entry->setIcon(13); // KEEPASSXCBROWSER_PASSKEY_ICON
+  }
+
   entry->setTitle(
       QObject::tr("%1 (Passkey)")
           .arg(QString::fromNSString(identity.relyingPartyIdentifier)));
   entry->setUsername(QString::fromNSString(identity.userName));
   entry->setUrl(QString::fromNSString(identity.relyingPartyIdentifier));
-  entry->setIcon(13); // KEEPASSXCBROWSER_PASSKEY_ICON
 
   entry->beginUpdate();
 
@@ -222,7 +232,11 @@ AutoFillService::createPasskeyRegistrationCredential(
 
   entry->endUpdate();
 
-  entry->removeHistoryItems(entry->historyItems());
+  if (isNewEntry) {
+    // Discard the blank pre-creation history snapshot beginUpdate() recorded;
+    // an update to an existing entry keeps its real history instead.
+    entry->removeHistoryItems(entry->historyItems());
+  }
 
   QString errorMessage;
   if (!db->save(Database::Atomic, {},
@@ -322,6 +336,246 @@ ASPasswordCredential *AutoFillService::getPasswordCredentialFromPasswordRequest(
                                       password:password.toNSString()];
 
   return credential;
+}
+
+ASPasswordCredential *
+AutoFillService::getPasswordCredentialFromEntry(const Entry *entry) {
+  QString username = entry->username();
+  QString password = entry->password();
+
+  if (username.isEmpty() || password.isEmpty()) {
+    return nullptr;
+  }
+
+  return [ASPasswordCredential credentialWithUser:username.toNSString()
+                                          password:password.toNSString()];
+}
+
+ASOneTimeCodeCredential *
+AutoFillService::getOneTimeCodeCredentialFromEntry(const Entry *entry) {
+  QString totp = entry->totp();
+  if (totp.isEmpty()) {
+    return nullptr;
+  }
+
+  return [[ASOneTimeCodeCredential alloc] initWithCode:totp.toNSString()];
+}
+
+ASPasskeyAssertionCredential *AutoFillService::getPasskeyCredentialFromEntry(
+    const Entry *entry, NSData *clientDataHash,
+    const ASPasskeyCredentialRequestParameters *requestParameters) {
+  if (!entry->hasPasskey()) {
+    return nullptr;
+  }
+
+  const QString privateKeyPem =
+      entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_PRIVATE_KEY_PEM);
+
+  const QString credentialId =
+      entry->attributes()->hasKey(
+          EntryAttributes::KPEX_PASSKEY_GENERATED_USER_ID)
+          ? entry->attributes()->value(
+                EntryAttributes::KPEX_PASSKEY_GENERATED_USER_ID)
+          : entry->attributes()->value(
+                EntryAttributes::KPEX_PASSKEY_CREDENTIAL_ID);
+  NSData *credentialID =
+      browserMessageBuilder()->getArrayFromBase64(credentialId).toNSData();
+
+  const QString userHandle =
+      entry->attributes()->value(EntryAttributes::KPEX_PASSKEY_USER_HANDLE);
+  NSData *userHandleData =
+      browserMessageBuilder()->getArrayFromBase64(userHandle).toNSData();
+
+  QByteArray clientDataHashBytes = QByteArray::fromNSData(clientDataHash);
+  QString rpId =
+      QString::fromNSString(requestParameters.relyingPartyIdentifier);
+  QString extensions = QString("");
+
+  const auto authenticatorData =
+      browserPasskeys()->buildAuthenticatorData(rpId, extensions);
+  const auto signature = browserPasskeys()->buildSignature(
+      authenticatorData, clientDataHashBytes, privateKeyPem);
+
+  return [ASPasskeyAssertionCredential
+      credentialWithUserHandle:userHandleData
+                  relyingParty:requestParameters.relyingPartyIdentifier
+                     signature:signature.toNSData()
+                clientDataHash:clientDataHash
+             authenticatorData:authenticatorData.toNSData()
+                  credentialID:credentialID];
+}
+
+QList<Entry *>
+AutoFillService::searchEntries(const QSharedPointer<Database> &db,
+                               const QString &siteUrl, bool passkeyOnly,
+                               bool totpOnly) {
+  QList<Entry *> entries;
+  auto *rootGroup = db->rootGroup();
+  if (!rootGroup) {
+    return entries;
+  }
+
+  for (const auto &group : rootGroup->groupsRecursive(true)) {
+    const auto groupOptionHideEntry =
+        group->resolveCustomDataTriState(BrowserService::OPTION_HIDE_ENTRY);
+    if (group->isRecycled() || groupOptionHideEntry == Group::Enable) {
+      continue;
+    }
+
+    for (auto *entry : group->entries()) {
+      if (entry->isRecycled() ||
+          (groupOptionHideEntry == Group::Inherit &&
+           entry->customData()->contains(BrowserService::OPTION_HIDE_ENTRY) &&
+           entry->customData()->value(BrowserService::OPTION_HIDE_ENTRY) ==
+               TRUE_STR)) {
+        continue;
+      }
+
+      if (passkeyOnly) {
+        if (!entry->hasPasskey() ||
+            entry->attributes()->value(
+                EntryAttributes::KPEX_PASSKEY_RELYING_PARTY) != siteUrl) {
+          continue;
+        }
+      } else if (totpOnly) {
+        if (!entry->hasTotp() || !shouldIncludeEntryForUrl(entry, siteUrl)) {
+          continue;
+        }
+      } else if (!shouldIncludeEntryForUrl(entry, siteUrl)) {
+        continue;
+      }
+
+      if (!entries.contains(entry)) {
+        entries.append(entry);
+      }
+    }
+  }
+
+  return entries;
+}
+
+QList<Entry *> AutoFillService::allEntries(const QSharedPointer<Database> &db,
+                                           bool passkeyOnly, bool totpOnly) {
+  QList<Entry *> entries;
+  auto *rootGroup = db->rootGroup();
+  if (!rootGroup) {
+    return entries;
+  }
+
+  for (const auto &group : rootGroup->groupsRecursive(true)) {
+    const auto groupOptionHideEntry =
+        group->resolveCustomDataTriState(BrowserService::OPTION_HIDE_ENTRY);
+    if (group->isRecycled() || groupOptionHideEntry == Group::Enable) {
+      continue;
+    }
+
+    for (auto *entry : group->entries()) {
+      if (entry->isRecycled() ||
+          (groupOptionHideEntry == Group::Inherit &&
+           entry->customData()->contains(BrowserService::OPTION_HIDE_ENTRY) &&
+           entry->customData()->value(BrowserService::OPTION_HIDE_ENTRY) ==
+               TRUE_STR)) {
+        continue;
+      }
+
+      if (passkeyOnly && !entry->hasPasskey()) {
+        continue;
+      }
+      if (totpOnly && !entry->hasTotp()) {
+        continue;
+      }
+      if (!passkeyOnly && !totpOnly && entry->password().isEmpty()) {
+        continue;
+      }
+
+      entries.append(entry);
+    }
+  }
+
+  return entries;
+}
+
+bool AutoFillService::shouldIncludeEntryForUrl(const Entry *entry,
+                                               const QString &siteUrl) {
+  if (handleURL(entry->resolveUrl(), siteUrl)) {
+    return true;
+  }
+
+  const auto additionalUrls = entry->getAdditionalUrls();
+  for (const auto &additionalUrl : additionalUrls) {
+    if (handleURL(additionalUrl, siteUrl, true)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool AutoFillService::handleURL(const QString &entryUrl,
+                                const QString &siteUrl,
+                                bool allowWildcards) {
+  if (entryUrl.isEmpty()) {
+    return false;
+  }
+
+  bool isWildcardUrl = false;
+  auto tempUrl = entryUrl;
+
+  if (allowWildcards) {
+    if (entryUrl.startsWith("\"") && entryUrl.endsWith("\"")) {
+      return QStringView{entryUrl}.mid(1, entryUrl.length() - 2) == siteUrl;
+    }
+
+    isWildcardUrl = entryUrl.contains("*");
+    if (isWildcardUrl) {
+      tempUrl = tempUrl.replace("*", UrlTools::URL_WILDCARD);
+    }
+  }
+
+  QUrl entryQUrl;
+  if (entryUrl.contains("://")) {
+    entryQUrl = tempUrl;
+  } else {
+    entryQUrl = QUrl::fromUserInput(tempUrl);
+
+    if (browserSettings()->matchUrlScheme()) {
+      entryQUrl.setScheme("https");
+    }
+  }
+
+  if (entryQUrl.host().isEmpty()) {
+    return false;
+  }
+
+  QUrl siteQUrl(siteUrl);
+  if (entryQUrl.port() > 0 && entryQUrl.port() != siteQUrl.port()) {
+    return false;
+  }
+
+  if (browserSettings()->matchUrlScheme() && !entryQUrl.scheme().isEmpty() &&
+      entryQUrl.scheme().compare(siteQUrl.scheme()) != 0) {
+    return false;
+  }
+
+  QRegularExpression re("[<>\\^`{|}]");
+  if (re.match(entryUrl).hasMatch()) {
+    return false;
+  }
+
+  if (isWildcardUrl) {
+    // Wildcard entries are rare in AutoFill's offline matching context;
+    // treat them as a base-domain match rather than porting BrowserService's
+    // full regex-based wildcard expansion.
+    return urlTools()->getBaseDomainFromUrl(siteQUrl.host()) ==
+           urlTools()->getBaseDomainFromUrl(entryQUrl.host());
+  }
+
+  if (urlTools()->getBaseDomainFromUrl(siteQUrl.host()) !=
+      urlTools()->getBaseDomainFromUrl(entryQUrl.host())) {
+    return false;
+  }
+
+  return siteQUrl.host().endsWith(entryQUrl.host());
 }
 
 ASOneTimeCodeCredentialIdentity *

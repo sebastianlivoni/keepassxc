@@ -30,6 +30,8 @@ set(SOURCES
     PasswordConfirmationWidget.mm
     OneTimeCodeConfirmationWidget.mm
     CredentialListWidget.mm
+    DatabaseUnlockWidget.mm
+    DatabasePickerWidget.mm
     BrowserPasskeysConfirmationDialogV2.mm
     AutoFillXPCServiceClient.m
     AutoFillService.mm

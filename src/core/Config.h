@@ -19,6 +19,7 @@
 #ifndef KEEPASSX_CONFIG_H
 #define KEEPASSX_CONFIG_H
 
+#include <QHash>
 #include <QPointer>
 #include <QVariant>
 #include <QVector>
@@ -241,6 +242,7 @@ public:
     void setDatabaseFilePath(const QString& dbUuid, const QString& filePath);
     QString getDatabaseFilePath(const QString& dbUuid) const;
     void removeDatabaseFilePath(const QString& dbUuid);
+    QHash<QString, QString> getAllDatabaseFilePaths() const;
 
 signals:
     void changed(ConfigKey key);
