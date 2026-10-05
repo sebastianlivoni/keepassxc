@@ -37,6 +37,12 @@
 #include "gui/styles/StateColorPalette.h"
 #include "quickunlock/QuickUnlockInterface.h"
 
+#ifdef Q_OS_MACOS
+#include "autofill/app/AutoFillCredentialProviderCheckbox.h"
+#include "autofill/app/AutoFillHelperCheckbox.h"
+#include "autofill/common/AutoFillSupport.h"
+#endif
+
 #include "FileDialog.h"
 #include "MessageBox.h"
 #ifdef KPXC_FEATURE_BROWSER
@@ -179,6 +185,27 @@ ApplicationSettingsWidget::ApplicationSettingsWidget(QWidget* parent)
 #endif
     m_generalUi->autoTypePreferDesktopPortalsCheckBox->setVisible(showDesktopPortalsPreference);
 
+#ifdef Q_OS_MACOS
+    if (!isAutoFillSupported()) {
+        m_generalUi->generalSettingsTabWidget->removeTab(
+            m_generalUi->generalSettingsTabWidget->indexOf(m_generalUi->tabAutofill));
+    } else {
+        // Swap the .ui placeholders for the macOS AutoFill checkboxes
+        auto swapCheckBox = [](QCheckBox*& placeholder, QCheckBox* replacement) {
+            replacement->setText(placeholder->text());
+            delete placeholder->parentWidget()->layout()->replaceWidget(placeholder, replacement);
+            delete placeholder;
+            placeholder = replacement;
+        };
+        swapCheckBox(m_generalUi->autoFillProviderCheckBox,
+                     new AutoFillCredentialProviderCheckbox(m_generalUi->tabAutofill));
+        swapCheckBox(m_generalUi->autoFillHelperCheckBox, new AutoFillHelperCheckbox(m_generalUi->tabAutofill));
+    }
+#else
+    m_generalUi->generalSettingsTabWidget->removeTab(
+        m_generalUi->generalSettingsTabWidget->indexOf(m_generalUi->tabAutofill));
+#endif
+
     if (!autoType()->isAvailable()) {
         m_generalUi->generalSettingsTabWidget->removeTab(1);
     } else {
@@ -242,6 +269,13 @@ ApplicationSettingsWidget::ApplicationSettingsWidget(QWidget* parent)
     connect(m_generalUi->autoTypeAskCheckBox, SIGNAL(toggled(bool)),
             SLOT(autoTypeAskToggled(bool)));
     // clang-format on
+
+#ifdef Q_OS_MACOS
+    connect(m_secUi->quickUnlockCheckBox,
+            &QCheckBox::toggled,
+            m_secUi->quickUnlockRememberCheckBox,
+            &QCheckBox::setEnabled);
+#endif
 
     connect(m_generalUi->useAlternativeSaveCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
         m_generalUi->alternativeSaveComboBox->setEnabled(checked && !config()->isManaged(Config::UseDirectWriteSaves));
@@ -459,6 +493,17 @@ void ApplicationSettingsWidget::loadSettings()
     m_secUi->quickUnlockCheckBox->setEnabled(getQuickUnlock()->isAvailable()
                                              && !config()->isManaged(Config::Security_QuickUnlock));
 
+#ifdef Q_OS_MACOS
+    m_generalUi->autoFillAskBeforeFillingCheckBox->setChecked(
+        config()->get(Config::AutoFill_AskBeforeFilling).toBool());
+    // Only Touch ID keeps keys outside of memory, so only it can remember them
+    m_secUi->quickUnlockRememberCheckBox->setChecked(config()->get(Config::Security_QuickUnlockRemember).toBool());
+    m_secUi->quickUnlockRememberCheckBox->setEnabled(m_secUi->quickUnlockCheckBox->isEnabled()
+                                                     && m_secUi->quickUnlockCheckBox->isChecked());
+#else
+    m_secUi->quickUnlockRememberCheckBox->setVisible(false);
+#endif
+
     minimizeAfterUnlockCheckBoxToggled(m_generalUi->minimizeAfterUnlockCheckBox->isChecked());
     hideWindowOnCopyCheckBoxToggled(m_generalUi->hideWindowOnCopyCheckBox->isChecked());
     showExpiredEntriesOnDatabaseUnlockToggled(m_generalUi->showExpiredEntriesOnDatabaseUnlockCheckBox->isChecked());
@@ -480,6 +525,9 @@ void ApplicationSettingsWidget::saveSettings()
 #ifndef QT_DEBUG
     osUtils->setLaunchAtStartup(m_generalUi->launchAtStartup->isChecked());
 #endif
+
+    const bool quickUnlockWasEnabled = config()->get(Config::Security_QuickUnlock).toBool();
+    const bool quickUnlockWasRemembered = config()->get(Config::Security_QuickUnlockRemember).toBool();
 
     // Iterate over the config-to-widget map
     for (auto it = m_configWidgetMap.cbegin(); it != m_configWidgetMap.cend(); ++it) {
@@ -551,6 +599,24 @@ void ApplicationSettingsWidget::saveSettings()
                 tr("Restart KeePassXC to apply the Auto-Type desktop portals preference."), MessageWidget::Information);
         }
         config()->set(Config::AutoTypePreferDesktopPortals, preferDesktopPortals);
+    }
+
+#ifdef Q_OS_MACOS
+    config()->set(Config::AutoFill_AskBeforeFilling, m_generalUi->autoFillAskBeforeFillingCheckBox->isChecked());
+#endif
+
+    if (m_secUi->quickUnlockCheckBox->isEnabled()) {
+        const bool enabled = m_secUi->quickUnlockCheckBox->isChecked();
+#ifdef Q_OS_MACOS
+        const bool remembered = enabled && m_secUi->quickUnlockRememberCheckBox->isChecked();
+        config()->set(Config::Security_QuickUnlockRemember, remembered);
+#else
+        const bool remembered = quickUnlockWasRemembered;
+#endif
+        // Security: drop stored quick unlock keys when they may no longer be kept
+        if ((quickUnlockWasEnabled && !enabled) || (quickUnlockWasRemembered && !remembered)) {
+            getQuickUnlock()->reset();
+        }
     }
 
     // Security: clear storage if related settings are disabled

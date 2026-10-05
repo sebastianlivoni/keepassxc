@@ -14,13 +14,20 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# CPACK_PACKAGE_FILES is set only during POST_BUILD
-if(NOT CPACK_PACKAGE_FILES)     # PRE_BUILD: Sign binaries
+# CPACK_PACKAGE_FILES is set only during POST_BUILD. Standalone: cmake -DCODESIGN_APP_DIR=<path/KeePassXC.app> -P MacOSCodesign.cmake
+if(DEFINED CODESIGN_APP_DIR OR NOT CPACK_PACKAGE_FILES)     # PRE_BUILD: Sign binaries
 
     set(PROGNAME "@PROGNAME@")
     set(CODESIGN_IDENTITY "@WITH_XC_CODESIGN_IDENTITY@")
-    set(ENTITLEMENTS @MACOSX_BUNDLE_APPLE_ENTITLEMENTS@)
-    set(APP_DIR "${CPACK_TEMPORARY_INSTALL_DIRECTORY}/ALL_IN_ONE/${PROGNAME}.app")
+    set(ENTITLEMENTS "@MACOSX_BUNDLE_APPLE_ENTITLEMENTS@")
+    set(AUTOFILL_ENTITLEMENTS "@AUTOFILL_ENTITLEMENTS@")
+    set(HELPER_ENTITLEMENTS "@HELPER_ENTITLEMENTS@")
+    set(PROXY_ENTITLEMENTS "@PROXY_ENTITLEMENTS@")
+    if(DEFINED CODESIGN_APP_DIR)
+        set(APP_DIR "${CODESIGN_APP_DIR}")
+    else()
+        set(APP_DIR "${CPACK_TEMPORARY_INSTALL_DIRECTORY}/ALL_IN_ONE/${PROGNAME}.app")
+    endif()
 
     if(NOT CODESIGN_IDENTITY)
         message(FATAL_ERROR "No codesign identity specified.")
@@ -42,6 +49,33 @@ if(NOT CPACK_PACKAGE_FILES)     # PRE_BUILD: Sign binaries
     if (NOT SIGN_RESULT EQUAL 0)
         message(FATAL_ERROR "Signing binaries failed: ${SIGN_ERROR}")
     endif()
+
+    # (Re-)Sign AutoFill extension, helper and (dev builds) proxy with their own entitlements,
+    # inside-out so the main executable below seals the final nested signatures
+    set(AUTOFILL_APPEX "${APP_DIR}/Contents/PlugIns/KeePassXCAutoFillExtension.appex")
+    set(HELPER_BIN "${APP_DIR}/Contents/MacOS/KeePassXCAutoFillHelper")
+    set(PROXY_BIN "${APP_DIR}/Contents/MacOS/keepassxc-proxy")
+    foreach(NESTED "AUTOFILL_APPEX;AUTOFILL_ENTITLEMENTS" "HELPER_BIN;HELPER_ENTITLEMENTS" "PROXY_BIN;PROXY_ENTITLEMENTS")
+        list(GET NESTED 0 NESTED_PATH_VAR)
+        list(GET NESTED 1 NESTED_ENTITLEMENTS_VAR)
+        set(NESTED_PATH "${${NESTED_PATH_VAR}}")
+        set(NESTED_ENTITLEMENTS "${${NESTED_ENTITLEMENTS_VAR}}")
+        if(NOT EXISTS "${NESTED_PATH}" OR NOT NESTED_ENTITLEMENTS)
+            continue()
+        endif()
+        execute_process(
+            COMMAND xcrun codesign --sign=${CODESIGN_IDENTITY} --force --options=runtime --entitlements=${NESTED_ENTITLEMENTS} "${NESTED_PATH}"
+            RESULT_VARIABLE SIGN_RESULT
+            OUTPUT_VARIABLE SIGN_OUTPUT
+            ERROR_VARIABLE SIGN_ERROR
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_STRIP_TRAILING_WHITESPACE
+            ECHO_OUTPUT_VARIABLE
+        )
+        if (NOT SIGN_RESULT EQUAL 0)
+            message(FATAL_ERROR "Signing ${NESTED_PATH} failed: ${SIGN_ERROR}")
+        endif()
+    endforeach()
 
     # (Re-)Sign main executable with --entitlements
     execute_process(
@@ -79,6 +113,12 @@ else()       # POST_BUILD: Notarize DMG
         )
         if (NOT NOTARIZE_RESULT EQUAL 0)
             message(FATAL_ERROR "Notarization failed: ${NOTARIZE_ERROR}")
+        endif()
+        # notarytool --wait exits 0 even when Apple rejects the submission
+        if (NOT NOTARIZE_OUTPUT MATCHES "status: Accepted")
+            string(REGEX MATCH "id: ([0-9a-f-]+)" _ "${NOTARIZE_OUTPUT}")
+            message(FATAL_ERROR "Notarization was not accepted. Details: "
+                    "xcrun notarytool log ${CMAKE_MATCH_1} --keychain-profile=${KEYCHAIN_PROFILE}")
         endif()
         message(STATUS "DMG bundle notarized successfully.")
 

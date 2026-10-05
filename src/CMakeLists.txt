@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src/autofill)
 
 set(core_SOURCES
         core/Alloc.cpp
@@ -215,6 +215,10 @@ set(gui_SOURCES
         ../share/wizard/wizard.qrc)
 
 if(APPLE)
+    set(APPLE_TEAM_ID "G2S7P7J672" CACHE STRING "Apple Developer Team ID")
+    set(APPLE_APP_IDENTIFIER "org.keepassxc.keepassxc" CACHE STRING "App bundle identifier")
+
+    list(APPEND core_SOURCES gui/osutils/macutils/MacCoreUtils.mm)
     list(APPEND gui_SOURCES
             gui/osutils/macutils/DeviceListenerMac.cpp
             gui/osutils/macutils/MacPasteboard.cpp
@@ -223,6 +227,38 @@ if(APPLE)
             gui/osutils/macutils/AppKitImpl.mm
             gui/osutils/macutils/AppKit.h
             quickunlock/TouchID.mm)
+
+    set(HELPER_APP_IDENTIFIER "${APPLE_APP_IDENTIFIER}.AutoFillHelper")
+    set(HELPER_XPC_SERVICE_NAME "${APPLE_TEAM_ID}.${HELPER_APP_IDENTIFIER}")
+    set(AUTOFILL_EXTENSION_IDENTIFIER "${APPLE_APP_IDENTIFIER}.AutoFillExtension")
+
+    if (AF_CODE_SIGNING_DR)
+      # Production: Mac App Store, or Developer ID of our team
+      set(DESIGNATED_REQUIREMENT
+          " and ( "
+          "  certificate leaf[field.1.2.840.113635.100.6.1.9] /* exists */"
+          "  or certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */"
+          "    and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */"
+          "    and certificate leaf[subject.OU] = \\\"${APPLE_TEAM_ID}\\\""
+      )
+      if (AF_CODE_SIGNING_DR_ALLOW_DEVELOPMENT)
+        # Testing only: also Apple Development certificates (WWDR intermediate) of our team
+        message(WARNING "AF_CODE_SIGNING_DR_ALLOW_DEVELOPMENT is ON: AutoFill XPC accepts Apple Development signatures. Do not use for releases.")
+        list(APPEND DESIGNATED_REQUIREMENT
+            "  or certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */"
+            "    and certificate leaf[subject.OU] = \\\"${APPLE_TEAM_ID}\\\""
+        )
+      endif()
+      list(APPEND DESIGNATED_REQUIREMENT ")")
+      list(JOIN DESIGNATED_REQUIREMENT " " DESIGNATED_REQUIREMENT)
+    else()
+      # Development: any Apple Development certificate (WWDR intermediate) of our team
+      set(DESIGNATED_REQUIREMENT
+          " and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */"
+          " and certificate leaf[subject.OU] = \\\"${APPLE_TEAM_ID}\\\""
+      )
+      list(JOIN DESIGNATED_REQUIREMENT " " DESIGNATED_REQUIREMENT)
+    endif()
 
     # TODO: Remove -Wno-error once deprecation warnings have been resolved.
     set_source_files_properties(quickunlock/TouchID.mm PROPERTY COMPILE_FLAGS "-Wno-old-style-cast")
@@ -319,8 +355,30 @@ if(KPXC_FEATURE_NETWORK)
             gui/IconDownloaderDialog.cpp)
 endif()
 
+# macOS bundle: app and AutoFill extension link one shared libkeepassxc.dylib instead of each
+# carrying a static copy; keepassxc_core/keepassxc_gui stay static for tests, CLI and other platforms
+# (the CLI uses Botan directly, which a static Botan build doesn't export from the dylib)
+if(APPLE AND WITH_APP_BUNDLE)
+    set(keepassxc_gui_LIB keepassxc_shared)
+else()
+    set(keepassxc_gui_LIB keepassxc_gui)
+endif()
+
 add_subdirectory(cli)
 add_subdirectory(thirdparty)
+
+if(APPLE)
+    if(WITH_APP_BUNDLE)
+        add_subdirectory(autofill/helper)
+    endif()
+    add_subdirectory(autofill)
+    set(autofill_LIB autofill)
+
+    list(APPEND gui_SOURCES
+        gui/dbsettings/DatabaseSettingsWidgetAutoFill.cpp
+        autofill/app/AutoFillCredentialProviderCheckbox.mm
+        autofill/app/AutoFillHelperCheckbox.mm)
+endif()
 
 add_subdirectory(autotype)
 set(autotype_LIB autotype)
@@ -352,7 +410,7 @@ find_package(Qt6 REQUIRED COMPONENTS SvgWidgets)
 # Core Library Definition
 add_library(keepassxc_core STATIC ${core_SOURCES})
 target_compile_definitions(keepassxc_core PRIVATE KPXC_BUILDING_CORE)
-target_link_libraries(keepassxc_core 
+target_link_libraries(keepassxc_core
         ${qrcode_LIB}
         Qt6::Core
         Qt6::Concurrent
@@ -373,12 +431,17 @@ target_link_libraries(keepassxc_gui
         Qt6::Widgets
         ${autotype_LIB}
         ${browser_LIB}
+        ${autofill_LIB}
         ${fdosecrets_LIB}
         ${keeshare_LIB}
         ${sshagent_LIB})
 
 if(APPLE)
-    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit")
+    target_link_libraries(keepassxc_gui "-framework Foundation -framework AppKit -framework Carbon -framework Security -framework LocalAuthentication -framework ScreenCaptureKit -framework AuthenticationServices -framework ServiceManagement")
+    target_compile_definitions(keepassxc_core PRIVATE APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
+    # For the AutoFill settings checkboxes; the rest is set in autofill/CMakeLists.txt
+    target_compile_definitions(keepassxc_gui PRIVATE HELPER_APP_IDENTIFIER="${HELPER_APP_IDENTIFIER}")
+
     if(Qt6MacExtras_FOUND)
         target_link_libraries(keepassxc_gui Qt6::MacExtras)
     endif()
@@ -402,6 +465,33 @@ if(WIN32)
     endif()
 endif()
 
+if(APPLE AND WITH_APP_BUNDLE)
+    # Force-load every static library so the dylib holds the complete code exactly once
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/keepassxc_shared.cpp" "// Built from force-loaded static libraries\n")
+    add_library(keepassxc_shared SHARED "${CMAKE_CURRENT_BINARY_DIR}/keepassxc_shared.cpp")
+    foreach(_lib keepassxc_gui keepassxc_core ${autotype_LIB} ${browser_LIB} ${autofill_LIB} ${keeshare_LIB}
+            ${sshagent_LIB} ${qrcode_LIB} ${ZXCVBN_LIBRARIES} ${thirdparty_LIBRARIES})
+        if(TARGET ${_lib})
+            target_link_libraries(keepassxc_shared PRIVATE "-Wl,-force_load,$<TARGET_FILE:${_lib}>")
+        endif()
+    endforeach()
+    # Remaining external dependencies; Qt is public so consumers get its includes and frameworks
+    target_link_libraries(keepassxc_shared
+        PRIVATE keepassxc_gui
+        PUBLIC Qt6::Core Qt6::Concurrent Qt6::Network Qt6::Svg Qt6::SvgWidgets Qt6::Widgets)
+    target_link_options(keepassxc_shared PRIVATE "-Wl,-dead_strip")
+    # Built straight into the bundle so the build tree app and sandboxed extension can load it
+    set_target_properties(keepassxc_shared PROPERTIES
+        OUTPUT_NAME keepassxc
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUNDLE_INSTALL_DIR}/Frameworks"
+        INSTALL_NAME_DIR "@rpath"
+        BUILD_WITH_INSTALL_NAME_DIR ON)
+    # Qt frameworks sit next to the dylib
+    set_property(TARGET keepassxc_shared APPEND PROPERTY INSTALL_RPATH "@loader_path")
+    install(TARGETS keepassxc_shared LIBRARY DESTINATION "${BUNDLE_INSTALL_DIR}/Frameworks" COMPONENT Runtime)
+    set_property(GLOBAL APPEND PROPERTY _MACDEPLOYQT_EXTRA_BINARIES "${BUNDLE_INSTALL_DIR}/Frameworks/libkeepassxc.dylib")
+endif()
+
 # Main Executable Definition
 unset(_restore_vcpkg_applocal_deps)
 if(WIN32 AND WITH_BUILD_QT AND VCPKG_APPLOCAL_DEPS)
@@ -413,8 +503,14 @@ if(_restore_vcpkg_applocal_deps)
     set(VCPKG_APPLOCAL_DEPS ON)
     unset(_restore_vcpkg_applocal_deps)
 endif()
-target_link_libraries(${PROGNAME} keepassxc_gui)
+target_link_libraries(${PROGNAME} ${keepassxc_gui_LIB})
 set_target_properties(${PROGNAME} PROPERTIES ENABLE_EXPORTS ON)
+if(APPLE)
+    target_link_options(${PROGNAME} PRIVATE "-Wl,-dead_strip")
+endif()
+if(APPLE AND WITH_APP_BUNDLE)
+    set_property(TARGET ${PROGNAME} APPEND PROPERTY INSTALL_RPATH "@executable_path/../Frameworks")
+endif()
 
 if(WIN32)
     set_target_properties(${PROGNAME} PROPERTIES WIN32_EXECUTABLE ON)
@@ -431,11 +527,15 @@ if(WIN32)
     target_sources(${PROGNAME} PUBLIC ${WIN32_ResourceFiles})
 
 elseif(APPLE AND WITH_APP_BUNDLE)
-    set(MACOSX_BUNDLE_IDENTIFIER org.keepassxc.keepassxc)
     set(MACOSX_BUNDLE_ICON_NAME keepassxc)
-    set(MACOSX_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements")
+    set(MACOSX_BUNDLE_APPLE_ENTITLEMENTS "${CMAKE_CURRENT_BINARY_DIR}/keepassxc.entitlements")
     configure_file("${CMAKE_SOURCE_DIR}/share/macosx/Info.plist.in" ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
-    install(FILES "${CMAKE_SOURCE_DIR}/share/macosx/embedded.provisionprofile" DESTINATION ${BUNDLE_INSTALL_DIR})
+    configure_file(${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.entitlements ${CMAKE_CURRENT_BINARY_DIR}/keepassxc.entitlements)
+    # Override with your own profile (e.g. for local Developer ID builds) without changing the repository
+    set(KEEPASSXC_PROVISIONING_PROFILE "${CMAKE_SOURCE_DIR}/share/macosx/embedded.provisionprofile"
+        CACHE FILEPATH "Provisioning profile embedded in KeePassXC.app")
+    install(FILES "${KEEPASSXC_PROVISIONING_PROFILE}" DESTINATION ${BUNDLE_INSTALL_DIR}
+            RENAME embedded.provisionprofile)
     set(MACOSX_BUNDLE_RESOURCE_FILES
             "${CMAKE_SOURCE_DIR}/share/macosx/Assets.car"
             "${CMAKE_SOURCE_DIR}/share/macosx/keepassxc.icns"
@@ -455,8 +555,24 @@ elseif(APPLE AND WITH_APP_BUNDLE)
 
     # Sign binaries
     if(WITH_XC_CODESIGN_IDENTITY)
+        set(AUTOFILL_ENTITLEMENTS "${CMAKE_CURRENT_BINARY_DIR}/autofill/autofill.entitlements")
+        set(HELPER_ENTITLEMENTS "${CMAKE_CURRENT_BINARY_DIR}/autofill/helper/helper.entitlements")
+        if(WITH_XC_DEV_ENTITLEMENTS)
+            set(PROXY_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/share/macosx/proxy-dev.entitlements")
+        endif()
         configure_file("${CMAKE_SOURCE_DIR}/cmake/MacOSCodesign.cmake.in" "${CMAKE_BINARY_DIR}/MacOSCodesign.cmake" @ONLY)
         set(CPACK_PRE_BUILD_SCRIPTS "${CMAKE_BINARY_DIR}/MacOSCodesign.cmake")
+
+        # Sign the bundle in the build tree: cmake --build build --target codesign
+        add_custom_target(codesign
+            COMMAND ${CMAKE_COMMAND} -DCODESIGN_APP_DIR=$<TARGET_BUNDLE_DIR:${PROGNAME}> -P "${CMAKE_BINARY_DIR}/MacOSCodesign.cmake"
+            COMMENT "Signing ${PROGNAME}.app"
+            VERBATIM)
+        foreach(SIGN_DEP ${PROGNAME} keepassxc_shared keepassxc-proxy keepassxc-cli KeePassXCAutoFillExtension KeePassXCAutoFillHelper)
+            if(TARGET ${SIGN_DEP})
+                add_dependencies(codesign ${SIGN_DEP})
+            endif()
+        endforeach()
         if(WITH_XC_NOTARY_KEYCHAIN_PROFILE)
             configure_file("${CMAKE_SOURCE_DIR}/cmake/MacOSCodesign.cmake.in" "${CMAKE_BINARY_DIR}/MacOSCodesign.cmake" @ONLY)
             set(CPACK_POST_BUILD_SCRIPTS "${CMAKE_BINARY_DIR}/MacOSCodesign.cmake")
