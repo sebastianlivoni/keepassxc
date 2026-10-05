@@ -43,7 +43,7 @@ private:
     static void deleteKeyEntry(const QString& accountName);
     static QString databaseKeyName(const QUuid& dbUuid);
 
-    QHash<QUuid, QByteArray> m_encryptedMasterKeys;
+    QString m_error;
 };
 
 #endif // KEEPASSXC_TOUCHID_H

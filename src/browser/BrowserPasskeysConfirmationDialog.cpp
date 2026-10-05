@@ -51,7 +51,10 @@ BrowserPasskeysConfirmationDialog::~BrowserPasskeysConfirmationDialog()
 void BrowserPasskeysConfirmationDialog::showEvent(QShowEvent* event)
 {
     QDialog::showEvent(event);
-    GuiTools::centerWidgetOnActiveScreen(this);
+    // Not when embedded (macOS AutoFill extension)
+    if (isWindow()) {
+        GuiTools::centerWidgetOnActiveScreen(this);
+    }
 }
 
 void BrowserPasskeysConfirmationDialog::registerCredential(const QString& username,

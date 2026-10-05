@@ -25,6 +25,10 @@
 #endif
 #include "../remote/DatabaseSettingsWidgetRemote.h"
 #include "DatabaseSettingsWidgetMaintenance.h"
+#ifdef Q_OS_MACOS
+#include "DatabaseSettingsWidgetAutoFill.h"
+#include "autofill/common/AutoFillSupport.h"
+#endif
 #include "keeshare/DatabaseSettingsWidgetKeeShare.h"
 #ifdef KPXC_FEATURE_FDOSECRETS
 #include "fdosecrets/widgets/DatabaseSettingsWidgetFdoSecrets.h"
@@ -51,6 +55,9 @@ DatabaseSettingsDialog::DatabaseSettingsDialog(QWidget* parent)
 #endif
     , m_maintenanceWidget(new DatabaseSettingsWidgetMaintenance(this))
     , m_remoteWidget(new DatabaseSettingsWidgetRemote(this))
+#ifdef Q_OS_MACOS
+    , m_autoFillWidget(new DatabaseSettingsWidgetAutoFill(this))
+#endif
 {
     connect(this, SIGNAL(accepted()), SLOT(save()));
     connect(this, SIGNAL(rejected()), SLOT(reject()));
@@ -76,6 +83,12 @@ DatabaseSettingsDialog::DatabaseSettingsDialog(QWidget* parent)
 
 #ifdef KPXC_FEATURE_BROWSER
     addPage(tr("Browser Integration"), icons()->icon("internet-web-browser"), m_browserWidget);
+#endif
+
+#ifdef Q_OS_MACOS
+    if (isAutoFillSupported()) {
+        addPage(tr("AutoFill"), icons()->icon("internet-web-browser"), m_autoFillWidget);
+    }
 #endif
 
     addPage(tr("KeeShare"), icons()->icon("preferences-system-network-sharing"), m_keeShareWidget);
@@ -105,6 +118,9 @@ void DatabaseSettingsDialog::load(const QSharedPointer<Database>& db)
     m_browserWidget->loadSettings(db);
 #endif
     m_keeShareWidget->loadSettings(db);
+#ifdef Q_OS_MACOS
+    m_autoFillWidget->loadSettings(db);
+#endif
 #ifdef KPXC_FEATURE_FDOSECRETS
     m_fdoSecretsWidget->loadSettings(db);
 #endif
@@ -154,6 +170,9 @@ void DatabaseSettingsDialog::save()
     // Browser settings don't have anything to save
 
     m_keeShareWidget->saveSettings();
+#ifdef Q_OS_MACOS
+    m_autoFillWidget->saveSettings();
+#endif
 #ifdef KPXC_FEATURE_FDOSECRETS
     m_fdoSecretsWidget->saveSettings();
 #endif

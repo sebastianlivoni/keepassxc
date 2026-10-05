@@ -59,6 +59,7 @@ class DatabaseWidget : public QStackedWidget
 
 public:
     friend class DatabaseOpenDialog;
+    friend class DatabaseTabWidget;
 
     enum class Mode
     {

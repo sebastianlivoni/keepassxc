@@ -28,6 +28,10 @@
 #include <QStandardPaths>
 #include <QTemporaryFile>
 
+#ifdef Q_OS_MACOS
+#include "gui/osutils/macutils/MacCoreUtils.h"
+#endif
+
 #include <algorithm>
 
 #define CONFIG_VERSION 2
@@ -164,6 +168,7 @@ static const QHash<Config::ConfigKey, ConfigDirective> configStrings = {
     {Config::Security_NoConfirmMoveEntryToRecycleBin,{QS("Security/NoConfirmMoveEntryToRecycleBin"), Roaming, true}},
     {Config::Security_EnableCopyOnDoubleClick,{QS("Security/EnableCopyOnDoubleClick"), Roaming, false}},
     {Config::Security_QuickUnlock, {QS("Security/QuickUnlock"), Local, true}},
+    {Config::Security_QuickUnlockRemember, {QS("Security/QuickUnlockRemember"), Local, false}},
     {Config::Security_DatabasePasswordMinimumQuality, {QS("Security/DatabasePasswordMinimumQuality"), Local, 0}},
 
     // Browser
@@ -188,6 +193,11 @@ static const QHash<Config::ConfigKey, ConfigDirective> configStrings = {
     {Config::Browser_CustomBrowserType, {QS("Browser/CustomBrowserType"), Local, -1}},
     {Config::Browser_CustomBrowserLocation, {QS("Browser/CustomBrowserLocation"), Local, {}}},
     {Config::Browser_AllowLocalhostWithPasskeys, {QS("Browser/Browser_AllowLocalhostWithPasskeys"), Roaming, false}},
+
+    // AutoFill
+    {Config::AutoFill_HelperEnabled, {QS("AutoFill/HelperEnabled"), Local, false}},
+    {Config::AutoFill_AskBeforeFilling, {QS("AutoFill/AskBeforeFilling"), Local, false}},
+    {Config::AutoFill_LastFullClear, {QS("AutoFill/LastFullClear"), Local, {}}},
 #ifdef QT_DEBUG
     {Config::Browser_CustomExtensionId, {QS("Browser/CustomExtensionId"), Local, {}}},
 #endif
@@ -582,6 +592,30 @@ QPair<QString, QString> Config::defaultConfigFiles()
 #elif defined(Q_OS_MACOS)
     configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     localConfigPath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+
+    // Kept in the app group container so the AutoFill extension can read it;
+    // existing files are copied over once
+    const QString groupContainer = MacCoreUtils::getAppGroupContainerPath(APP_GROUP_IDENTIFIER);
+    if (!groupContainer.isEmpty()) {
+        QString suffix;
+#ifdef QT_DEBUG
+        suffix = "_debug";
+#endif
+        const QString fileName = QString("/keepassxc%1.ini").arg(suffix);
+        const auto migrate = [&fileName](const QString& oldDir, const QString& newDir) {
+            if (!QFile::exists(newDir + fileName) && QFile::exists(oldDir + fileName)) {
+                QDir().mkpath(newDir);
+                QFile::copy(oldDir + fileName, newDir + fileName);
+            }
+        };
+
+        const QString groupConfigPath = groupContainer + "/Library/Application Support/KeePassXC";
+        const QString groupLocalConfigPath = groupContainer + "/Library/Caches/KeePassXC";
+        migrate(configPath, groupConfigPath);
+        migrate(localConfigPath, groupLocalConfigPath);
+        configPath = groupConfigPath;
+        localConfigPath = groupLocalConfigPath;
+    }
 #else
     // On case-sensitive Operating Systems, force use of lowercase app directories
     configPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/keepassxc";
@@ -680,3 +714,46 @@ void Config::setShortcuts(const QList<ShortcutEntry>& shortcuts)
 }
 
 #undef QS
+
+QSettings* Config::localSettings() const
+{
+    return m_localSettings ? m_localSettings.data() : m_settings.data();
+}
+
+void Config::setDatabaseFilePath(const QString& dbUuid, const QString& filePath)
+{
+    if (dbUuid.isEmpty() || filePath.isEmpty()) {
+        return;
+    }
+    localSettings()->setValue(QString("DatabasePaths/%1").arg(dbUuid), filePath);
+    sync();
+}
+
+QString Config::getDatabaseFilePath(const QString& dbUuid) const
+{
+    if (dbUuid.isEmpty()) {
+        return {};
+    }
+    return localSettings()->value(QString("DatabasePaths/%1").arg(dbUuid)).toString();
+}
+
+QHash<QString, QString> Config::getAllDatabaseFilePaths() const
+{
+    QHash<QString, QString> paths;
+    auto* settings = localSettings();
+    settings->beginGroup("DatabasePaths");
+    for (const auto& dbUuid : settings->childKeys()) {
+        paths.insert(dbUuid, settings->value(dbUuid).toString());
+    }
+    settings->endGroup();
+    return paths;
+}
+
+void Config::removeDatabaseFilePath(const QString& dbUuid)
+{
+    if (dbUuid.isEmpty()) {
+        return;
+    }
+    localSettings()->remove(QString("DatabasePaths/%1").arg(dbUuid));
+    sync();
+}
