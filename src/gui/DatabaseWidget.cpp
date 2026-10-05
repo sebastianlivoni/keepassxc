@@ -1971,7 +1971,9 @@ void DatabaseWidget::closeEvent(QCloseEvent* event)
         return;
     }
 
-    m_databaseOpenWidget->resetQuickUnlock();
+    if (!config()->get(Config::Security_QuickUnlockRemember).toBool()) {
+        m_databaseOpenWidget->resetQuickUnlock();
+    }
     event->accept();
 }
 

@@ -1,0 +1,35 @@
+= KeePassXC – AutoFill on macOS
+include::.sharedheader[]
+:imagesdir: ../images
+
+// tag::content[]
+== AutoFill on macOS
+On macOS, KeePassXC can provide passwords, one-time codes, and passkeys through the system's AutoFill, without the need for a browser extension. Passwords and one-time codes are offered in Safari, while passkeys are also offered in other apps that support them.
+
+=== Enabling AutoFill
+1. Open _Application Settings_ -> _General_ -> _AutoFill_ and check _Use KeePassXC to AutoFill_.
+2. macOS asks you to confirm. You can also enable KeePassXC in _System Settings_ -> _General_ -> _AutoFill & Passwords_.
+3. Unlock each database you want to use once in KeePassXC. This allows AutoFill to open the database file later.
+
+Logins from unlocked databases now appear as suggestions when you select a username or password field.
+
+=== Filling Logins and Passkeys
+Select a suggestion to fill it in. If the database is unlocked in KeePassXC, the login is filled in directly. Otherwise, the AutoFill window opens so you can unlock the database, using Touch ID if Quick Unlock is available.
+
+When you choose _KeePassXC_ in the passkey dialog of a website, the AutoFill window always opens. There you choose the database, unlock it, and confirm the passkey. New passkeys are saved to the database you choose.
+
+=== AutoFill Helper
+The _Enable AutoFill helper_ option allows AutoFill to use databases that are already unlocked in KeePassXC, so you do not have to unlock them again. The helper runs in the background and is listed under _Login Items_ in the macOS System Settings. Without the helper, you unlock the database in the AutoFill window each time.
+
+Check _Ask before filling from an unlocked database_ to approve every fill with Touch ID or your Mac password, even when KeePassXC is unlocked. Suggestions picked from the keyboard bar then open the AutoFill window first.
+
+=== Excluding a Database
+To keep a database out of AutoFill, open _Database_ -> _Database Settings_ -> _AutoFill_ and uncheck _Use this database for AutoFill_. Its logins are removed from the AutoFill suggestions and the database is no longer offered in the AutoFill window.
+
+// tag::advanced[]
+=== Quick Unlock in AutoFill
+The AutoFill window can unlock a database with Touch ID while Quick Unlock is set up for it in KeePassXC. To keep using Touch ID after the database is closed or KeePassXC is restarted, check _Remember quick unlock after the database is closed_ in _Application Settings_ -> _Security_.
+
+NOTE: AutoFill can only open database files that were unlocked in KeePassXC at least once. If a database was moved, unlock it again in KeePassXC.
+// end::advanced[]
+// end::content[]

@@ -148,7 +148,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>40</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -174,7 +174,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>30</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -210,7 +210,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>30</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -250,7 +250,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>30</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -315,7 +315,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>40</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -483,7 +483,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>30</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -519,7 +519,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>40</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -658,7 +658,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>30</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -691,7 +691,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>30</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -753,7 +753,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>40</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -981,7 +981,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>30</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -1029,7 +1029,7 @@
                   <property name="sizeHint" stdset="0">
                    <size>
                     <width>40</width>
-                    <height>20</height>
+                    <height>0</height>
                    </size>
                   </property>
                  </spacer>
@@ -1086,7 +1086,7 @@
                      <property name="sizeHint" stdset="0">
                       <size>
                        <width>30</width>
-                       <height>20</height>
+                       <height>0</height>
                       </size>
                      </property>
                     </spacer>
@@ -1569,6 +1569,97 @@
         <spacer name="verticalSpacer_3">
          <property name="orientation">
           <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabAutofill">
+      <attribute name="title">
+       <string>AutoFill</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_9">
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
+       <property name="topMargin">
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
+       <item>
+        <widget class="QCheckBox" name="autoFillProviderCheckBox">
+         <property name="text">
+          <string>Use KeePassXC to AutoFill</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="autoFillHelperCheckBox">
+         <property name="text">
+          <string>Enable AutoFill helper</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="autoFillLaunchAgentDescription">
+         <property name="text">
+          <string>Lets AutoFill use databases that are already unlocked in KeePassXC, so passwords, one-time codes, and passkeys are filled in without unlocking again. Without the helper, you unlock the database in the AutoFill window each time. The helper runs in the background and is listed under Login Items in System Settings.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+         <property name="indent">
+          <number>20</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="autoFillAskBeforeFillingCheckBox">
+         <property name="toolTip">
+          <string>Prevents anyone with access to your unlocked Mac from filling in your logins while KeePassXC is unlocked</string>
+         </property>
+         <property name="text">
+          <string>Ask before filling from an unlocked database</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_7">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_5">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>

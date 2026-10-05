@@ -19,9 +19,14 @@
 
 #include "gui/Application.h"
 
+#include <QPalette>
+
 StateColorPalette::StateColorPalette()
 {
-    if (kpxcApp->isDarkTheme()) {
+    // kpxcApp is null outside the main app (e.g. the AutoFill extension); judge by its palette then
+    const bool dark = kpxcApp ? kpxcApp->isDarkTheme()
+                              : QApplication::palette().color(QPalette::Window).lightness() < 128;
+    if (dark) {
         initDefaultPaletteDark();
     } else {
         initDefaultPaletteLight();

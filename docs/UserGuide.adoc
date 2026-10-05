@@ -35,6 +35,8 @@ include::topics/BrowserIntegration.adoc[tags=*]
 
 include::topics/Passkeys.adoc[tags=*]
 
+include::topics/AutoFill.adoc[tags=*]
+
 include::topics/AutoType.adoc[tags=*]
 
 include::topics/SecretService.adoc[tags=*]

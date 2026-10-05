@@ -35,6 +35,9 @@ class DatabaseSettingsWidgetKeeShare;
 #ifdef KPXC_FEATURE_FDOSECRETS
 class DatabaseSettingsWidgetFdoSecrets;
 #endif
+#ifdef Q_OS_MACOS
+class DatabaseSettingsWidgetAutoFill;
+#endif
 class DatabaseSettingsWidgetMaintenance;
 class DatabaseSettingsWidgetRemote;
 class QTabWidget;
@@ -74,6 +77,9 @@ private:
 #endif
     QPointer<DatabaseSettingsWidgetMaintenance> m_maintenanceWidget;
     QPointer<DatabaseSettingsWidgetRemote> m_remoteWidget;
+#ifdef Q_OS_MACOS
+    QPointer<DatabaseSettingsWidgetAutoFill> m_autoFillWidget;
+#endif
 };
 
 #endif // KEEPASSXC_DATABASESETTINGSDIALOG_H

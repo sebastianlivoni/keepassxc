@@ -19,6 +19,7 @@
 #ifndef KEEPASSX_CONFIG_H
 #define KEEPASSX_CONFIG_H
 
+#include <QHash>
 #include <QPointer>
 #include <QVariant>
 #include <QVector>
@@ -143,6 +144,7 @@ public:
         Security_NoConfirmMoveEntryToRecycleBin,
         Security_EnableCopyOnDoubleClick,
         Security_QuickUnlock,
+        Security_QuickUnlockRemember,
         Security_DatabasePasswordMinimumQuality,
 
         Browser_Enabled,
@@ -166,6 +168,10 @@ public:
         Browser_CustomBrowserType,
         Browser_CustomBrowserLocation,
         Browser_AllowLocalhostWithPasskeys,
+
+        AutoFill_HelperEnabled,
+        AutoFill_AskBeforeFilling,
+        AutoFill_LastFullClear,
 #ifdef QT_DEBUG
         Browser_CustomExtensionId,
 #endif
@@ -243,6 +249,11 @@ public:
     static void createConfigFromFile(const QString& configFileName, const QString& localConfigFileName = {});
     static bool isPortable();
     static QString portableConfigDir();
+
+    void setDatabaseFilePath(const QString& dbUuid, const QString& filePath);
+    QString getDatabaseFilePath(const QString& dbUuid) const;
+    void removeDatabaseFilePath(const QString& dbUuid);
+    QHash<QString, QString> getAllDatabaseFilePaths() const;
 
 signals:
     void changed(ConfigKey key);

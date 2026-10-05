@@ -664,6 +664,30 @@
         <source>Show autocomplete suggestions for username and additional attributes</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>AutoFill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use KeePassXC to AutoFill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable AutoFill helper</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lets AutoFill use databases that are already unlocked in KeePassXC, so passwords, one-time codes, and passkeys are filled in without unlocking again. Without the helper, you unlock the database in the AutoFill window each time. The helper runs in the background and is listed under Login Items in System Settings.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Prevents anyone with access to your unlocked Mac from filling in your logins while KeePassXC is unlocked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ask before filling from an unlocked database</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ApplicationSettingsWidgetSecurity</name>
@@ -753,6 +777,14 @@
         <source>Hide notes in the entry preview panel</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Keeps the Touch ID key in your keychain, so quick unlock also works after closing the database, after restarting KeePassXC, and in AutoFill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remember quick unlock after the database is closed</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>AttachmentWidget</name>
@@ -762,6 +794,13 @@
     </message>
     <message>
         <source>Unknown attachment type</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>AutoFill</name>
+    <message>
+        <source>fill in a login from your database</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1458,6 +1497,44 @@ Do you want to overwrite the passkey in %1 - %2?</source>
     </message>
 </context>
 <context>
+    <name>ConfirmationWidget</name>
+    <message>
+        <source>Confirm Access</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>CredentialListWidget</name>
+    <message>
+        <source>No KeePassXC database is registered for AutoFill.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose a credential</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose a credential for %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No matching credentials found.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show All Entries</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>CsvImportWidget</name>
     <message>
         <source>size, rows, columns</source>
@@ -1860,6 +1937,25 @@ Are you sure you want to continue with this file?.</source>
     </message>
 </context>
 <context>
+    <name>DatabasePickerWidget</name>
+    <message>
+        <source>Choose a database to AutoFill from</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose a database for AutoFill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DatabaseSettingWidgetMetaData</name>
     <message>
         <source>Passwords</source>
@@ -1889,6 +1985,10 @@ Are you sure you want to continue with this file?.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>AutoFill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Maintenance</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1906,6 +2006,17 @@ Are you sure you want to continue with this file?.</source>
     </message>
     <message>
         <source>Database Settings: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DatabaseSettingsWidgetAutoFill</name>
+    <message>
+        <source>Use this database for AutoFill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>When disabled, logins, one-time codes, and passkeys from this database are not offered by AutoFill, and the database is not listed in the AutoFill window.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2719,6 +2830,17 @@ This is definitely a bug, please report it to the developers.</source>
     <message>
         <source>%1 [Temporary]</source>
         <comment>Database tab name modifier</comment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DatabaseUnlockWidget</name>
+    <message>
+        <source>To use &quot;%1&quot; with AutoFill, open and unlock it in KeePassXC once. This allows AutoFill to open the database file.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -9395,6 +9517,10 @@ This option is deprecated, use --set-key-file instead.</source>
     </message>
     <message>
         <source>Hardware Keys</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 (Passkey)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

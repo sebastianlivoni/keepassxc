@@ -41,7 +41,8 @@ public:
         AutoType,
         Merge,
         RemoteSync,
-        Browser
+        Browser,
+        AutoFill
     };
 
     explicit DatabaseOpenDialog(QWidget* parent = nullptr);
