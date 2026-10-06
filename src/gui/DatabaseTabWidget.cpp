@@ -19,6 +19,8 @@
 
 #include <QFileInfo>
 #include <QTabBar>
+#include <QApplication>
+#include <utility>
 
 #include "autotype/AutoType.h"
 #include "core/Merger.h"
@@ -30,7 +32,9 @@
 #include "gui/DatabaseWidget.h"
 #include "gui/DatabaseWidgetStateSync.h"
 #include "gui/FileDialog.h"
+#include "gui/MainWindow.h"
 #include "gui/MessageBox.h"
+#include "gui/OTPAuthDialog.h"
 #include "gui/export/ExportDialog.h"
 #ifdef Q_OS_MACOS
 #include "gui/osutils/macutils/MacUtils.h"
@@ -62,6 +66,22 @@ DatabaseTabWidget::DatabaseTabWidget(QWidget* parent)
     connect(m_databaseOpenDialog.data(), &DatabaseOpenDialog::dialogFinished,
             this, &DatabaseTabWidget::handleDatabaseUnlockDialogFinished);
     // clang-format on
+
+    connect(qApp, SIGNAL(otpAuth(QUrl)), this, SLOT(handleOTPAuth(QUrl)));
+    // A link that arrived while everything was locked is handled once a database unlocks
+    connect(this, &DatabaseTabWidget::databaseUnlocked, this, [this] {
+        if (m_pendingOtpAuthUrl.isValid()) {
+            handleOTPAuth(std::exchange(m_pendingOtpAuthUrl, {}));
+        }
+    });
+    // The dialog lists entries of the unlocked databases, so it closes when one locks or closes
+    auto closeOtpAuthDialog = [this] {
+        if (m_otpAuthDialog) {
+            m_otpAuthDialog->reject();
+        }
+    };
+    connect(this, &DatabaseTabWidget::databaseLocked, this, closeOtpAuthDialog);
+    connect(this, &DatabaseTabWidget::databaseClosed, this, closeOtpAuthDialog);
 
 #ifdef Q_OS_MACOS
     connect(macUtils(), SIGNAL(userSwitched()), SLOT(lockDatabasesOnUserSwitch()));
@@ -964,4 +984,59 @@ void DatabaseTabWidget::performBrowserUnlock()
     if (dbWidget && dbWidget->isLocked()) {
         unlockAnyDatabaseInDialog(DatabaseOpenDialog::Intent::Browser);
     }
+}
+
+// Adds the verification code from an otpauth:// link to an entry the user picks
+void DatabaseTabWidget::handleOTPAuth(const QUrl& url)
+{
+    if (auto* mainWindow = getMainWindow()) {
+        mainWindow->bringToFront();
+    }
+
+    OTPAuthDialog::Request request;
+    const auto error = OTPAuthDialog::parse(url, request);
+    if (!error.isEmpty()) {
+        MessageBox::warning(this, tr("Cannot Add Verification Code"), error);
+        return;
+    }
+
+    QList<QSharedPointer<Database>> databases;
+    for (int i = 0, c = count(); i < c; ++i) {
+        auto* dbWidget = databaseWidgetFromIndex(i);
+        if (dbWidget && !dbWidget->isLocked()) {
+            databases.append(dbWidget->database());
+        }
+    }
+
+    if (databases.isEmpty()) {
+        // Only the latest link is kept; it's shown once any database unlocks
+        m_pendingOtpAuthUrl = url;
+        if (count() > 0) {
+            unlockAnyDatabaseInDialog(DatabaseOpenDialog::Intent::None);
+        } else {
+            emit messageGlobal(tr("Open a database to add the verification code to one of its entries."),
+                               MessageWidget::Information);
+        }
+        return;
+    }
+
+    // A newer link replaces a dialog that is still open
+    if (m_otpAuthDialog) {
+        m_otpAuthDialog->reject();
+    }
+    m_otpAuthDialog = new OTPAuthDialog(request, databases, this);
+    connect(m_otpAuthDialog,
+            &OTPAuthDialog::entryChosen,
+            this,
+            [this](Entry* entry, QSharedPointer<Totp::Settings> totp) {
+                for (int i = 0, c = count(); i < c; ++i) {
+                    auto* dbWidget = databaseWidgetFromIndex(i);
+                    if (dbWidget && !dbWidget->isLocked() && entry->database() == dbWidget->database().data()) {
+                        setCurrentIndex(i);
+                        dbWidget->setupTotp(entry, totp);
+                        return;
+                    }
+                }
+            });
+    m_otpAuthDialog->open();
 }

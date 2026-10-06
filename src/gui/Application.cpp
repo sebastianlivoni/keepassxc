@@ -227,7 +227,13 @@ bool Application::event(QEvent* event)
 {
     // Handle Apple QFileOpenEvent from finder (double click on .kdbx file)
     if (event->type() == QEvent::FileOpen) {
-        emit openFile(static_cast<QFileOpenEvent*>(event)->file());
+        auto* openEvent = static_cast<QFileOpenEvent*>(event);
+        // macOS also delivers otpauth:// links (registered in Info.plist) as open events
+        if (openEvent->url().scheme() == "otpauth") {
+            emit otpAuth(openEvent->url());
+        } else {
+            emit openFile(openEvent->file());
+        }
         return true;
     }
 #ifdef Q_OS_MACOS
@@ -333,6 +339,11 @@ void Application::socketReadyRead()
     case 1:
         in >> fileNames;
         for (const QString& fileName : asConst(fileNames)) {
+            // otpauth:// links passed to a second instance are forwarded with the file names
+            if (isOtpAuthUrl(fileName)) {
+                emit otpAuth(QUrl(fileName));
+                continue;
+            }
             const QFileInfo fInfo(fileName);
             if (fInfo.isFile() && fInfo.suffix().toLower() == "kdbx") {
                 emit openFile(fileName);
@@ -346,6 +357,11 @@ void Application::socketReadyRead()
     }
 
     socket->deleteLater();
+}
+
+bool Application::isOtpAuthUrl(const QString& argument)
+{
+    return argument.startsWith("otpauth:", Qt::CaseInsensitive);
 }
 
 bool Application::isAlreadyRunning() const
