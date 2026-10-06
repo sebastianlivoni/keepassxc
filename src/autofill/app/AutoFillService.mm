@@ -65,6 +65,15 @@ void AutoFillService::checkCredentialStoreEnabled() {
       }];
 }
 
+void AutoFillService::republishCredentialStore() {
+  dispatch_async(dispatch_get_main_queue(), ^{
+    // The store is enabled now, so checkCredentialStoreEnabled won't republish again
+    m_storeStateKnown = true;
+    m_storeEnabled = true;
+    clearCredentialStoreAndRepublish();
+  });
+}
+
 AutoFillService *AutoFillService::instance() {
   static AutoFillService *s_instance = new AutoFillService();
   return s_instance;

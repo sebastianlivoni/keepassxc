@@ -11,6 +11,7 @@
 
 #include "common/AutoFillCredentials.h"
 #include "browser/BrowserPasskeysConfirmationDialog.h"
+#include "extension/widgets/ConfigurationWidget.h"
 #include "extension/widgets/CredentialListWidget.h"
 #include "extension/widgets/DatabasePickerWidget.h"
 #include "extension/widgets/DatabaseUnlockWidget.h"
@@ -109,6 +110,23 @@ static const int PASSKEY_REGISTRATION_TIMEOUT_MS = 300000;
   [self focusEmbeddedWidget];
 
   return;
+}
+
+// Enabled in System Settings: have KeePassXC publish its identities right away
+- (void)prepareInterfaceForExtensionConfiguration {
+  [self withServiceConnection:^(NSXPCConnection *connection) {
+    id proxy = [connection remoteObjectProxyWithErrorHandler:^(NSError *error) {
+      os_log_error(OS_LOG_DEFAULT, "[AutoFill] Republish request failed: %{public}@", error);
+    }];
+    [proxy republishCredentialIdentities];
+  }];
+
+  auto *widget = new ConfigurationWidget();
+  __weak CredentialProviderViewController *weakSelf = self;
+  widget->onDone = [weakSelf]() {
+    [weakSelf.extensionContext completeExtensionConfigurationRequest];
+  };
+  [self embedQWidget:widget];
 }
 
 - (void)prepareCredentialListForServiceIdentifiers:

@@ -99,4 +99,8 @@
   autoFillService()->registerPasskeyForRequest(request, databaseUuid, existingEntryUuid, reply);
 }
 
+- (void)republishCredentialIdentities {
+  autoFillService()->republishCredentialStore();
+}
+
 @end

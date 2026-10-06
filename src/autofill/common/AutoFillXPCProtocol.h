@@ -35,6 +35,9 @@
                         withReply:(void (^)(ASPasskeyRegistrationCredential *credential,
                                             NSError *error))reply;
 
+// Republishes all unlocked databases after AutoFill was enabled in System Settings
+- (void)republishCredentialIdentities;
+
 @end
 
 static inline NSXPCInterface *AutoFillXPCInterface() {

@@ -32,6 +32,7 @@ set(SOURCES
     extension/widgets/CredentialListWidget.mm
     extension/widgets/DatabaseUnlockWidget.mm
     extension/widgets/DatabasePickerWidget.mm
+    extension/widgets/ConfigurationWidget.mm
 )
 
 add_executable(KeePassXCAutoFillExtension ${SOURCES})

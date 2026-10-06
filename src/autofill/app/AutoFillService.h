@@ -20,6 +20,8 @@ public:
   void start();
   // Republishes the store when KeePassXC was just enabled as AutoFill provider
   void checkCredentialStoreEnabled();
+  // Republishes after KeePassXC was enabled in System Settings
+  void republishCredentialStore();
   void fetchPasswordCredentialFromIdentity(
       ASPasswordCredentialIdentity *identity, bool interactive,
       void (^reply)(ASPasswordCredential *__strong credential,
