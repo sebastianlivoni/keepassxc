@@ -80,6 +80,8 @@ set(core_SOURCES
         format/OpVaultReaderBandEntry.cpp
         format/OpVaultReaderSections.cpp
         format/ProtonPassReader.cpp
+        format/CxfReader.cpp
+        format/CxfWriter.cpp
         keys/CompositeKey.cpp
         keys/FileKey.cpp
         keys/PasswordKey.cpp

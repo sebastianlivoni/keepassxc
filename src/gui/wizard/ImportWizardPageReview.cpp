@@ -69,6 +69,13 @@ void ImportWizardPageReview::initializePage()
     m_ui->messageWidget->setAnimate(false);
     m_ui->messageWidget->setCloseButtonVisible(false);
 
+    if (m_preloadedDb) {
+        m_ui->filenameLabel->setText(m_preloadedSource);
+        m_db = m_preloadedDb;
+        setupDatabasePreview();
+        return;
+    }
+
     auto importType = field("ImportType").toInt();
     switch (importType) {
     case ImportWizard::IMPORT_CSV:
@@ -113,6 +120,12 @@ bool ImportWizardPageReview::validatePage()
 QSharedPointer<Database> ImportWizardPageReview::database()
 {
     return m_db;
+}
+
+void ImportWizardPageReview::setPreloadedDatabase(QSharedPointer<Database> db, const QString& source)
+{
+    m_preloadedDb = db;
+    m_preloadedSource = source;
 }
 
 void ImportWizardPageReview::setupCsvImport(const QString& filename)

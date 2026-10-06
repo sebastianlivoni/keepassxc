@@ -3,10 +3,44 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 set(autofill_LIB_SOURCES
   app/AutoFillXPCListener.mm
   app/AutoFillService.mm
+  app/CredentialExchange.mm
   common/AutoFillCredentials.mm
 )
 
+# Credential Exchange is Swift only and needs the macOS 26 SDK; swiftc builds it into a
+# plain object file, so no CMake Swift support (and thus no particular generator) is needed
+execute_process(COMMAND xcrun --find swiftc OUTPUT_VARIABLE SWIFTC OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+execute_process(COMMAND xcrun --show-sdk-path OUTPUT_VARIABLE MACOS_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+execute_process(COMMAND xcrun --show-sdk-version OUTPUT_VARIABLE MACOS_SDK_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+if(SWIFTC AND MACOS_SDK_VERSION VERSION_GREATER_EQUAL 26.0)
+  set(SWIFT_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}")
+  if(NOT SWIFT_DEPLOYMENT_TARGET)
+    set(SWIFT_DEPLOYMENT_TARGET 12.0)
+  endif()
+  set(CREDENTIAL_EXCHANGE_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/CredentialExchangeBridge.o)
+  add_custom_command(
+    OUTPUT ${CREDENTIAL_EXCHANGE_OBJECT}
+    COMMAND ${SWIFTC} -parse-as-library -O -module-name KeePassXCCredentialExchange
+            -sdk ${MACOS_SDK_PATH} -target ${CMAKE_SYSTEM_PROCESSOR}-apple-macos${SWIFT_DEPLOYMENT_TARGET}
+            -c ${CMAKE_CURRENT_SOURCE_DIR}/app/CredentialExchangeBridge.swift -o ${CREDENTIAL_EXCHANGE_OBJECT}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/app/CredentialExchangeBridge.swift
+    COMMENT "Compiling CredentialExchangeBridge.swift")
+  list(APPEND autofill_LIB_SOURCES ${CREDENTIAL_EXCHANGE_OBJECT})
+  set(WITH_XC_CREDENTIAL_EXCHANGE ON)
+else()
+  message(STATUS "Credential Exchange import disabled: needs swiftc and the macOS 26 SDK")
+endif()
+
 add_library(autofill STATIC ${autofill_LIB_SOURCES})
+
+if(WITH_XC_CREDENTIAL_EXCHANGE)
+  target_compile_definitions(autofill PRIVATE WITH_XC_CREDENTIAL_EXCHANGE)
+  # The Swift object autolinks the Swift runtime, found in the SDK and the toolchain
+  get_filename_component(SWIFT_TOOLCHAIN_DIR ${SWIFTC} DIRECTORY)
+  target_link_directories(autofill PUBLIC
+    ${MACOS_SDK_PATH}/usr/lib/swift
+    ${SWIFT_TOOLCHAIN_DIR}/../lib/swift/macosx)
+endif()
 
 target_compile_options(autofill PRIVATE "-fobjc-arc")
 

@@ -53,6 +53,11 @@
         <string>Editor</string>
       </dict>
     </array>
+    <key>NSUserActivityTypes</key>
+    <array>
+      <string>ASCredentialExchangeActivity</string>
+      <string>ASCredentialExchangeActivityType</string>
+    </array>
     <key>CFBundleURLTypes</key>
     <array>
       <dict>

@@ -78,6 +78,8 @@
 
 #ifdef Q_OS_MACOS
 #include "autofill/app/AutoFillService.h"
+#include "autofill/app/CredentialExchange.h"
+#include "format/CxfReader.h"
 #include "autofill/common/AutoFillSupport.h"
 #endif
 
@@ -105,6 +107,8 @@ MainWindow::MainWindow()
                 m_ui->tabWidget,
                 &DatabaseTabWidget::performAutofillUnlock);
     }
+    connect(credentialExchange(), &CredentialExchange::importReceived, this, &MainWindow::importCredentialExchange);
+    credentialExchange()->start();
 #endif
 
 #if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS) && !defined(QT_NO_DBUS)
@@ -477,6 +481,16 @@ MainWindow::MainWindow()
     connect(m_ui->actionExportCsv, SIGNAL(triggered()), m_ui->tabWidget, SLOT(exportToCsv()));
     connect(m_ui->actionExportHtml, SIGNAL(triggered()), m_ui->tabWidget, SLOT(exportToHtml()));
     connect(m_ui->actionExportXML, SIGNAL(triggered()), m_ui->tabWidget, SLOT(exportToXML()));
+#ifdef Q_OS_MACOS
+    if (credentialExchange()->isExportSupported()) {
+        auto exportCredentialExchange = m_ui->menuExport->addAction(tr("To Another &App…"));
+        exportCredentialExchange->setToolTip(tr("Export to another app with Credential Exchange"));
+        connect(exportCredentialExchange,
+                &QAction::triggered,
+                m_ui->tabWidget,
+                &DatabaseTabWidget::exportToCredentialExchange);
+    }
+#endif
     connect(
         m_ui->actionLockDatabase, SIGNAL(triggered()), m_ui->tabWidget, SLOT(lockAndSwitchToFirstUnlockedDatabase()));
     connect(m_ui->actionLockDatabaseToolbar, SIGNAL(triggered()), m_ui->actionLockDatabase, SIGNAL(triggered()));
@@ -1874,6 +1888,25 @@ void MainWindow::hideYubiKeyPopup()
     hideGlobalMessage();
     setEnabled(true);
 }
+
+#ifdef Q_OS_MACOS
+// Credentials another app exported to KeePassXC go through the import wizard
+void MainWindow::importCredentialExchange()
+{
+    // Before the wizard opens, so the main window doesn't end up on top of it
+    bringToFront();
+    for (const auto& json : credentialExchange()->takePendingImports()) {
+        CxfReader reader;
+        auto db = reader.convert(json);
+        if (!db) {
+            showErrorMessage(tr("Credential import failed: %1").arg(reader.errorString()));
+            continue;
+        }
+        const auto source = reader.exporterName().isEmpty() ? tr("another app") : reader.exporterName();
+        m_ui->tabWidget->importDatabase(db, source);
+    }
+}
+#endif
 
 void MainWindow::bringToFront()
 {

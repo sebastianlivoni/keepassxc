@@ -109,10 +109,28 @@ bool ImportWizardPageSelect::validatePage()
 
 bool ImportWizardPageSelect::isComplete() const
 {
+    if (m_preloaded) {
+        return true;
+    }
     if (field("ImportType").toInt() == ImportWizard::IMPORT_REMOTE) {
         return !field("DownloadCommand").toString().isEmpty();
     }
     return !field("ImportFile").toString().isEmpty();
+}
+
+void ImportWizardPageSelect::setPreloaded(const QString& source)
+{
+    m_preloaded = true;
+    setSubTitle(tr("Choose where to import the credentials from %1.").arg(source));
+
+    setCredentialState(false);
+    setDownloadCommand(false);
+    m_ui->importTypeList->setVisible(false);
+    m_ui->importFileLabel->setVisible(false);
+    m_ui->importFileEdit->setVisible(false);
+    m_ui->importFileButton->setVisible(false);
+    m_ui->temporaryDatabaseRadio->setVisible(true);
+    emit completeChanged();
 }
 
 void ImportWizardPageSelect::itemSelected(QListWidgetItem* current, QListWidgetItem* previous)

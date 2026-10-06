@@ -33,6 +33,8 @@
 #include "gui/MessageBox.h"
 #include "gui/export/ExportDialog.h"
 #ifdef Q_OS_MACOS
+#include "autofill/app/CredentialExchange.h"
+#include "format/CxfWriter.h"
 #include "gui/osutils/macutils/MacUtils.h"
 #endif
 #include "gui/DatabaseOpenWidget.h"
@@ -259,24 +261,38 @@ void DatabaseTabWidget::addDatabaseTab(DatabaseWidget* dbWidget, bool inBackgrou
 
 void DatabaseTabWidget::importFile()
 {
-    // Show the import wizard
-    m_importWizard = new ImportWizard(this);
+    showImportWizard();
+}
 
-    connect(m_importWizard.data(), &QWizard::finished, [&](int result) {
+void DatabaseTabWidget::importDatabase(QSharedPointer<Database> db, const QString& source)
+{
+    showImportWizard(db, source);
+}
+
+void DatabaseTabWidget::showImportWizard(QSharedPointer<Database> preloadedDb, const QString& source)
+{
+    // Each wizard handles its own result, so several can be open at once
+    auto wizard = new ImportWizard(this);
+    if (preloadedDb) {
+        wizard->setPreloadedDatabase(preloadedDb, source);
+    }
+    m_importWizard = wizard;
+
+    connect(wizard, &QWizard::finished, this, [this, wizard](int result) {
         if (result != QDialog::Accepted) {
             return;
         }
 
-        auto db = m_importWizard->database();
+        auto db = wizard->database();
         if (!db) {
             // Import wizard was cancelled
             return;
         }
 
-        switch (m_importWizard->importIntoType()) {
+        switch (wizard->importIntoType()) {
         case ImportWizard::EXISTING_DATABASE:
             for (int i = 0, c = count(); i < c; ++i) {
-                auto importInto = m_importWizard->importInto();
+                auto importInto = wizard->importInto();
                 // Find the database and group to import into based on import wizard choice
                 auto dbWidget = databaseWidgetFromIndex(i);
                 if (!dbWidget->isLocked() && dbWidget->database()->uuid() == importInto.first) {
@@ -318,7 +334,9 @@ void DatabaseTabWidget::importFile()
     });
 
     // use `open` instead of `exec`. `exec` should not be used, see https://doc.qt.io/qt-6/qdialog.html#exec
-    m_importWizard->show();
+    wizard->show();
+    wizard->raise();
+    wizard->activateWindow();
 }
 
 void DatabaseTabWidget::mergeDatabase()
@@ -525,6 +543,30 @@ void DatabaseTabWidget::exportToHtml()
     auto exportDialog = new ExportDialog(db, this);
     connect(exportDialog, SIGNAL(exportFailed(QString)), SLOT(handleExportError(const QString&)));
     exportDialog->exec();
+}
+
+// Hands the database to another app through the macOS 26 Credential Exchange UI
+void DatabaseTabWidget::exportToCredentialExchange()
+{
+#ifdef Q_OS_MACOS
+    auto db = databaseWidgetFromIndex(currentIndex())->database();
+    if (!db) {
+        Q_ASSERT(false);
+        return;
+    }
+
+    if (!warnOnExport()) {
+        return;
+    }
+
+    QPointer<DatabaseTabWidget> self(this);
+    credentialExchange()->exportCredentials(CxfWriter().write(db), this, [self](const QString& error) {
+        if (self && !error.isEmpty()) {
+            emit self->messageGlobal(tr("Exporting the credentials failed.").append("\n").append(error),
+                                     MessageWidget::Error);
+        }
+    });
+#endif
 }
 
 void DatabaseTabWidget::exportToXML()

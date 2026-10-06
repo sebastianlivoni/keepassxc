@@ -160,6 +160,10 @@ private slots:
 private:
     static const QString BaseWindowTitle;
 
+#ifdef Q_OS_MACOS
+    void importCredentialExchange();
+#endif
+
     void saveWindowInformation();
     void restoreWindowInformation();
     bool saveLastDatabases();
