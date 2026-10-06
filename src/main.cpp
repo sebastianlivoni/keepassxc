@@ -20,6 +20,7 @@
 #include <QDir>
 #include <QFile>
 #include <QThreadPool>
+#include <QUrl>
 #include <QWindow>
 
 #include "cli/Utils.h"
@@ -129,11 +130,25 @@ int main(int argc, char** argv)
         Config::createConfigFromFile(parser.value(configOption), parser.value(localConfigOption));
     }
 
+    // otpauth:// links come from the URL scheme handler (Linux .desktop file, Windows registry)
+    QStringList otpAuthUrls;
+    QStringList positionalArguments;
+    for (const auto& argument : parser.positionalArguments()) {
+        if (Application::isOtpAuthUrl(argument)) {
+            otpAuthUrls << argument;
+        } else if (argument.startsWith("file:", Qt::CaseInsensitive)) {
+            // The .desktop file's %u passes files as file:// URLs
+            positionalArguments << QUrl(argument).toLocalFile();
+        } else {
+            positionalArguments << argument;
+        }
+    }
+
     // Extract file names provided on the command line for opening
     QStringList fileNames;
 #ifdef Q_OS_WIN
     // Get correct case for Windows filenames (fixes #7139)
-    for (const auto& file : parser.positionalArguments()) {
+    for (const auto& file : positionalArguments) {
         const auto fileInfo = QFileInfo(file);
         WIN32_FIND_DATAW findFileData;
         HANDLE hFind;
@@ -145,7 +160,7 @@ int main(int argc, char** argv)
         }
     }
 #else
-    for (const auto& file : parser.positionalArguments()) {
+    for (const auto& file : positionalArguments) {
         if (QFile::exists(file)) {
             fileNames << QDir::toNativeSeparators(file);
         }
@@ -162,8 +177,8 @@ int main(int argc, char** argv)
                 return EXIT_FAILURE;
             }
         } else {
-            if (!fileNames.isEmpty()) {
-                app.sendFileNamesToRunningInstance(fileNames);
+            if (!fileNames.isEmpty() || !otpAuthUrls.isEmpty()) {
+                app.sendFileNamesToRunningInstance(fileNames + otpAuthUrls);
             }
 
             qWarning() << QObject::tr("Another instance of KeePassXC is already running.").toUtf8().constData();
@@ -223,6 +238,11 @@ int main(int argc, char** argv)
     } else {
         mainWindow.bringToFront();
         Application::processEvents();
+    }
+
+    // Queued so the links are handled once the event loop runs
+    for (const auto& url : otpAuthUrls) {
+        QMetaObject::invokeMethod(&app, [&app, url] { emit app.otpAuth(QUrl(url)); }, Qt::QueuedConnection);
     }
 
     int exitCode = Application::exec();

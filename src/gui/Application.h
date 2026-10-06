@@ -48,6 +48,8 @@ public:
 
     bool event(QEvent* event) override;
     bool isAlreadyRunning() const;
+    // Command line arguments can be otpauth:// links from the URL scheme handler
+    static bool isOtpAuthUrl(const QString& argument);
     bool isDarkTheme() const;
 
     bool sendFileNamesToRunningInstance(const QStringList& fileNames);
@@ -60,6 +62,7 @@ signals:
     void anotherInstanceStarted();
     void applicationActivated();
     void quitSignalReceived();
+    void otpAuth(const QUrl& url);
 
 private slots:
 #if defined(Q_OS_UNIX)
