@@ -355,6 +355,15 @@ if(KPXC_FEATURE_NETWORK)
             gui/IconDownloaderDialog.cpp)
 endif()
 
+# macOS bundle: app and AutoFill extension link one shared libkeepassxc.dylib instead of each
+# carrying a static copy; keepassxc_core/keepassxc_gui stay static for tests, CLI and other platforms
+# (the CLI uses Botan directly, which a static Botan build doesn't export from the dylib)
+if(APPLE AND WITH_APP_BUNDLE)
+    set(keepassxc_gui_LIB keepassxc_shared)
+else()
+    set(keepassxc_gui_LIB keepassxc_gui)
+endif()
+
 add_subdirectory(cli)
 add_subdirectory(thirdparty)
 
@@ -456,6 +465,33 @@ if(WIN32)
     endif()
 endif()
 
+if(APPLE AND WITH_APP_BUNDLE)
+    # Force-load every static library so the dylib holds the complete code exactly once
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/keepassxc_shared.cpp" "// Built from force-loaded static libraries\n")
+    add_library(keepassxc_shared SHARED "${CMAKE_CURRENT_BINARY_DIR}/keepassxc_shared.cpp")
+    foreach(_lib keepassxc_gui keepassxc_core ${autotype_LIB} ${browser_LIB} ${autofill_LIB} ${keeshare_LIB}
+            ${sshagent_LIB} ${qrcode_LIB} ${ZXCVBN_LIBRARIES} ${thirdparty_LIBRARIES})
+        if(TARGET ${_lib})
+            target_link_libraries(keepassxc_shared PRIVATE "-Wl,-force_load,$<TARGET_FILE:${_lib}>")
+        endif()
+    endforeach()
+    # Remaining external dependencies; Qt is public so consumers get its includes and frameworks
+    target_link_libraries(keepassxc_shared
+        PRIVATE keepassxc_gui
+        PUBLIC Qt6::Core Qt6::Concurrent Qt6::Network Qt6::Svg Qt6::SvgWidgets Qt6::Widgets)
+    target_link_options(keepassxc_shared PRIVATE "-Wl,-dead_strip")
+    # Built straight into the bundle so the build tree app and sandboxed extension can load it
+    set_target_properties(keepassxc_shared PROPERTIES
+        OUTPUT_NAME keepassxc
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUNDLE_INSTALL_DIR}/Frameworks"
+        INSTALL_NAME_DIR "@rpath"
+        BUILD_WITH_INSTALL_NAME_DIR ON)
+    # Qt frameworks sit next to the dylib
+    set_property(TARGET keepassxc_shared APPEND PROPERTY INSTALL_RPATH "@loader_path")
+    install(TARGETS keepassxc_shared LIBRARY DESTINATION "${BUNDLE_INSTALL_DIR}/Frameworks" COMPONENT Runtime)
+    set_property(GLOBAL APPEND PROPERTY _MACDEPLOYQT_EXTRA_BINARIES "${BUNDLE_INSTALL_DIR}/Frameworks/libkeepassxc.dylib")
+endif()
+
 # Main Executable Definition
 unset(_restore_vcpkg_applocal_deps)
 if(WIN32 AND WITH_BUILD_QT AND VCPKG_APPLOCAL_DEPS)
@@ -467,8 +503,14 @@ if(_restore_vcpkg_applocal_deps)
     set(VCPKG_APPLOCAL_DEPS ON)
     unset(_restore_vcpkg_applocal_deps)
 endif()
-target_link_libraries(${PROGNAME} keepassxc_gui)
+target_link_libraries(${PROGNAME} ${keepassxc_gui_LIB})
 set_target_properties(${PROGNAME} PROPERTIES ENABLE_EXPORTS ON)
+if(APPLE)
+    target_link_options(${PROGNAME} PRIVATE "-Wl,-dead_strip")
+endif()
+if(APPLE AND WITH_APP_BUNDLE)
+    set_property(TARGET ${PROGNAME} APPEND PROPERTY INSTALL_RPATH "@executable_path/../Frameworks")
+endif()
 
 if(WIN32)
     set_target_properties(${PROGNAME} PROPERTIES WIN32_EXECUTABLE ON)
@@ -526,7 +568,7 @@ elseif(APPLE AND WITH_APP_BUNDLE)
             COMMAND ${CMAKE_COMMAND} -DCODESIGN_APP_DIR=$<TARGET_BUNDLE_DIR:${PROGNAME}> -P "${CMAKE_BINARY_DIR}/MacOSCodesign.cmake"
             COMMENT "Signing ${PROGNAME}.app"
             VERBATIM)
-        foreach(SIGN_DEP ${PROGNAME} keepassxc-proxy KeePassXCAutoFillExtension KeePassXCAutoFillHelper)
+        foreach(SIGN_DEP ${PROGNAME} keepassxc_shared keepassxc-proxy keepassxc-cli KeePassXCAutoFillExtension KeePassXCAutoFillHelper)
             if(TARGET ${SIGN_DEP})
                 add_dependencies(codesign ${SIGN_DEP})
             endif()

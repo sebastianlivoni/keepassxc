@@ -36,11 +36,15 @@ set(SOURCES
 
 add_executable(KeePassXCAutoFillExtension ${SOURCES})
 
-target_link_libraries(KeePassXCAutoFillExtension Qt6::Core Qt6::Network Qt6::Widgets keepassxc_gui "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security -framework LocalAuthenticationEmbeddedUI -framework ServiceManagement")
+target_link_libraries(KeePassXCAutoFillExtension Qt6::Core Qt6::Network Qt6::Widgets ${keepassxc_gui_LIB} "-framework Foundation -framework AppKit -framework AuthenticationServices -framework LocalAuthentication -framework Security -framework LocalAuthenticationEmbeddedUI -framework ServiceManagement")
 
 target_compile_definitions(KeePassXCAutoFillExtension PRIVATE ${autofill_DEFINITIONS})
 target_compile_options(KeePassXCAutoFillExtension PRIVATE "-fobjc-arc")
-target_link_options(KeePassXCAutoFillExtension PRIVATE "-Wl,-e,_NSExtensionMain")
+target_link_options(KeePassXCAutoFillExtension PRIVATE "-Wl,-dead_strip" "-Wl,-e,_NSExtensionMain")
+if(WITH_APP_BUNDLE)
+  # Contents/PlugIns/<ext>.appex/Contents/MacOS -> Contents/Frameworks
+  set_property(TARGET KeePassXCAutoFillExtension APPEND PROPERTY INSTALL_RPATH "@executable_path/../../../../Frameworks")
+endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/share/macosx/autofill/autofill.entitlements ${CMAKE_CURRENT_BINARY_DIR}/autofill.entitlements)
 

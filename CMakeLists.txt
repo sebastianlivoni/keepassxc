@@ -291,8 +291,11 @@ if(OpenMP_FOUND)
 endif()
 add_gcc_compiler_flags("-Wall -Wextra -Wundef -Wpointer-arith -Wno-long-long")
 add_gcc_compiler_flags("-Wformat=2 -Wmissing-format-attribute")
-add_gcc_compiler_flags("-fvisibility=hidden")
-add_gcc_compiler_cxxflags("-fvisibility-inlines-hidden")
+# The macOS bundle shares one dylib between app and AutoFill extension, which needs exported symbols
+if(NOT (APPLE AND WITH_APP_BUNDLE))
+    add_gcc_compiler_flags("-fvisibility=hidden")
+    add_gcc_compiler_cxxflags("-fvisibility-inlines-hidden")
+endif()
 # Qt6 marks these as errors with newer compilers. Treat them as warnings for now.
 check_add_gcc_compiler_cxxflag("-Wno-error=sfinae-incomplete" SFINAE_INCOMPLETE_FLAG)
 
