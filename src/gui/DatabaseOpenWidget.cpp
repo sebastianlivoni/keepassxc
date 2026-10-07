@@ -375,7 +375,7 @@ void DatabaseOpenWidget::openDatabase()
         }
 
         // Save Quick Unlock credentials if available
-        if (!blockQuickUnlock && isQuickUnlockAvailable()) {
+        if (!blockQuickUnlock && m_quickUnlockSaveAllowed && isQuickUnlockAvailable()) {
             auto keyData = databaseKey->serialize();
             getQuickUnlock()->setKey(m_db->publicUuid(), keyData);
             m_ui->messageWidget->hideMessage();
@@ -645,6 +645,12 @@ void DatabaseOpenWidget::triggerQuickUnlock()
     if (isOnQuickUnlockScreen()) {
         m_ui->quickUnlockButton->click();
     }
+}
+
+//! Whether a successful unlock stores a new quick unlock key (default: true)
+void DatabaseOpenWidget::setQuickUnlockSaveAllowed(bool allowed)
+{
+    m_quickUnlockSaveAllowed = allowed;
 }
 
 /**

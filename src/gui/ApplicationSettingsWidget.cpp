@@ -37,6 +37,12 @@
 #include "gui/styles/StateColorPalette.h"
 #include "quickunlock/QuickUnlockInterface.h"
 
+#ifdef Q_OS_MACOS
+#include "autofill/app/AutoFillCredentialProviderCheckbox.h"
+#include "autofill/app/AutoFillHelperCheckbox.h"
+#include "autofill/common/AutoFillSupport.h"
+#endif
+
 #include "FileDialog.h"
 #include "MessageBox.h"
 #ifdef KPXC_FEATURE_BROWSER
@@ -94,6 +100,27 @@ ApplicationSettingsWidget::ApplicationSettingsWidget(QWidget* parent)
         false;
 #endif
     m_generalUi->autoTypePreferDesktopPortalsCheckBox->setVisible(showDesktopPortalsPreference);
+
+#ifdef Q_OS_MACOS
+    if (!isAutoFillSupported()) {
+        m_generalUi->generalSettingsTabWidget->removeTab(
+            m_generalUi->generalSettingsTabWidget->indexOf(m_generalUi->tabAutofill));
+    } else {
+        // Swap the .ui placeholders for the macOS AutoFill checkboxes
+        auto swapCheckBox = [](QCheckBox*& placeholder, QCheckBox* replacement) {
+            replacement->setText(placeholder->text());
+            delete placeholder->parentWidget()->layout()->replaceWidget(placeholder, replacement);
+            delete placeholder;
+            placeholder = replacement;
+        };
+        swapCheckBox(m_generalUi->autoFillProviderCheckBox,
+                     new AutoFillCredentialProviderCheckbox(m_generalUi->tabAutofill));
+        swapCheckBox(m_generalUi->autoFillHelperCheckBox, new AutoFillHelperCheckbox(m_generalUi->tabAutofill));
+    }
+#else
+    m_generalUi->generalSettingsTabWidget->removeTab(
+        m_generalUi->generalSettingsTabWidget->indexOf(m_generalUi->tabAutofill));
+#endif
 
     if (!autoType()->isAvailable()) {
         m_generalUi->generalSettingsTabWidget->removeTab(1);
@@ -426,6 +453,10 @@ void ApplicationSettingsWidget::loadSettings()
     m_secUi->quickUnlockCheckBox->setEnabled(getQuickUnlock()->isAvailable());
     m_secUi->quickUnlockCheckBox->setChecked(config()->get(Config::Security_QuickUnlock).toBool());
 #ifdef Q_OS_MACOS
+    m_generalUi->autoFillAskBeforeFillingCheckBox->setChecked(
+        config()->get(Config::AutoFill_AskBeforeFilling).toBool());
+#endif
+#ifdef Q_OS_MACOS
     // Only Touch ID keeps keys outside of memory, so only it can remember them
     m_secUi->quickUnlockRememberCheckBox->setChecked(config()->get(Config::Security_QuickUnlockRemember).toBool());
     m_secUi->quickUnlockRememberCheckBox->setEnabled(m_secUi->quickUnlockCheckBox->isEnabled()
@@ -568,6 +599,10 @@ void ApplicationSettingsWidget::saveSettings()
     config()->set(Config::Security_HidePasswordPreviewPanel, m_secUi->passwordPreviewCleartextCheckBox->isChecked());
     config()->set(Config::Security_HideTotpPreviewPanel, m_secUi->hideTotpCheckBox->isChecked());
     config()->set(Config::Security_HideNotes, m_secUi->hideNotesCheckBox->isChecked());
+
+#ifdef Q_OS_MACOS
+    config()->set(Config::AutoFill_AskBeforeFilling, m_generalUi->autoFillAskBeforeFillingCheckBox->isChecked());
+#endif
 
     if (m_secUi->quickUnlockCheckBox->isEnabled()) {
         const bool wasEnabled = config()->get(Config::Security_QuickUnlock).toBool();

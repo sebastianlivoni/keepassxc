@@ -19,6 +19,7 @@
 #ifndef KEEPASSX_CONFIG_H
 #define KEEPASSX_CONFIG_H
 
+#include <QHash>
 #include <QPointer>
 #include <QVariant>
 #include <QVector>
@@ -167,6 +168,10 @@ public:
         Browser_CustomBrowserType,
         Browser_CustomBrowserLocation,
         Browser_AllowLocalhostWithPasskeys,
+
+        AutoFill_HelperEnabled,
+        AutoFill_AskBeforeFilling,
+        AutoFill_LastFullClear,
 #ifdef QT_DEBUG
         Browser_CustomExtensionId,
 #endif
@@ -245,6 +250,11 @@ public:
     static bool isPortable();
     static QString portableConfigDir();
 
+    void setDatabaseFilePath(const QString& dbUuid, const QString& filePath);
+    QString getDatabaseFilePath(const QString& dbUuid) const;
+    void removeDatabaseFilePath(const QString& dbUuid);
+    QHash<QString, QString> getAllDatabaseFilePaths() const;
+
 signals:
     void changed(ConfigKey key);
 
@@ -254,6 +264,8 @@ private:
     void init(const QString& configFileName, const QString& localConfigFileName);
     void migrate();
     static QPair<QString, QString> defaultConfigFiles();
+    // Settings for machine-specific values (database file paths)
+    QSettings* localSettings() const;
 
     static QPointer<Config> m_instance;
 
