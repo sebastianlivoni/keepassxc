@@ -124,6 +124,15 @@ public:
     void requestGlobalAutoType(const QString& search);
 
     static QString decodeCustomDataRestrictKey(const QString& key);
+    // URL matching without instance state, also used by the macOS AutoFill extension
+    static bool
+    shouldIncludeEntry(Entry* entry, const QString& url, const QString& submitUrl, const bool omitWwwSubdomain = false);
+    static bool handleURL(const QString& entryUrl,
+                          const QString& siteUrl,
+                          const QString& formUrl,
+                          const bool omitWwwSubdomain = false,
+                          const bool allowWildcards = false);
+    static bool handleURLWithWildcards(const QUrl& entryQUrl, const QString& siteUrl);
 
     static const QString KEEPASSXCBROWSER_NAME;
     static const QString KEEPASSXCBROWSER_OLD_NAME;
@@ -185,8 +194,6 @@ private:
     Group* getDefaultEntryGroup(const QSharedPointer<Database>& selectedDb = {});
     int sortPriority(const QStringList& urls, const QString& siteUrl, const QString& formUrl);
     bool removeFirstDomain(QString& hostname);
-    bool
-    shouldIncludeEntry(Entry* entry, const QString& url, const QString& submitUrl, const bool omitWwwSubdomain = false);
 
     QList<Entry*> getPasskeyEntries(const QString& rpId, const StringPairList& keyList);
     QList<Entry*>
@@ -198,12 +205,6 @@ private:
                                      const StringPairList& keyList);
     QJsonObject getPasskeyError(int errorCode) const;
 
-    bool handleURL(const QString& entryUrl,
-                   const QString& siteUrl,
-                   const QString& formUrl,
-                   const bool omitWwwSubdomain = false,
-                   const bool allowWildcards = false);
-    bool handleURLWithWildcards(const QUrl& entryQUrl, const QString& siteUrl);
     QString getDatabaseRootUuid();
     QString getDatabaseRecycleBinUuid();
     void hideWindow() const;
