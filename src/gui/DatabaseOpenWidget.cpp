@@ -182,7 +182,8 @@ bool DatabaseOpenWidget::event(QEvent* event)
     auto type = event->type();
 
     if (type == QEvent::Show || type == QEvent::WindowActivate) {
-        if (isOnQuickUnlockScreen() && (m_db.isNull() || !canPerformQuickUnlock())) {
+        if (isOnQuickUnlockScreen() && (m_db.isNull() || !canPerformQuickUnlock())
+            && !config()->get(Config::Security_QuickUnlockRemember).toBool()) {
             resetQuickUnlock();
         }
         toggleQuickUnlockScreen();

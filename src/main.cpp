@@ -30,6 +30,7 @@
 #include "gui/MainWindow.h"
 #include "gui/MessageBox.h"
 #include "gui/osutils/OSUtils.h"
+#include "quickunlock/QuickUnlockInterface.h"
 
 #if defined(WITH_ASAN) && defined(WITH_LSAN)
 #include <sanitizer/lsan_interface.h>
@@ -193,6 +194,12 @@ int main(int argc, char** argv)
     app.applyTheme();
 
     Application::bootstrap(config()->get(Config::GUI_Language).toString());
+
+    // Touch ID keys live in the keychain (shared with AutoFill); drop any left from a
+    // previous run (e.g. after a crash) unless the user chose to remember them
+    if (!config()->get(Config::Security_QuickUnlockRemember).toBool()) {
+        getQuickUnlock()->reset();
+    }
 
     MainWindow mainWindow;
 #ifdef Q_OS_WIN
