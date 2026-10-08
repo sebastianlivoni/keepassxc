@@ -68,6 +68,9 @@ target_link_libraries(cli
 add_executable(keepassxc-cli keepassxc-cli.cpp)
 target_link_libraries(keepassxc-cli
         PRIVATE ${GPGERROR_LIBRARIES} cli keepassxc_core line_reader)
+if(APPLE)
+    target_link_options(keepassxc-cli PRIVATE "-Wl,-dead_strip")
+endif()
 
 install(TARGETS keepassxc-cli
         BUNDLE DESTINATION . COMPONENT Runtime

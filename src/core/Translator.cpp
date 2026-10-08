@@ -30,7 +30,7 @@
 /**
  * Install all KeePassXC and Qt translators.
  */
-void Translator::installTranslators(const QString& uiLanguage)
+void Translator::installTranslators(const QString& uiLanguage, const QString& translationsPath)
 {
     QStringList languages;
     if (uiLanguage.isEmpty() || uiLanguage == "system") {
@@ -46,7 +46,7 @@ void Translator::installTranslators(const QString& uiLanguage)
     // Always try to load english last
     languages << "en_US";
 
-    const auto path = resources()->dataPath("translations");
+    const auto path = translationsPath.isEmpty() ? resources()->dataPath("translations") : translationsPath;
     installQtTranslator(languages, path);
     if (!installTranslator(languages, path)) {
         // couldn't load configured language or fallback

@@ -54,6 +54,32 @@ option(KPXC_FEATURE_BROWSER "Browser integration and passkeys support" ON)
 option(KPXC_FEATURE_SSHAGENT "SSH Agent integration" ON)
 option(KPXC_FEATURE_FDOSECRETS "freedesktop.org Secret Service integration; replace system keyring" ON)
 
+option(AF_CODE_SIGNING_DR "Use production designated requirements for AutoFill XPC (OFF: accept Apple Development certificates of APPLE_TEAM_ID)" ON)
+option(AF_CODE_SIGNING_DR_ALLOW_DEVELOPMENT "With AF_CODE_SIGNING_DR: also accept Apple Development certificates of APPLE_TEAM_ID; never for releases" OFF)
+option(WITH_XC_DEV_ENTITLEMENTS "macOS: add debugging entitlements (library validation off, debugger attach, Homebrew Qt); never for releases" OFF)
+
+if(WITH_XC_DEV_ENTITLEMENTS)
+    set(KEEPASSXC_DEV_ENTITLEMENTS [[
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+	<key>com.apple.security.get-task-allow</key>
+	<true/>
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>]])
+    set(AUTOFILL_DEV_ENTITLEMENTS [[
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+	<key>com.apple.security.get-task-allow</key>
+	<true/>
+	<key>com.apple.security.temporary-exception.files.absolute-path.read-only</key>
+	<array>
+		<string>/opt/homebrew/Cellar/</string>
+	</array>]])
+else()
+    set(KEEPASSXC_DEV_ENTITLEMENTS "")
+    set(AUTOFILL_DEV_ENTITLEMENTS "")
+endif()
+
 if(KPXC_MINIMAL)
     # Disable advanced features in minimal mode
     set(KPXC_FEATURE_BROWSER OFF)
@@ -265,8 +291,11 @@ if(OpenMP_FOUND)
 endif()
 add_gcc_compiler_flags("-Wall -Wextra -Wundef -Wpointer-arith -Wno-long-long")
 add_gcc_compiler_flags("-Wformat=2 -Wmissing-format-attribute")
-add_gcc_compiler_flags("-fvisibility=hidden")
-add_gcc_compiler_cxxflags("-fvisibility-inlines-hidden")
+# The macOS bundle shares one dylib between app and AutoFill extension, which needs exported symbols
+if(NOT (APPLE AND WITH_APP_BUNDLE))
+    add_gcc_compiler_flags("-fvisibility=hidden")
+    add_gcc_compiler_cxxflags("-fvisibility-inlines-hidden")
+endif()
 # Qt6 marks these as errors with newer compilers. Treat them as warnings for now.
 check_add_gcc_compiler_cxxflag("-Wno-error=sfinae-incomplete" SFINAE_INCOMPLETE_FLAG)
 

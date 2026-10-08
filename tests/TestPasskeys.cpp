@@ -215,7 +215,8 @@ void TestPasskeys::testLoadingECPrivateKeyFromPem()
         "1NSVVBMUxWd3pHcHlJbTFmT0JuMVFuUmEwUUgyN0FEQWFKR0h5c1EiLCJvcmlnaW4iOiJodHRwczovL3dlYmF1dGhuLmlvIiwiY3Jvc3NPcmln"
         "aW4iOmZhbHNlfQ");
 
-    const auto signature = browserPasskeys()->buildSignature(authenticatorData, clientData, privateKeyPem);
+    const auto signature = browserPasskeys()->buildSignature(
+        authenticatorData, browserMessageBuilder()->getSha256Hash(clientData), privateKeyPem);
     QCOMPARE(
         browserMessageBuilder()->getBase64FromArray(signature),
         QString("MEYCIQCpbDaYJ4b2ofqWBxfRNbH3XCpsyao7Iui5lVuJRU9HIQIhAPl5moNZgJu5zmurkKK_P900Ct6wd3ahVIqCEqTeeRdE"));
@@ -255,7 +256,8 @@ void TestPasskeys::testLoadingRSAPrivateKeyFromPem()
         "1NSVVBMUxWd3pHcHlJbTFmT0JuMVFuUmEwUUgyN0FEQWFKR0h5c1EiLCJvcmlnaW4iOiJodHRwczovL3dlYmF1dGhuLmlvIiwiY3Jvc3NPcmln"
         "aW4iOmZhbHNlfQ");
 
-    const auto signature = browserPasskeys()->buildSignature(authenticatorData, clientData, privateKeyPem);
+    const auto signature = browserPasskeys()->buildSignature(
+        authenticatorData, browserMessageBuilder()->getSha256Hash(clientData), privateKeyPem);
     QCOMPARE(
         browserMessageBuilder()->getBase64FromArray(signature),
         QString("MOGw6KrerCgPf2mPig7FOTFIUDXYAU1v2uZj89_NgQTg2UddWnAB3JId3pa4zXghj8CkjjadVOI_LvweJGCEpmPQnRby71yFXnja6j"
