@@ -40,6 +40,8 @@ public:
     bool validateCurrentPage() override;
 
     QSharedPointer<Database> database();
+    // Skips choosing a file for credentials already read, e.g. received from another app
+    void setPreloadedDatabase(QSharedPointer<Database> db, const QString& source);
 
     enum ImportType
     {

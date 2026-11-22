@@ -87,3 +87,9 @@ QSharedPointer<Database> ImportWizard::database()
 {
     return m_db;
 }
+
+void ImportWizard::setPreloadedDatabase(QSharedPointer<Database> db, const QString& source)
+{
+    m_pageSelect->setPreloaded(source);
+    m_pageReview->setPreloadedDatabase(db, source);
+}

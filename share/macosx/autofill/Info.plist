@@ -34,6 +34,12 @@
 				<false />
 				<key>SupportsConditionalPasskeyRegistration</key>
 				<false/>
+				<key>SupportsCredentialExchange</key>
+				<true />
+				<key>SupportedCredentialExchangeVersions</key>
+				<array>
+					<string>1.0</string>
+				</array>
 			</dict>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>

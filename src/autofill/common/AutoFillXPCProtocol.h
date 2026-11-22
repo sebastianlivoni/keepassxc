@@ -57,6 +57,9 @@ static inline BOOL IsAutoFillError(NSError* error, AutoFillErrorCode code)
                 existingEntryUuid:(NSString*)existingEntryUuid
                         withReply:(void (^)(ASPasskeyRegistrationCredential* credential, NSError* error))reply;
 
+// Republishes all unlocked databases after AutoFill was enabled in System Settings
+- (void)republishCredentialIdentities;
+
 @end
 
 static inline NSXPCInterface* AutoFillXPCInterface()

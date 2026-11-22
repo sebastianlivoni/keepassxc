@@ -67,12 +67,15 @@ public slots:
     void openDatabase();
     void mergeDatabase();
     void importFile();
+    // Asks where to put credentials already read, e.g. received from another app
+    void importDatabase(QSharedPointer<Database> db, const QString& source);
     bool saveDatabase(int index = -1);
     bool saveDatabaseAs(int index = -1);
     bool saveDatabaseBackup(int index = -1);
     void exportToCsv();
     void exportToHtml();
     void exportToXML();
+    void exportToCredentialExchange();
 
     bool lockDatabases();
     void lockDatabasesDelayed();
@@ -119,6 +122,7 @@ private slots:
 
 private:
     QSharedPointer<Database> execNewDatabaseWizard();
+    void showImportWizard(QSharedPointer<Database> preloadedDb = {}, const QString& source = {});
     void updateLastDatabases(const QSharedPointer<Database>& database);
     bool warnOnExport();
     void displayUnlockDialog();

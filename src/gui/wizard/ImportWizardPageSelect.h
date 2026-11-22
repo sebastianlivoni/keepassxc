@@ -41,6 +41,9 @@ public:
     bool validatePage() override;
     bool isComplete() const override;
 
+    // Only asks where to import credentials that were already read
+    void setPreloaded(const QString& source);
+
 private slots:
     void itemSelected(QListWidgetItem* current, QListWidgetItem* previous);
     void chooseImportFile();
@@ -53,6 +56,7 @@ private:
     void setDownloadCommand(bool downloadCommandEnabled);
 
     QScopedPointer<Ui::ImportWizardPageSelect> m_ui;
+    bool m_preloaded = false;
 };
 
 #endif

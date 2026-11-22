@@ -47,6 +47,7 @@ public:
     bool validatePage() override;
 
     QSharedPointer<Database> database();
+    void setPreloadedDatabase(QSharedPointer<Database> db, const QString& source);
 
 private:
     bool isCsvImport() const;
@@ -66,6 +67,8 @@ private:
     QScopedPointer<Ui::ImportWizardPageReview> m_ui;
 
     QSharedPointer<Database> m_db;
+    QSharedPointer<Database> m_preloadedDb;
+    QString m_preloadedSource;
     QPointer<CsvImportWidget> m_csvWidget;
     QPointer<RemoteHandler> m_remoteHandler;
 };

@@ -5,6 +5,7 @@
 #include <Foundation/NSObjCRuntime.h>
 #include <QApplication>
 
+#include "extension/widgets/ConfigurationWidget.h"
 #include "extension/widgets/ConfirmationWidget.h"
 #include "extension/widgets/CredentialListWidget.h"
 #include "extension/widgets/PasskeyRegistrationWidget.h"
@@ -84,6 +85,25 @@
     [self focusEmbeddedWidget];
 
     return;
+}
+
+// Enabled in System Settings: have KeePassXC publish its identities right away
+- (void)prepareInterfaceForExtensionConfiguration
+{
+    [self withServiceConnection:^(NSXPCConnection* connection) {
+        if (!connection) {
+            return;
+        }
+        id proxy = [connection remoteObjectProxyWithErrorHandler:^(NSError* error) {
+            os_log_error(OS_LOG_DEFAULT, "[AutoFill] Republish request failed: %{public}@", error);
+        }];
+        [proxy republishCredentialIdentities];
+    }];
+
+    auto* widget = new ConfigurationWidget();
+    __weak CredentialProviderViewController* weakSelf = self;
+    widget->onDone = [weakSelf]() { [weakSelf.extensionContext completeExtensionConfigurationRequest]; };
+    [self embedQWidget:widget];
 }
 
 - (void)prepareCredentialListForServiceIdentifiers:(NSArray<ASCredentialServiceIdentifier*>*)serviceIdentifiers
