@@ -1,5 +1,6 @@
 #include <AuthenticationServices/AuthenticationServices.h>
 
+#include <QPointer>
 #include <QSharedPointer>
 #include <QStackedWidget>
 #include <functional>
@@ -33,7 +34,8 @@ private:
     void unlockInExtension(const QString& dbPath);
     void registerLocally(QSharedPointer<Database> db);
     // confirm(existingEntryUuid) registers the passkey; a null UUID creates a new entry
-    void showRegistrationDialog(const QList<Entry*>& existingEntries, std::function<void(const QUuid&)> confirm);
+    void showRegistrationDialog(const QList<QPointer<Entry>>& existingEntries,
+                                std::function<void(const QUuid&)> confirm);
     void resizeTo(QSize size);
     void complete(ASPasskeyRegistrationCredential* credential);
     void cancel();

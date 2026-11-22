@@ -93,7 +93,7 @@ void PasskeyRegistrationWidget::registerInKeePassXC(NSXPCConnection* connection,
                                                   }
                                                   // Stand-ins for KeePassXC's entries, only for display and selection
                                                   // in the dialog
-                                                  QList<Entry*> existingEntries;
+                                                  QList<QPointer<Entry>> existingEntries;
                                                   for (NSArray<NSString*>* fields in entries) {
                                                       if (fields.count == 3) {
                                                           auto* entry = new Entry();
@@ -155,8 +155,9 @@ void PasskeyRegistrationWidget::unlockInExtension(const QString& dbPath)
 
 void PasskeyRegistrationWidget::registerLocally(QSharedPointer<Database> db)
 {
-    const auto existingEntries =
+    const auto matches =
         AutoFillCredentials::searchEntries(db, m_relyingParty, /*passkeyOnly=*/true, /*totpOnly=*/false);
+    const QList<QPointer<Entry>> existingEntries(matches.cbegin(), matches.cend());
     showRegistrationDialog(existingEntries, [this, db](const QUuid& entryUuid) {
         Entry* existingEntry = entryUuid.isNull() ? nullptr : db->rootGroup()->findEntryByUuid(entryUuid);
         ASPasskeyCredentialIdentity* previousIdentity =
@@ -209,7 +210,7 @@ void PasskeyRegistrationWidget::registerLocally(QSharedPointer<Database> db)
     });
 }
 
-void PasskeyRegistrationWidget::showRegistrationDialog(const QList<Entry*>& existingEntries,
+void PasskeyRegistrationWidget::showRegistrationDialog(const QList<QPointer<Entry>>& existingEntries,
                                                        std::function<void(const QUuid&)> confirm)
 {
     // The browser integration's dialog, embedded instead of shown as a window
