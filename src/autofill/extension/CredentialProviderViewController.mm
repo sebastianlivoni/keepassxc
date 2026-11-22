@@ -284,6 +284,8 @@
 
     [self.view addSubview:rootView];
 
+    // Auto Layout alone positions Qt's view; Qt's own frame would sit against the old height after a resize
+    rootView.translatesAutoresizingMaskIntoConstraints = NO;
     self.view.translatesAutoresizingMaskIntoConstraints = NO;
 
     [NSLayoutConstraint activateConstraints:@[
@@ -320,9 +322,11 @@
 
 - (void)resizeEmbeddedWidget:(QWidget*)widget toSize:(QSize)size
 {
-    widget->resize(size);
+    // Container first, so Qt's view is laid out against the new size
     self.widthConstraint.constant = size.width();
     self.heightConstraint.constant = size.height();
+    [self.view layoutSubtreeIfNeeded];
+    widget->resize(size);
 }
 
 - (void)exitWithUserInteractionRequired
