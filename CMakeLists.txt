@@ -74,6 +74,7 @@ if(WITH_XC_DEV_ENTITLEMENTS)
 	<key>com.apple.security.temporary-exception.files.absolute-path.read-only</key>
 	<array>
 		<string>/opt/homebrew/Cellar/</string>
+		<string>/opt/homebrew/share/qt/</string>
 	</array>]])
 else()
     set(KEEPASSXC_DEV_ENTITLEMENTS "")
