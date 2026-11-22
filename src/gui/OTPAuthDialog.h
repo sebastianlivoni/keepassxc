@@ -53,6 +53,7 @@ public:
 
 signals:
     void entryChosen(Entry* entry, QSharedPointer<Totp::Settings> totp);
+    void newEntryRequested(const OTPAuthDialog::Request& request);
 
 private:
     void search(const QString& text);
@@ -68,6 +69,7 @@ private:
     EntryView* m_entryView;
     QLabel* m_emptyLabel;
     QPushButton* m_addButton;
+    QPushButton* m_newEntryButton;
 };
 
 #endif // KEEPASSXC_OTPAUTHDIALOG_H

@@ -1038,5 +1038,30 @@ void DatabaseTabWidget::handleOTPAuth(const QUrl& url)
                     }
                 }
             });
+    connect(m_otpAuthDialog, &OTPAuthDialog::newEntryRequested, this, [this](const OTPAuthDialog::Request& request) {
+        // New entries go into the active database, or the first unlocked one
+        auto* dbWidget = currentDatabaseWidget();
+        if (!dbWidget || dbWidget->isLocked()) {
+            dbWidget = nullptr;
+            for (int i = 0, c = count(); i < c && !dbWidget; ++i) {
+                auto* candidate = databaseWidgetFromIndex(i);
+                if (candidate && !candidate->isLocked()) {
+                    setCurrentIndex(i);
+                    dbWidget = candidate;
+                }
+            }
+        }
+        if (!dbWidget) {
+            return;
+        }
+        if (dbWidget->isEntryEditActive() || dbWidget->isGroupEditActive()) {
+            MessageBox::warning(this,
+                                tr("Cannot Add Verification Code"),
+                                tr("Finish editing in this database before creating a new entry."));
+            return;
+        }
+        const auto title = request.issuer.isEmpty() ? request.account : request.issuer;
+        dbWidget->createEntry(title, request.account, request.totp);
+    });
     m_otpAuthDialog->open();
 }

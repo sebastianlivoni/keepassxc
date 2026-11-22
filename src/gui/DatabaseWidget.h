@@ -181,7 +181,9 @@ public slots:
     bool saveBackup();
 
     void replaceDatabase(QSharedPointer<Database> db);
-    void createEntry();
+    void createEntry(const QString& title = {},
+                     const QString& username = {},
+                     QSharedPointer<Totp::Settings> totp = {});
     void cloneEntry();
     void expireSelectedEntries();
     void deleteSelectedEntries();

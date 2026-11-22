@@ -455,7 +455,7 @@ void DatabaseWidget::emitCurrentModeChanged()
     emit currentModeChanged(currentMode());
 }
 
-void DatabaseWidget::createEntry()
+void DatabaseWidget::createEntry(const QString& title, const QString& username, QSharedPointer<Totp::Settings> totp)
 {
     Q_ASSERT(m_groupView->currentGroup());
     if (!m_groupView->currentGroup()) {
@@ -466,6 +466,14 @@ void DatabaseWidget::createEntry()
 
     m_newEntry->setUuid(QUuid::createUuid());
     m_newEntry->setUsername(m_db->metadata()->defaultUserName());
+    m_newEntry->setTitle(title);
+    if (!username.isEmpty()) {
+        m_newEntry->setUsername(username);
+    }
+    // Set after the title and username, which the stored otpauth:// link contains
+    if (totp) {
+        m_newEntry->setTotp(totp);
+    }
     m_newParent = m_groupView->currentGroup();
     m_newParent->applyGroupIconOnCreateTo(m_newEntry.data());
     switchToEntryEdit(m_newEntry.data(), true);

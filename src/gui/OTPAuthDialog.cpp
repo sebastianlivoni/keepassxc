@@ -141,15 +141,21 @@ OTPAuthDialog::OTPAuthDialog(const Request& request,
     layout->addWidget(m_emptyLabel);
 
     auto* buttonLayout = new QHBoxLayout();
+    m_newEntryButton = new QPushButton(tr("New Entry"), this);
     auto* cancelButton = new QPushButton(tr("Cancel"), this);
     m_addButton = new QPushButton(tr("Add Code"), this);
-    for (auto* button : {cancelButton, m_addButton}) {
+    for (auto* button : {m_newEntryButton, cancelButton, m_addButton}) {
         button->setStyleSheet("text-align:center;");
     }
     // Default buttons are green in the KeePassXC styles
     m_addButton->setDefault(true);
     connect(cancelButton, &QPushButton::clicked, this, &QDialog::reject);
     connect(m_addButton, &QPushButton::clicked, this, &OTPAuthDialog::chooseCurrentEntry);
+    connect(m_newEntryButton, &QPushButton::clicked, this, [this] {
+        emit newEntryRequested(m_request);
+        accept();
+    });
+    buttonLayout->addWidget(m_newEntryButton);
     buttonLayout->addStretch();
     buttonLayout->addWidget(cancelButton);
     buttonLayout->addWidget(m_addButton);
@@ -183,6 +189,9 @@ void OTPAuthDialog::search(const QString& text)
     m_entryView->setVisible(!entries.isEmpty());
     m_emptyLabel->setVisible(entries.isEmpty());
     m_addButton->setEnabled(!entries.isEmpty());
+    // Without a match, creating an entry is the likely next step
+    m_addButton->setDefault(!entries.isEmpty());
+    m_newEntryButton->setDefault(entries.isEmpty());
 }
 
 void OTPAuthDialog::chooseCurrentEntry()
