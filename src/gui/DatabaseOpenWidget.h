@@ -58,6 +58,7 @@ public:
     void triggerQuickUnlock();
     void resetQuickUnlock();
     void setQuickUnlockSaveAllowed(bool allowed);
+    void showPasswordScreen();
 
 signals:
     void dialogFinished(bool accepted);
@@ -90,6 +91,7 @@ private:
     bool m_manualHardwareKeyRefresh = false;
     bool m_blockQuickUnlock = false;
     bool m_quickUnlockSaveAllowed = true;
+    bool m_passwordScreenForced = false;
     bool m_unlockingDatabase = false;
     bool m_triedToQuit = false;
     QTimer m_hideTimer;

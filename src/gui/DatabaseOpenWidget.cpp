@@ -243,6 +243,7 @@ void DatabaseOpenWidget::load(const QString& filename)
     clearForms();
 
     m_filename = filename;
+    m_passwordScreenForced = false;
 
     // Read public headers
     QString error;
@@ -422,13 +423,17 @@ QSharedPointer<CompositeKey> DatabaseOpenWidget::buildDatabaseKey()
 {
     auto databaseKey = QSharedPointer<CompositeKey>::create();
 
-    if (!m_db.isNull() && canPerformQuickUnlock()) {
+    if (!m_db.isNull() && canPerformQuickUnlock() && !m_passwordScreenForced) {
         // try to retrieve the stored password using Windows Hello
         QByteArray keyData;
         if (!getQuickUnlock()->getKey(m_db->publicUuid(), keyData)) {
             m_ui->messageWidget->showMessage(
                 tr("Failed to authenticate with Quick Unlock: %1").arg(getQuickUnlock()->errorString()),
                 MessageWidget::Error);
+            return {};
+        }
+        // Empty key: the user cancelled the prompt, so there's nothing to report
+        if (keyData.isEmpty()) {
             return {};
         }
         databaseKey->setRawKey(keyData);
@@ -625,7 +630,7 @@ bool DatabaseOpenWidget::isOnQuickUnlockScreen() const
 
 void DatabaseOpenWidget::toggleQuickUnlockScreen()
 {
-    if (canPerformQuickUnlock()) {
+    if (canPerformQuickUnlock() && !m_passwordScreenForced) {
         m_ui->centralStack->setCurrentIndex(1);
         // Work around qt issue where focus is stolen even if not visible
         if (m_ui->quickUnlockButton->isVisible()) {
@@ -645,6 +650,13 @@ void DatabaseOpenWidget::triggerQuickUnlock()
     if (isOnQuickUnlockScreen()) {
         m_ui->quickUnlockButton->click();
     }
+}
+
+//! Show the password form instead of Quick Unlock, keeping the stored key (until the next load)
+void DatabaseOpenWidget::showPasswordScreen()
+{
+    m_passwordScreenForced = true;
+    toggleQuickUnlockScreen();
 }
 
 //! Whether a successful unlock stores a new quick unlock key (default: true)

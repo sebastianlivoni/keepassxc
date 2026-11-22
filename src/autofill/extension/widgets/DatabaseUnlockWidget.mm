@@ -35,11 +35,11 @@ DatabaseUnlockWidget::DatabaseUnlockWidget(ASCredentialProviderExtensionContext*
     connect(m_openWidget, &DatabaseOpenWidget::dialogFinished, this, &DatabaseUnlockWidget::openWidgetFinished);
     layout->addWidget(m_openWidget);
 
-    // The Quick Unlock "Cancel" button resets the stored key in the main app;
-    // in the extension it should cancel the AutoFill request instead
+    // The Quick Unlock "Cancel" button resets the stored key in the main app; the keychain is
+    // shared, so here it only switches to the password form and keeps the key
     if (auto* resetButton = m_openWidget->findChild<QPushButton*>("resetQuickUnlockButton")) {
         disconnect(resetButton, nullptr, m_openWidget, nullptr);
-        connect(resetButton, &QPushButton::clicked, this, &DatabaseUnlockWidget::cancelRequest);
+        connect(resetButton, &QPushButton::clicked, m_openWidget, &DatabaseOpenWidget::showPasswordScreen);
     }
 
     // Close on the password form; also reaches us via dialogFinished(false)
@@ -101,6 +101,10 @@ bool DatabaseUnlockWidget::tryQuickUnlock()
     // Synchronous: returns once Touch ID succeeded, failed or was cancelled
     m_openWidget->toggleQuickUnlockScreen();
     m_openWidget->triggerQuickUnlock();
+    // Touch ID cancelled or failed: the sheet opens on the password form, not Touch ID again
+    if (!m_unlocked) {
+        m_openWidget->showPasswordScreen();
+    }
     return m_unlocked;
 }
 
