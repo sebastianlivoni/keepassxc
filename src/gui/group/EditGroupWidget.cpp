@@ -21,6 +21,10 @@
 #if defined(KPXC_FEATURE_BROWSER)
 #include "browser/BrowserService.h"
 #include "ui_EditGroupWidgetBrowser.h"
+#ifdef Q_OS_MACOS
+#include "autofill/common/AutoFillEntryOptions.h"
+#include "autofill/common/AutoFillSupport.h"
+#endif
 #endif
 
 #include "core/Config.h"
@@ -31,6 +35,26 @@
 #include "gui/Icons.h"
 #include "gui/MessageBox.h"
 #include "keeshare/group/EditGroupPageKeeShare.h"
+
+#if defined(KPXC_FEATURE_BROWSER)
+namespace
+{
+    // The Browser Integration page also holds the macOS AutoFill group options
+    bool autoFillOptionsEnabled()
+    {
+#ifdef Q_OS_MACOS
+        return isAutoFillSupported();
+#else
+        return false;
+#endif
+    }
+
+    bool browserPageEnabled()
+    {
+        return config()->get(Config::Browser_Enabled).toBool() || autoFillOptionsEnabled();
+    }
+} // namespace
+#endif
 
 class EditGroupWidget::ExtraPage
 {
@@ -79,7 +103,7 @@ EditGroupWidget::EditGroupWidget(QWidget* parent)
     addPage(tr("Group"), icons()->icon("document-edit"), m_editGroupWidgetMain);
     addPage(tr("Icon"), icons()->icon("preferences-desktop-icons"), m_editGroupWidgetIcons);
 #if defined(KPXC_FEATURE_BROWSER)
-    if (config()->get(Config::Browser_Enabled).toBool()) {
+    if (browserPageEnabled()) {
         initializeBrowserPage();
     }
 #endif
@@ -126,7 +150,7 @@ void EditGroupWidget::setupModifiedTracking()
     connect(m_editGroupWidgetIcons, SIGNAL(widgetUpdated()), SLOT(setModified()));
 
 #if defined(KPXC_FEATURE_BROWSER)
-    if (config()->get(Config::Browser_Enabled).toBool()) {
+    if (browserPageEnabled()) {
         setupBrowserModifiedTracking();
     }
 #endif
@@ -185,13 +209,14 @@ void EditGroupWidget::loadGroup(Group* group, bool create, const QSharedPointer<
     }
 
 #ifdef KPXC_FEATURE_BROWSER
-    if (config()->get(Config::Browser_Enabled).toBool()) {
+    if (browserPageEnabled()) {
         auto inheritHideEntries = false;
         auto inheritSkipSubmit = false;
         auto inheritOnlyHttp = false;
         auto inheritNoHttp = false;
         auto inheritOmitWww = false;
         auto inheritRestrictKey = QString();
+        auto inheritAskBeforeFilling = false;
 
         auto parent = group->parentGroup();
         if (parent) {
@@ -201,11 +226,15 @@ void EditGroupWidget::loadGroup(Group* group, bool create, const QSharedPointer<
             inheritNoHttp = parent->resolveBrowserOptionEnabled(BrowserService::OPTION_NOT_HTTP_AUTH);
             inheritOmitWww = parent->resolveBrowserOptionEnabled(BrowserService::OPTION_OMIT_WWW);
             inheritRestrictKey = parent->resolveCustomDataString(BrowserService::OPTION_RESTRICT_KEY);
+#ifdef Q_OS_MACOS
+            inheritAskBeforeFilling =
+                parent->resolveBrowserOptionEnabled(AutoFillEntryOptions::OPTION_ASK_BEFORE_FILLING);
+#endif
         }
 
         // If the page has not been created at all, some of the elements are null
         if (m_browserUi->browserIntegrationHideEntriesComboBox == nullptr
-            && config()->get(Config::Browser_Enabled).toBool()) {
+            && browserPageEnabled()) {
             initializeBrowserPage();
             setupBrowserModifiedTracking();
         }
@@ -216,6 +245,7 @@ void EditGroupWidget::loadGroup(Group* group, bool create, const QSharedPointer<
         addTriStateItems(m_browserUi->browserIntegrationOnlyHttpAuthComboBox, inheritOnlyHttp);
         addTriStateItems(m_browserUi->browserIntegrationNotHttpAuthComboBox, inheritNoHttp);
         addTriStateItems(m_browserUi->browserIntegrationOmitWwwCombobox, inheritOmitWww);
+        addTriStateItems(m_browserUi->browserIntegrationAskBeforeFillingComboBox, inheritAskBeforeFilling);
         addRestrictKeyComboBoxItems(m_db->metadata()->customData()->keys(), inheritRestrictKey);
 
         m_browserUi->browserIntegrationHideEntriesComboBox->setCurrentIndex(
@@ -228,6 +258,10 @@ void EditGroupWidget::loadGroup(Group* group, bool create, const QSharedPointer<
             indexFromTriState(group->resolveCustomDataTriState(BrowserService::OPTION_NOT_HTTP_AUTH, false)));
         m_browserUi->browserIntegrationOmitWwwCombobox->setCurrentIndex(
             indexFromTriState(group->resolveCustomDataTriState(BrowserService::OPTION_OMIT_WWW, false)));
+#ifdef Q_OS_MACOS
+        m_browserUi->browserIntegrationAskBeforeFillingComboBox->setCurrentIndex(indexFromTriState(
+            group->resolveCustomDataTriState(AutoFillEntryOptions::OPTION_ASK_BEFORE_FILLING, false)));
+#endif
         setRestrictKeyComboBoxIndex(group);
     } else if (hasPage(m_browserWidget)) {
         setPageHidden(m_browserWidget, true);
@@ -282,7 +316,7 @@ void EditGroupWidget::apply()
     }
 
 #ifdef KPXC_FEATURE_BROWSER
-    if (config()->get(Config::Browser_Enabled).toBool()) {
+    if (browserPageEnabled()) {
         if (!m_browserSettingsChanged) {
             return;
         }
@@ -302,6 +336,11 @@ void EditGroupWidget::apply()
         m_temporaryGroup->setCustomDataTriState(
             BrowserService::OPTION_OMIT_WWW,
             triStateFromIndex(m_browserUi->browserIntegrationOmitWwwCombobox->currentIndex()));
+#ifdef Q_OS_MACOS
+        m_temporaryGroup->setCustomDataTriState(
+            AutoFillEntryOptions::OPTION_ASK_BEFORE_FILLING,
+            triStateFromIndex(m_browserUi->browserIntegrationAskBeforeFillingComboBox->currentIndex()));
+#endif
         setRestrictKeyCustomData(m_temporaryGroup->customData());
     }
 #endif
@@ -353,6 +392,14 @@ void EditGroupWidget::initializeBrowserPage()
 {
     addPage(tr("Browser Integration"), icons()->icon("internet-web-browser"), m_browserWidget);
     m_browserUi->setupUi(m_browserWidget);
+
+    const bool autoFill = autoFillOptionsEnabled();
+    m_browserUi->browserIntegrationAskBeforeFillingLabel->setVisible(autoFill);
+    m_browserUi->browserIntegrationAskBeforeFillingComboBox->setVisible(autoFill);
+    if (autoFill) {
+        m_browserUi->browserIntegrationHideEntriesLabel->setText(
+            tr("Hide entries from browser extension and AutoFill:"));
+    }
 }
 
 void EditGroupWidget::setupBrowserModifiedTracking()
@@ -363,6 +410,9 @@ void EditGroupWidget::setupBrowserModifiedTracking()
         m_browserUi->browserIntegrationSkipAutoSubmitComboBox, SIGNAL(currentIndexChanged(int)), SLOT(setModified()));
     connect(m_browserUi->browserIntegrationOnlyHttpAuthComboBox, SIGNAL(currentIndexChanged(int)), SLOT(setModified()));
     connect(m_browserUi->browserIntegrationNotHttpAuthComboBox, SIGNAL(currentIndexChanged(int)), SLOT(setModified()));
+    connect(m_browserUi->browserIntegrationAskBeforeFillingComboBox,
+            SIGNAL(currentIndexChanged(int)),
+            SLOT(setModified()));
     connect(m_browserUi->browserIntegrationHideEntriesComboBox,
             SIGNAL(currentIndexChanged(int)),
             SLOT(updateBrowserModified()));
@@ -373,6 +423,9 @@ void EditGroupWidget::setupBrowserModifiedTracking()
             SIGNAL(currentIndexChanged(int)),
             SLOT(updateBrowserModified()));
     connect(m_browserUi->browserIntegrationNotHttpAuthComboBox,
+            SIGNAL(currentIndexChanged(int)),
+            SLOT(updateBrowserModified()));
+    connect(m_browserUi->browserIntegrationAskBeforeFillingComboBox,
             SIGNAL(currentIndexChanged(int)),
             SLOT(updateBrowserModified()));
 }

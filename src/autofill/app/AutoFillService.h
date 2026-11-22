@@ -91,6 +91,8 @@ private:
 
     QSet<DatabaseWidget*> m_watchedDatabases;
     QSet<Group*> m_hookedGroups;
+    QSet<Entry*> m_hookedEntries;
+    QSet<Entry*> m_pendingEntryUpdates;
     QPointer<DatabaseWidget> m_currentDatabaseWidget;
 
     void updateWindowState();
@@ -106,6 +108,8 @@ private:
     void unwatchDatabase(DatabaseWidget* widget);
     void hookDatabaseGroups(DatabaseWidget* widget);
     void hookGroup(Group* group, const QUuid& dbUuid);
+    void hookEntry(Entry* entry, const QUuid& dbUuid);
+    void scheduleEntryUpdate(Entry* entry, const QUuid& dbUuid);
     void unhookDatabase(const QSharedPointer<Database>& db);
     void publishEntryIdentities(Entry* entry, const QUuid& dbUuid);
     void onEntryAdded(Entry* entry, const QUuid& dbUuid);

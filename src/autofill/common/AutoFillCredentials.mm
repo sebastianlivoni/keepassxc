@@ -1,4 +1,5 @@
 #include "common/AutoFillCredentials.h"
+#include "common/AutoFillEntryOptions.h"
 
 #include <Foundation/Foundation.h>
 #include <Foundation/NSObjCRuntime.h>
@@ -34,7 +35,7 @@ static bool passkeyFlag(const Entry* entry, const QString& key, bool defaultValu
     return value == "1" || value == TRUE_STR;
 }
 
-static ASCredentialServiceIdentifier* getCredentialServiceIdentifierFromEntry(const Entry* entry);
+static NSArray<ASCredentialServiceIdentifier*>* getCredentialServiceIdentifiersFromEntry(const Entry* entry);
 static int matchScore(const Entry* entry, const QStringList& siteUrls);
 
 Entry* AutoFillCredentials::entryForRecord(const NSString* recordIdentifier, const QSharedPointer<Database>& db)
@@ -44,7 +45,9 @@ Entry* AutoFillCredentials::entryForRecord(const NSString* recordIdentifier, con
     if (!db || !db->rootGroup() || !parseRecordIdentifier(recordIdentifier, dbUuid, entryUuid)) {
         return nullptr;
     }
-    return db->rootGroup()->findEntryByUuid(entryUuid);
+    // Hidden entries count as gone, so stale identities of them are never filled
+    Entry* entry = db->rootGroup()->findEntryByUuid(entryUuid);
+    return AutoFillEntryOptions::isHidden(entry) ? nullptr : entry;
 }
 
 ASPasswordCredential* AutoFillCredentials::getPasswordCredentialFromIdentity(const NSString* recordIdentifier,
@@ -54,37 +57,28 @@ ASPasswordCredential* AutoFillCredentials::getPasswordCredentialFromIdentity(con
     return entry ? getPasswordCredentialFromEntry(entry) : nil;
 }
 
-ASPasswordCredentialIdentity* AutoFillCredentials::getPasswordCredentialIdentityFromEntry(const Entry* entry,
-                                                                                          const QUuid dbUuid,
-                                                                                          const QString dbName)
+// One identity per URL (main and additional), so macOS suggests the entry on each of its sites
+NSArray<ASPasswordCredentialIdentity*>* AutoFillCredentials::getPasswordCredentialIdentitiesFromEntry(
+    const Entry* entry, const QUuid dbUuid, const QString dbName)
 {
+    NSMutableArray<ASPasswordCredentialIdentity*>* identities = [NSMutableArray array];
+
     QString username = entry->resolveMultiplePlaceholders(entry->username());
     QString password = entry->resolveMultiplePlaceholders(entry->password());
-
-    if (username.isEmpty() || password.isEmpty()) {
-        return nullptr;
-    }
-
-    auto* serviceIdentifier = getCredentialServiceIdentifierFromEntry(entry);
-    if (!serviceIdentifier) {
-        return nullptr;
-    }
-
     QString title = entry->resolveMultiplePlaceholders(entry->title());
-    if (title.isEmpty()) {
-        return nullptr;
+    if (username.isEmpty() || password.isEmpty() || title.isEmpty()) {
+        return identities;
     }
 
     NSString* userString = (title + " (" + dbName + ")").toNSString();
-
     NSString* recordIdentifier = recordIdentifierForEntry(entry, dbUuid);
 
-    ASPasswordCredentialIdentity* identity =
-        [[ASPasswordCredentialIdentity alloc] initWithServiceIdentifier:serviceIdentifier
-                                                                   user:userString
-                                                       recordIdentifier:recordIdentifier];
-
-    return identity;
+    for (ASCredentialServiceIdentifier* serviceIdentifier in getCredentialServiceIdentifiersFromEntry(entry)) {
+        [identities addObject:[[ASPasswordCredentialIdentity alloc] initWithServiceIdentifier:serviceIdentifier
+                                                                                         user:userString
+                                                                             recordIdentifier:recordIdentifier]];
+    }
+    return identities;
 }
 
 ASOneTimeCodeCredential* AutoFillCredentials::getOneTimeCodeCredentialFromIdentity(const NSString* recordIdentifier,
@@ -313,15 +307,12 @@ static QList<Entry*> visibleEntries(const QSharedPointer<Database>& db)
     }
 
     for (const auto& group : db->rootGroup()->groupsRecursive(true)) {
-        const auto groupOptionHideEntry = group->resolveCustomDataTriState(BrowserService::OPTION_HIDE_ENTRY);
-        if (group->isRecycled() || groupOptionHideEntry == Group::Enable) {
+        if (group->isRecycled()) {
             continue;
         }
 
         for (auto* entry : group->entries()) {
-            if (entry->isRecycled()
-                || (groupOptionHideEntry == Group::Inherit
-                    && entry->customData()->value(BrowserService::OPTION_HIDE_ENTRY) == TRUE_STR)) {
+            if (entry->isRecycled() || AutoFillEntryOptions::isHidden(entry)) {
                 continue;
             }
             entries.append(entry);
@@ -414,33 +405,26 @@ QList<Entry*> AutoFillCredentials::allEntries(const QSharedPointer<Database>& db
     return entries;
 }
 
-ASOneTimeCodeCredentialIdentity* AutoFillCredentials::getOneTimeCodeCredentialIdentityFromEntry(const Entry* entry,
-                                                                                                const QUuid dbUuid)
+// One identity per URL (main and additional), like the password identities
+NSArray<ASOneTimeCodeCredentialIdentity*>*
+AutoFillCredentials::getOneTimeCodeCredentialIdentitiesFromEntry(const Entry* entry, const QUuid dbUuid)
 {
-    if (!entry->hasTotp()) {
-        return nullptr;
-    }
-
-    auto* serviceIdentifier = getCredentialServiceIdentifierFromEntry(entry);
-    if (!serviceIdentifier) {
-        return nullptr;
-    }
+    NSMutableArray<ASOneTimeCodeCredentialIdentity*>* identities = [NSMutableArray array];
 
     QString title = entry->resolveMultiplePlaceholders(entry->title());
-    if (title.isEmpty()) {
-        return nullptr;
+    if (!entry->hasTotp() || title.isEmpty()) {
+        return identities;
     }
 
-    NSString* userString = title.toNSString();
-
+    NSString* label = title.toNSString();
     NSString* recordIdentifier = recordIdentifierForEntry(entry, dbUuid);
 
-    ASOneTimeCodeCredentialIdentity* identity =
-        [[ASOneTimeCodeCredentialIdentity alloc] initWithServiceIdentifier:serviceIdentifier
-                                                                     label:userString
-                                                          recordIdentifier:recordIdentifier];
-
-    return identity;
+    for (ASCredentialServiceIdentifier* serviceIdentifier in getCredentialServiceIdentifiersFromEntry(entry)) {
+        [identities addObject:[[ASOneTimeCodeCredentialIdentity alloc] initWithServiceIdentifier:serviceIdentifier
+                                                                                           label:label
+                                                                                recordIdentifier:recordIdentifier]];
+    }
+    return identities;
 }
 
 ASPasskeyCredentialIdentity* AutoFillCredentials::getPasskeyCredentialIdentityFromEntry(const Entry* entry,
@@ -466,21 +450,23 @@ ASPasskeyCredentialIdentity* AutoFillCredentials::getPasskeyCredentialIdentityFr
     return identity;
 }
 
-static ASCredentialServiceIdentifier* getCredentialServiceIdentifierFromEntry(const Entry* entry)
+// The entry's URL and its Browser Integration additional URLs, without duplicates
+static NSArray<ASCredentialServiceIdentifier*>* getCredentialServiceIdentifiersFromEntry(const Entry* entry)
 {
-    QString webUrl = entry->webUrl();
-
-    if (webUrl.isEmpty()) {
-        return nullptr;
+    QStringList urls{entry->webUrl()};
+    for (const auto& additionalUrl : entry->getAdditionalUrls()) {
+        urls << entry->resolveUrl(additionalUrl);
     }
+    urls.removeAll(QString());
+    urls.removeDuplicates();
 
-    NSString* serviceIdentifierString = webUrl.toNSString();
-
-    ASCredentialServiceIdentifier* serviceIdentifier =
-        [[ASCredentialServiceIdentifier alloc] initWithIdentifier:serviceIdentifierString
-                                                             type:ASCredentialServiceIdentifierTypeURL];
-
-    return serviceIdentifier;
+    NSMutableArray<ASCredentialServiceIdentifier*>* serviceIdentifiers = [NSMutableArray array];
+    for (const auto& url : urls) {
+        [serviceIdentifiers addObject:[[ASCredentialServiceIdentifier alloc]
+                                          initWithIdentifier:url.toNSString()
+                                                        type:ASCredentialServiceIdentifierTypeURL]];
+    }
+    return serviceIdentifiers;
 }
 
 NSString* AutoFillCredentials::recordIdentifierForEntry(const Entry* entry, const QUuid dbUuid)

@@ -2,6 +2,7 @@
 #include "app/AutoFillXPCListener.h"
 #include "common/AutoFillBookmarks.h"
 #include "common/AutoFillDatabaseOptions.h"
+#include "common/AutoFillEntryOptions.h"
 #include "common/AutoFillSupport.h"
 #include "common/AutoFillXPCProtocol.h"
 
@@ -12,6 +13,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QPointer>
+#include <QTimer>
 #include <memory>
 
 #include "core/Config.h"
@@ -93,14 +95,15 @@ AutoFillService* AutoFillService::instance()
     return s_instance;
 }
 
-static bool approvalRequired()
+// The global setting, or the entry's (or its group's) "Ask before filling this entry"
+static bool approvalRequired(const Entry* entry)
 {
-    return config()->get(Config::AutoFill_AskBeforeFilling).toBool();
+    return config()->get(Config::AutoFill_AskBeforeFilling).toBool() || AutoFillEntryOptions::askBeforeFilling(entry);
 }
 
-static void confirmUserPresence(void (^completion)(BOOL confirmed))
+static void confirmUserPresence(bool required, void (^completion)(BOOL confirmed))
 {
-    if (!approvalRequired()) {
+    if (!required) {
         completion(YES);
         return;
     }
@@ -174,12 +177,19 @@ void AutoFillService::fetchCredential(ASCredentialRequestType type,
             return;
         }
 
-        if (approvalRequired() && !interactive) {
+        const Entry* entry = database->rootGroup()->findEntryByUuid(entryUuid);
+        if (!entry || AutoFillEntryOptions::isHidden(entry)) {
+            reply(nil, AutoFillError(AutoFillErrorNotFound));
+            return;
+        }
+
+        const bool required = approvalRequired(entry);
+        if (required && !interactive) {
             reply(nil, AutoFillError(AutoFillErrorApprovalRequired));
             return;
         }
 
-        confirmUserPresence(^(BOOL confirmed) {
+        confirmUserPresence(required, ^(BOOL confirmed) {
             if (!confirmed) {
                 reply(nil, AutoFillError(AutoFillErrorCancelled));
                 return;
@@ -516,6 +526,49 @@ void AutoFillService::hookGroup(Group* group, const QUuid& dbUuid)
     connect(group, &Group::entryRemoved, this, [this, dbUuid](Entry* entry) { onEntryRemoved(entry, dbUuid); });
     connect(group, &Group::entryDataChanged, this, [this, dbUuid](Entry* entry) { onEntryDataChanged(entry, dbUuid); });
     connect(group, &QObject::destroyed, this, [this, group]() { m_hookedGroups.remove(group); });
+
+    // A group's options (e.g. hide) apply to every entry below it
+    connect(group->customData(), &CustomData::modified, this, [this, group, dbUuid]() {
+        for (Entry* entry : group->entriesRecursive()) {
+            scheduleEntryUpdate(entry, dbUuid);
+        }
+    });
+
+    for (Entry* entry : group->entries()) {
+        hookEntry(entry, dbUuid);
+    }
+}
+
+// entryDataChanged misses additional URLs and custom data (the hide and ask options)
+void AutoFillService::hookEntry(Entry* entry, const QUuid& dbUuid)
+{
+    if (!entry || m_hookedEntries.contains(entry)) {
+        return;
+    }
+    m_hookedEntries.insert(entry);
+
+    connect(entry, &Entry::modified, this, [this, entry, dbUuid]() { scheduleEntryUpdate(entry, dbUuid); });
+    connect(entry, &QObject::destroyed, this, [this, entry]() {
+        m_hookedEntries.remove(entry);
+        m_pendingEntryUpdates.remove(entry);
+    });
+}
+
+// One update per event loop pass: saving an entry emits modified for every changed field
+void AutoFillService::scheduleEntryUpdate(Entry* entry, const QUuid& dbUuid)
+{
+    if (!entry || m_pendingEntryUpdates.contains(entry)) {
+        return;
+    }
+    m_pendingEntryUpdates.insert(entry);
+
+    QPointer<Entry> entryPtr(entry);
+    QTimer::singleShot(0, this, [this, entryPtr, entry, dbUuid]() {
+        m_pendingEntryUpdates.remove(entry);
+        if (entryPtr) {
+            onEntryDataChanged(entryPtr, dbUuid);
+        }
+    });
 }
 
 // Wipe the store, then publish every database that is unlocked right now;
@@ -555,7 +608,13 @@ void AutoFillService::unhookDatabase(const QSharedPointer<Database>& db)
     }
     for (Group* group : db->rootGroup()->groupsRecursive(/*includeSelf=*/true)) {
         disconnect(group, nullptr, this, nullptr);
+        disconnect(group->customData(), nullptr, this, nullptr);
         m_hookedGroups.remove(group);
+        for (Entry* entry : group->entries()) {
+            disconnect(entry, nullptr, this, nullptr);
+            m_hookedEntries.remove(entry);
+            m_pendingEntryUpdates.remove(entry);
+        }
     }
 }
 
@@ -663,16 +722,16 @@ void AutoFillService::saveCredentialStore(DatabaseWidget* widget)
 // Password, one-time code and passkey identities an entry should have in the store
 NSArray* AutoFillService::identitiesForEntry(Entry* entry, const QUuid& dbUuid)
 {
+    if (AutoFillEntryOptions::isHidden(entry)) {
+        return @[];
+    }
+
     DatabaseWidget* widget = findDatabaseWidgetByUuid(dbUuid);
     QString dbName = widget ? widget->displayName() : QString();
 
     NSMutableArray* identities = [NSMutableArray array];
-    if (auto* password = getPasswordCredentialIdentityFromEntry(entry, dbUuid, dbName)) {
-        [identities addObject:password];
-    }
-    if (auto* oneTimeCode = getOneTimeCodeCredentialIdentityFromEntry(entry, dbUuid)) {
-        [identities addObject:oneTimeCode];
-    }
+    [identities addObjectsFromArray:getPasswordCredentialIdentitiesFromEntry(entry, dbUuid, dbName)];
+    [identities addObjectsFromArray:getOneTimeCodeCredentialIdentitiesFromEntry(entry, dbUuid)];
     if (auto* passkey = getPasskeyCredentialIdentityFromEntry(entry, dbUuid)) {
         [identities addObject:passkey];
     }
@@ -717,6 +776,7 @@ void AutoFillService::publishEntryIdentities(Entry* entry, const QUuid& dbUuid)
 
 void AutoFillService::onEntryAdded(Entry* entry, const QUuid& dbUuid)
 {
+    hookEntry(entry, dbUuid);
     if (!entry || entry->isRecycled()) {
         return;
     }

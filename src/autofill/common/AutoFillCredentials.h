@@ -38,9 +38,13 @@ namespace AutoFillCredentials
     ASPasskeyAssertionCredential* getPasskeyCredentialFromPasskeyRequest(const ASPasskeyCredentialRequest* request,
                                                                          const QSharedPointer<Database>& db);
 
-    ASPasswordCredentialIdentity*
-    getPasswordCredentialIdentityFromEntry(const Entry* entry, const QUuid dbUuid, const QString dbName);
-    ASOneTimeCodeCredentialIdentity* getOneTimeCodeCredentialIdentityFromEntry(const Entry* entry, const QUuid dbUuid);
+#ifdef __OBJC__
+    // One identity per URL: the entry's URL and its additional URLs
+    NSArray<ASPasswordCredentialIdentity*>*
+    getPasswordCredentialIdentitiesFromEntry(const Entry* entry, const QUuid dbUuid, const QString dbName);
+    NSArray<ASOneTimeCodeCredentialIdentity*>* getOneTimeCodeCredentialIdentitiesFromEntry(const Entry* entry,
+                                                                                         const QUuid dbUuid);
+#endif
     ASPasskeyCredentialIdentity* getPasskeyCredentialIdentityFromEntry(const Entry* entry, const QUuid dbUuid);
 
     ASPasskeyRegistrationCredential* createPasskeyRegistrationCredential(const ASPasskeyCredentialRequest* request,

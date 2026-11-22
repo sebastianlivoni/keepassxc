@@ -54,6 +54,10 @@
 #ifdef KPXC_FEATURE_BROWSER
 #include "EntryURLModel.h"
 #include "browser/BrowserService.h"
+#ifdef Q_OS_MACOS
+#include "autofill/common/AutoFillEntryOptions.h"
+#include "autofill/common/AutoFillSupport.h"
+#endif
 #endif
 #include "gui/Clipboard.h"
 #include "gui/EditWidgetIcons.h"
@@ -102,6 +106,23 @@ namespace
             return editor;
         }
     };
+
+#ifdef KPXC_FEATURE_BROWSER
+    // The Browser Integration page also holds the macOS AutoFill entry options
+    bool autoFillOptionsEnabled()
+    {
+#ifdef Q_OS_MACOS
+        return isAutoFillSupported();
+#else
+        return false;
+#endif
+    }
+
+    bool browserPageEnabled()
+    {
+        return config()->get(Config::Browser_Enabled).toBool() || autoFillOptionsEnabled();
+    }
+#endif
 } // namespace
 
 EditEntryWidget::EditEntryWidget(QWidget* parent)
@@ -375,9 +396,15 @@ void EditEntryWidget::setupAutoType()
 #ifdef KPXC_FEATURE_BROWSER
 void EditEntryWidget::setupBrowser()
 {
-    if (config()->get(Config::Browser_Enabled).toBool()) {
+    if (browserPageEnabled()) {
         m_browserUi->setupUi(m_browserWidget);
         addPage(tr("Browser Integration"), icons()->icon("internet-web-browser"), m_browserWidget);
+
+        const bool autoFill = autoFillOptionsEnabled();
+        m_browserUi->askBeforeFillingCheckbox->setVisible(autoFill);
+        if (autoFill) {
+            m_browserUi->hideEntryCheckbox->setText(tr("Hide this entry from the browser extension and AutoFill"));
+        }
         m_additionalURLsDataModel->setEntryAttributes(m_entryAttributes);
         m_browserUi->additionalURLsView->setModel(m_additionalURLsDataModel);
 
@@ -395,6 +422,7 @@ void EditEntryWidget::setupBrowser()
         connect(m_browserUi->hideEntryCheckbox, SIGNAL(toggled(bool)), SLOT(updateBrowserModified()));
         connect(m_browserUi->onlyHttpAuthCheckbox, SIGNAL(toggled(bool)), SLOT(updateBrowserModified()));
         connect(m_browserUi->notHttpAuthCheckbox, SIGNAL(toggled(bool)), SLOT(updateBrowserModified()));
+        connect(m_browserUi->askBeforeFillingCheckbox, SIGNAL(toggled(bool)), SLOT(updateBrowserModified()));
         connect(m_browserUi->addURLButton, SIGNAL(clicked()), SLOT(insertURL()));
         connect(m_browserUi->removeURLButton, SIGNAL(clicked()), SLOT(removeCurrentURL()));
         connect(m_browserUi->editURLButton, SIGNAL(clicked()), SLOT(editCurrentURL()));
@@ -445,6 +473,13 @@ void EditEntryWidget::updateBrowser()
     if (m_browserUi->notHttpAuthCheckbox->isEnabled()) {
         changeValue(BrowserService::OPTION_NOT_HTTP_AUTH, m_browserUi->notHttpAuthCheckbox->isChecked());
     }
+
+#ifdef Q_OS_MACOS
+    if (m_browserUi->askBeforeFillingCheckbox->isEnabled()) {
+        changeValue(AutoFillEntryOptions::OPTION_ASK_BEFORE_FILLING,
+                    m_browserUi->askBeforeFillingCheckbox->isChecked());
+    }
+#endif
 }
 
 void EditEntryWidget::insertURL()
@@ -617,11 +652,12 @@ void EditEntryWidget::setupEntryUpdate()
 #endif
 
 #ifdef KPXC_FEATURE_BROWSER
-    if (config()->get(Config::Browser_Enabled).toBool()) {
+    if (browserPageEnabled()) {
         connect(m_browserUi->skipAutoSubmitCheckbox, SIGNAL(toggled(bool)), SLOT(setModified()));
         connect(m_browserUi->hideEntryCheckbox, SIGNAL(toggled(bool)), SLOT(setModified()));
         connect(m_browserUi->onlyHttpAuthCheckbox, SIGNAL(toggled(bool)), SLOT(setModified()));
         connect(m_browserUi->notHttpAuthCheckbox, SIGNAL(toggled(bool)), SLOT(setModified()));
+        connect(m_browserUi->askBeforeFillingCheckbox, SIGNAL(toggled(bool)), SLOT(setModified()));
         connect(m_browserUi->addURLButton, SIGNAL(toggled(bool)), SLOT(setModified()));
         connect(m_browserUi->removeURLButton, SIGNAL(toggled(bool)), SLOT(setModified()));
         connect(m_browserUi->editURLButton, SIGNAL(toggled(bool)), SLOT(setModified()));
@@ -1162,7 +1198,7 @@ void EditEntryWidget::setForms(Entry* entry, bool restore)
 #endif
 
 #ifdef KPXC_FEATURE_BROWSER
-    if (config()->get(Config::Browser_Enabled).toBool()) {
+    if (browserPageEnabled()) {
         if (!hasPage(m_browserWidget)) {
             setupBrowser();
         }
@@ -1187,6 +1223,9 @@ void EditEntryWidget::setForms(Entry* entry, bool restore)
         updateCheckBoxValue(m_browserUi->skipAutoSubmitCheckbox, BrowserService::OPTION_SKIP_AUTO_SUBMIT);
         updateCheckBoxValue(m_browserUi->onlyHttpAuthCheckbox, BrowserService::OPTION_ONLY_HTTP_AUTH);
         updateCheckBoxValue(m_browserUi->notHttpAuthCheckbox, BrowserService::OPTION_NOT_HTTP_AUTH);
+#ifdef Q_OS_MACOS
+        updateCheckBoxValue(m_browserUi->askBeforeFillingCheckbox, AutoFillEntryOptions::OPTION_ASK_BEFORE_FILLING);
+#endif
 
         m_browserUi->addURLButton->setEnabled(!m_history);
         m_browserUi->removeURLButton->setEnabled(false);
@@ -1198,7 +1237,7 @@ void EditEntryWidget::setForms(Entry* entry, bool restore)
         }
     }
 
-    setPageHidden(m_browserWidget, !config()->get(Config::Browser_Enabled).toBool());
+    setPageHidden(m_browserWidget, !browserPageEnabled());
 #endif
 
     m_editWidgetProperties->setFields(entry->timeInfo(), entry->uuid());
@@ -1298,7 +1337,7 @@ bool EditEntryWidget::commitEntry()
     }
 
 #ifdef KPXC_FEATURE_BROWSER
-    if (config()->get(Config::Browser_Enabled).toBool()) {
+    if (browserPageEnabled()) {
         updateBrowser();
     }
 #endif
