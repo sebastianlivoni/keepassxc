@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src/autofill)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 set(core_SOURCES
         core/Alloc.cpp
@@ -441,6 +441,8 @@ if(APPLE)
     target_compile_definitions(keepassxc_core PRIVATE APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
     # For the AutoFill settings checkboxes; the rest is set in autofill/CMakeLists.txt
     target_compile_definitions(keepassxc_gui PRIVATE HELPER_APP_IDENTIFIER="${HELPER_APP_IDENTIFIER}")
+    # AutoFillService.h and AutoFillHelperCheckbox.mm include "common/..." relative to src/autofill
+    target_include_directories(keepassxc_gui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/autofill)
 
     if(Qt6MacExtras_FOUND)
         target_link_libraries(keepassxc_gui Qt6::MacExtras)

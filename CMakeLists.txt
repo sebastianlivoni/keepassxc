@@ -56,7 +56,7 @@ option(KPXC_FEATURE_FDOSECRETS "freedesktop.org Secret Service integration; repl
 
 option(AF_CODE_SIGNING_DR "Use production designated requirements for AutoFill XPC (OFF: accept Apple Development certificates of APPLE_TEAM_ID)" ON)
 option(AF_CODE_SIGNING_DR_ALLOW_DEVELOPMENT "With AF_CODE_SIGNING_DR: also accept Apple Development certificates of APPLE_TEAM_ID; never for releases" OFF)
-option(WITH_XC_DEV_ENTITLEMENTS "macOS: add debugging entitlements (library validation off, debugger attach, Homebrew Qt); never for releases" OFF)
+option(WITH_XC_DEV_ENTITLEMENTS "macOS: sign with development entitlements (no library validation, debugger attach, Homebrew Qt). Needed for locally signed builds; never use for releases" OFF)
 
 if(WITH_XC_DEV_ENTITLEMENTS)
     set(KEEPASSXC_DEV_ENTITLEMENTS [[
