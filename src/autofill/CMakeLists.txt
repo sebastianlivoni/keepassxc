@@ -21,7 +21,7 @@ set(autofill_DEFINITIONS
 target_compile_options(autofill PRIVATE "-fobjc-arc")
 target_compile_definitions(autofill PRIVATE ${autofill_DEFINITIONS})
 
-target_link_libraries(autofill Qt6::Core Qt6::Concurrent Qt6::Widgets Qt6::Network ${BOTAN_LIBRARIES})
+target_link_libraries(autofill Qt6::Widgets)
 
 set(SOURCES
     extension/AutoFillExtensionApplication.cpp
