@@ -14,7 +14,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# CPACK_PACKAGE_FILES is set only during POST_BUILD. Standalone: cmake -DCODESIGN_APP_DIR=<path/KeePassXC.app> -P MacOSCodesign.cmake
+# CPACK_PACKAGE_FILES is set only during POST_BUILD
 if(DEFINED CODESIGN_APP_DIR OR NOT CPACK_PACKAGE_FILES)     # PRE_BUILD: Sign binaries
 
     set(PROGNAME "@PROGNAME@")

@@ -355,9 +355,7 @@ if(KPXC_FEATURE_NETWORK)
             gui/IconDownloaderDialog.cpp)
 endif()
 
-# macOS bundle: app and AutoFill extension link one shared libkeepassxc.dylib instead of each
-# carrying a static copy; keepassxc_core/keepassxc_gui stay static for tests, CLI and other platforms
-# (the CLI uses Botan directly, which a static Botan build doesn't export from the dylib)
+# macOS bundle: the app and the AutoFill extension share libkeepassxc.dylib
 if(APPLE AND WITH_APP_BUNDLE)
     set(keepassxc_gui_LIB keepassxc_shared)
 else()
