@@ -483,11 +483,7 @@ if(APPLE AND WITH_APP_BUNDLE)
     # Built straight into the bundle so the build tree app and sandboxed extension can load it
     set_target_properties(keepassxc_shared PROPERTIES
         OUTPUT_NAME keepassxc
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUNDLE_INSTALL_DIR}/Frameworks"
-        INSTALL_NAME_DIR "@rpath"
-        BUILD_WITH_INSTALL_NAME_DIR ON)
-    # Qt frameworks sit next to the dylib
-    set_property(TARGET keepassxc_shared APPEND PROPERTY INSTALL_RPATH "@loader_path")
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUNDLE_INSTALL_DIR}/Frameworks")
     install(TARGETS keepassxc_shared LIBRARY DESTINATION "${BUNDLE_INSTALL_DIR}/Frameworks" COMPONENT Runtime)
     set_property(GLOBAL APPEND PROPERTY _MACDEPLOYQT_EXTRA_BINARIES "${BUNDLE_INSTALL_DIR}/Frameworks/libkeepassxc.dylib")
 endif()
