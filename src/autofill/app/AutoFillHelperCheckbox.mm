@@ -13,30 +13,31 @@ AutoFillHelperCheckbox::AutoFillHelperCheckbox(QWidget* parent)
     : QCheckBox(parent)
 {
     connect(qApp, &QApplication::applicationStateChanged, this, &AutoFillHelperCheckbox::checkHelperEnabled);
+    checkHelperEnabled(Qt::ApplicationActive);
 }
 
-void AutoFillHelperCheckbox::mousePressEvent(QMouseEvent* e)
+// Called for every user toggle (mouse, keyboard, accessibility); not calling the base vetoes it
+void AutoFillHelperCheckbox::nextCheckState()
 {
-    if (e->button() != Qt::LeftButton) {
-        return;
-    }
     SMAppService* agentService = autoFillHelperService();
     if (!isChecked()) {
-        NSError* error;
-        BOOL isRegistered = [agentService registerAndReturnError:&error];
-        if (!isRegistered) {
+        if (![agentService registerAndReturnError:nil]) {
             [SMAppService openSystemSettingsLoginItems];
             return;
         }
         config()->set(Config::AutoFill_HelperEnabled, true);
+        // Stays unchecked until approved; checkHelperEnabled() updates it when the app is active again
+        if (agentService.status == SMAppServiceStatusRequiresApproval) {
+            [SMAppService openSystemSettingsLoginItems];
+            return;
+        }
     } else {
-        BOOL isUnregistered = [agentService unregisterAndReturnError:nil];
-        if (!isUnregistered) {
+        if (![agentService unregisterAndReturnError:nil]) {
             return;
         }
         config()->set(Config::AutoFill_HelperEnabled, false);
     }
-    QCheckBox::mousePressEvent(e);
+    QCheckBox::nextCheckState();
 }
 
 void AutoFillHelperCheckbox::checkHelperEnabled(Qt::ApplicationState state)

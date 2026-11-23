@@ -14,14 +14,13 @@ AutoFillCredentialProviderCheckbox::AutoFillCredentialProviderCheckbox(QWidget* 
             &QApplication::applicationStateChanged,
             this,
             &AutoFillCredentialProviderCheckbox::checkCredentialProviderEnabled);
+    checkCredentialProviderEnabled(Qt::ApplicationActive);
 }
 
-void AutoFillCredentialProviderCheckbox::mousePressEvent(QMouseEvent* e)
+// Called for every user toggle (mouse, keyboard, accessibility). The state is never toggled here;
+// it is set once macOS reports whether the extension is enabled.
+void AutoFillCredentialProviderCheckbox::nextCheckState()
 {
-    if (e->button() != Qt::LeftButton) {
-        return;
-    }
-
     QPointer<AutoFillCredentialProviderCheckbox> self(this);
     ASCredentialIdentityStore* store = [ASCredentialIdentityStore sharedStore];
     [store getCredentialIdentityStoreStateWithCompletion:^(ASCredentialIdentityStoreState* _Nonnull state) {

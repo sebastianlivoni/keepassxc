@@ -1,7 +1,8 @@
+#ifndef KEEPASSXC_AUTOFILLCREDENTIALPROVIDERCHECKBOX_H
+#define KEEPASSXC_AUTOFILLCREDENTIALPROVIDERCHECKBOX_H
+
 #include <QCheckBox>
 #include <QDateTime>
-#include <QMouseEvent>
-#include <QPainter>
 
 class AutoFillCredentialProviderCheckbox : public QCheckBox
 {
@@ -11,7 +12,7 @@ public:
     explicit AutoFillCredentialProviderCheckbox(QWidget* parent = nullptr);
 
 protected:
-    void mousePressEvent(QMouseEvent* e) override;
+    void nextCheckState() override;
 
 private slots:
     void checkCredentialProviderEnabled(Qt::ApplicationState state);
@@ -19,3 +20,5 @@ private slots:
 private:
     QDateTime m_lastCredentialRequestTime;
 };
+
+#endif // KEEPASSXC_AUTOFILLCREDENTIALPROVIDERCHECKBOX_H
