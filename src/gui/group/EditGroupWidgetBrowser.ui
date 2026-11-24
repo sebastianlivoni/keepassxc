@@ -153,6 +153,23 @@
        </widget>
       </item>
       <item row="6" column="0">
+       <widget class="QLabel" name="browserIntegrationAskBeforeFillingLabel">
+        <property name="text">
+         <string>Ask before filling entries with AutoFill:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="QComboBox" name="browserIntegrationAskBeforeFillingComboBox">
+        <property name="accessibleName">
+         <string>Ask before filling with AutoFill toggle for this and sub groups</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0">
        <spacer name="verticalSpacer_1">
         <property name="orientation">
          <enum>Qt::Vertical</enum>

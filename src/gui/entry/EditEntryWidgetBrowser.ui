@@ -80,6 +80,13 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="askBeforeFillingCheckbox">
+        <property name="text">
+         <string>Ask before filling this entry with AutoFill</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

@@ -35,6 +35,7 @@
 #ifdef Q_OS_MACOS
 #include "gui/osutils/macutils/MacUtils.h"
 #endif
+#include "gui/DatabaseOpenWidget.h"
 #include "gui/wizard/NewDatabaseWizard.h"
 
 DatabaseTabWidget::DatabaseTabWidget(QWidget* parent)
@@ -820,7 +821,8 @@ void DatabaseTabWidget::displayUnlockDialog()
 {
 #ifdef Q_OS_MACOS
     auto intent = m_databaseOpenDialog->intent();
-    if (intent == DatabaseOpenDialog::Intent::AutoType || intent == DatabaseOpenDialog::Intent::Browser) {
+    if (intent == DatabaseOpenDialog::Intent::AutoType || intent == DatabaseOpenDialog::Intent::Browser
+        || intent == DatabaseOpenDialog::Intent::AutoFill) {
         macUtils()->raiseOwnWindow();
         Tools::wait(200);
     }
@@ -963,5 +965,29 @@ void DatabaseTabWidget::performBrowserUnlock()
     auto dbWidget = currentDatabaseWidget();
     if (dbWidget && dbWidget->isLocked()) {
         unlockAnyDatabaseInDialog(DatabaseOpenDialog::Intent::Browser);
+    }
+}
+
+void DatabaseTabWidget::performAutofillUnlock(DatabaseWidget* targetWidget)
+{
+    if (!targetWidget) {
+        targetWidget = currentDatabaseWidget();
+    }
+    if (!targetWidget || !targetWidget->isLocked()) {
+        return;
+    }
+
+    DatabaseOpenWidget* openWidget = targetWidget->m_databaseOpenWidget;
+    if (openWidget->canPerformQuickUnlock()) {
+        // triggerQuickUnlock only works from the Quick Unlock screen
+        openWidget->toggleQuickUnlockScreen();
+        openWidget->triggerQuickUnlock();
+        // Touch ID cancelled or failed: report it like a cancelled unlock dialog so the
+        // pending AutoFill request gets an answer
+        if (targetWidget->isLocked()) {
+            emit databaseUnlockDialogFinished(false, targetWidget);
+        }
+    } else {
+        unlockDatabaseInDialog(targetWidget, DatabaseOpenDialog::Intent::AutoFill);
     }
 }

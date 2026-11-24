@@ -38,4 +38,10 @@ if(KPXC_FEATURE_BROWSER)
 
     add_library(browser STATIC ${browser_SOURCES})
     target_link_libraries(browser Qt6::Core Qt6::Concurrent Qt6::Widgets Qt6::Network ${BOTAN_LIBRARIES})
+
+    if(APPLE)
+        target_compile_definitions(browser PRIVATE
+            APP_GROUP_IDENTIFIER="${APPLE_TEAM_ID}.${APPLE_APP_IDENTIFIER}")
+    endif()
+
 endif()

@@ -17,7 +17,7 @@
   <key>CFBundleIconName</key>
   <string>${MACOSX_BUNDLE_ICON_NAME}</string>
   <key>CFBundleIdentifier</key>
-  <string>${MACOSX_BUNDLE_IDENTIFIER}</string>
+  <string>${APPLE_APP_IDENTIFIER}</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
